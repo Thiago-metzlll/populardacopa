@@ -1,56 +1,103 @@
-# Welcome to your Expo app 👋
+# Popular da Copa
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+App mobile para acompanhar a Copa do Mundo: times, grupos, coleção de figurinhas e palpites de partidas.
 
-## Get started
+## Stack
 
-1. Install dependencies
+- **React Native** + **Expo**
+- **TypeScript**
+- **Clean Architecture**
 
-   ```bash
-   npm install
-   ```
+## Arquitetura
 
-2. Start the app
+O projeto segue Clean Architecture com separação estrita de camadas. A regra de dependência é sempre em uma direção: `presentation → domain ← infra`.
 
-   ```bash
-   npx expo start
-   ```
+```
+domain/
+  entities/       → contratos de dados puros (sem lógica, sem libs externas)
+  repositories/   → interfaces que declaram o que a infra precisa implementar
+  usecases/       → regras de negócio, dependem apenas da interface do repository
 
-In the output, you'll find options to open the app in a
+infra/
+  repositories/   → implementações concretas (mock, API, etc.)
+  seed/           → dados fake usados pelos mocks
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+presentation/      → telas e componentes (a construir)
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Use cases nunca dependem de implementação concreta — apenas da interface do repository. Isso permite trocar mock por API real sem alterar nenhuma regra de negócio.
 
-### Other setup steps
+### Convenções
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+- Datas são sempre `string` em formato ISO no domain; formatação fica na camada de apresentação.
+- Entidades pequenas que só existem em função de outra ficam agrupadas no mesmo arquivo (ex: `Match` + `MatchOdds`).
+- Mocks simulam latência de rede (300–500ms) e mantêm estado em memória — os dados resetam a cada reload (comportamento aceito nesta fase do projeto).
 
-## Learn more
+## Estrutura de pastas
 
-To learn more about developing your project with Expo, look at the following resources:
+```
+src/
+  shared/
+    domain/
+      entities/       → Country, Confederation, User
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+  features/
+    times/
+      domain/
+        entities/     → Team, Player, PlayerStats
+        repositories/ → TeamRepository
+        usecases/     → GetFavoriteTeams, SearchTeams, ToggleFavoriteTeam
+      infra/
+        repositories/ → MockTeamRepository
+        seed/         → TeamSeed
 
-## Join the community
+    grupos/
+      domain/
+        entities/     → Group, GroupStanding
+        repositories/ → GroupRepository
+        usecases/     → GetAllGroups
+      infra/
+        repositories/ → MockGroupRepository
+        seed/         → GroupSeed
 
-Join our community of developers creating universal apps.
+    album/
+      domain/
+        entities/     → Sticker, Album, UserCollection, Package
+        repositories/ → AlbumRepository
+        usecases/     → GetUserProfile, OpenPackage
+      infra/
+        repositories/ → MockAlbumRepository
+        seed/         → AlbumSeed
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+    apostas/
+      domain/
+        entities/     → Match, MatchOdds, Prediction, PredictionReward, PredictionHistory
+        repositories/ → (a definir)
+        usecases/     → (a definir)
+      infra/
+        (a definir)
+```
+
+## Status atual
+
+| Feature  | Entities | Repository (interface) | Use Cases | Infra (mock) | Telas |
+|----------|:--------:|:-----------------------:|:---------:|:-------------:|:-----:|
+| times    | ✅ | ✅ | ✅ | ✅ | ⬜ |
+| grupos   | ✅ | ✅ | ✅ | ✅ | ⬜ |
+| album    | ✅ | ✅ | ✅ | ✅ | ⬜ |
+| apostas  | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
+
+Próximos passos: definir repository/use cases de `apostas` (Match + Prediction), depois a tela de Palpite como derivada da tela Apostas, e então iniciar a camada de presentation para as 4 telas já modeladas: Grupos, Perfil, Times e Apostas.
+
+## Como rodar
+
+```bash
+npm install
+npx expo start
+```
+
+## Notas de modelagem
+
+- **Palpite vs Aposta**: "Aposta" é a feature/tela que agrega partidas apostáveis (com odds) e histórico. "Palpite" (`Prediction`) é a entidade real — a previsão de placar do usuário para uma partida específica.
+- **Tela Times** exibe apenas os times favoritados do usuário (`GetFavoriteTeams`), não a lista completa de seleções.
+- A Tela Apostas exige autenticação para o usuário efetivamente apostar (gate de login na UI); isso ainda não está refletido no domain e deve ser tratado na camada de presentation/rota.
