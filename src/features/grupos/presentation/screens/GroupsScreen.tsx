@@ -1,12 +1,13 @@
 import React from 'react';
 import { View, Text, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
 import { useGroups } from '../hooks/useGroups';
+import { colors, spacing, typography, radius } from '../../../../shared/presentation/theme';
 
 export const GroupsScreen = () => {
   const { groups, loading, error } = useGroups();
 
-  if (loading) return <ActivityIndicator style={styles.center} />;
-  if (error) return <Text style={styles.center}>Error: {error}</Text>;
+  if (loading) return <View style={styles.center}><ActivityIndicator color={colors.primary} size="large" /></View>;
+  if (error) return <View style={styles.center}><Text style={styles.errorText}>Error: {error}</Text></View>;
 
   return (
     <View style={styles.container}>
@@ -17,7 +18,7 @@ export const GroupsScreen = () => {
           <View style={styles.groupCard}>
             <Text style={styles.title}>{item.name}</Text>
             {item.standings.map(s => (
-              <Text key={s.teamId}>
+              <Text key={s.teamId} style={styles.standingText}>
                 Time: {s.teamId} | P: {s.points} | J: {s.matchesPlayed} | SG: {s.goalDifference}
               </Text>
             ))}
@@ -29,8 +30,10 @@ export const GroupsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  groupCard: { padding: 16, marginBottom: 16, backgroundColor: '#f0f0f0', borderRadius: 8 },
-  title: { fontSize: 18, fontWeight: 'bold', marginBottom: 8 }
+  container: { flex: 1, padding: spacing.md, backgroundColor: colors.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+  errorText: { ...typography.body, color: colors.danger },
+  groupCard: { padding: spacing.md, marginBottom: spacing.md, backgroundColor: colors.surface, borderRadius: radius.md },
+  title: { ...typography.subheading, color: colors.primary, marginBottom: spacing.sm },
+  standingText: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.xs }
 });

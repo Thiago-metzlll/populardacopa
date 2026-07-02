@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet, Button } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
 import { useFavoriteTeams } from '../hooks/useFavoriteTeams';
 import { SearchInput } from '../components/SearchInput';
+import { colors, spacing, typography, radius } from '../../../../shared/presentation/theme';
 
 export const TimesScreen = () => {
   const { teams, loading, error, search, toggleFavorite } = useFavoriteTeams();
@@ -18,9 +19,9 @@ export const TimesScreen = () => {
     <View style={styles.container}>
       <SearchInput value={query} onChangeText={setQuery} />
       {loading ? (
-        <ActivityIndicator style={styles.center} />
+        <View style={styles.center}><ActivityIndicator color={colors.primary} size="large" /></View>
       ) : error ? (
-        <Text style={styles.center}>Error: {error}</Text>
+        <View style={styles.center}><Text style={styles.errorText}>Error: {error}</Text></View>
       ) : (
         <FlatList
           data={teams}
@@ -28,7 +29,9 @@ export const TimesScreen = () => {
           renderItem={({ item }) => (
             <View style={styles.teamCard}>
               <Text style={styles.title}>{item.name}</Text>
-              <Button title="Remover" onPress={() => toggleFavorite(item.id)} />
+              <TouchableOpacity style={styles.removeButton} onPress={() => toggleFavorite(item.id)}>
+                <Text style={styles.removeButtonText}>Remover</Text>
+              </TouchableOpacity>
             </View>
           )}
         />
@@ -38,8 +41,11 @@ export const TimesScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
+  container: { flex: 1, padding: spacing.md, backgroundColor: colors.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  teamCard: { padding: 16, backgroundColor: '#f0f0f0', borderRadius: 8, marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize: 16, fontWeight: 'bold' }
+  errorText: { ...typography.body, color: colors.danger },
+  teamCard: { padding: spacing.md, backgroundColor: colors.surface, borderRadius: radius.md, marginBottom: spacing.sm, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  title: { ...typography.subheading, color: colors.textPrimary },
+  removeButton: { backgroundColor: colors.danger, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.sm },
+  removeButtonText: { ...typography.body, color: colors.textPrimary }
 });

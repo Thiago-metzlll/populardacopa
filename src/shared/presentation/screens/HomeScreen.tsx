@@ -5,6 +5,7 @@ import { useUserProfile } from '../../../features/album/presentation/hooks/useUs
 import { CardMinhaColecao } from '../../../features/album/presentation/components/CardMinhaColecao';
 import { useUpcomingMatches } from '../../../features/apostas/presentation/hooks/useUpcomingMatches';
 import { ContainerAposta } from '../../../features/apostas/presentation/components/ContainerAposta';
+import { colors, spacing, typography, radius } from '../theme';
 
 export const HomeScreen = () => {
   const router = useRouter();
@@ -18,7 +19,7 @@ export const HomeScreen = () => {
       <TouchableOpacity onPress={() => router.push('/apostas' as any)} style={styles.touchableCard}>
         <Text style={styles.cardTitle}>Partidas Atuais</Text>
         {matchesLoading ? (
-          <ActivityIndicator style={{ padding: 16 }} />
+          <ActivityIndicator style={{ padding: spacing.md }} color={colors.primary} />
         ) : matches.length > 0 ? (
           <ContainerAposta match={matches[0]} />
         ) : (
@@ -36,7 +37,7 @@ export const HomeScreen = () => {
       </View>
 
       {profileLoading ? (
-        <ActivityIndicator style={styles.loader} />
+        <ActivityIndicator style={styles.loader} color={colors.primary} />
       ) : profile ? (
         <CardMinhaColecao progress={profile.collection.stickerIds.length} />
       ) : null}
@@ -45,13 +46,13 @@ export const HomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  header: { fontSize: 24, fontWeight: 'bold', marginBottom: 16 },
-  touchableCard: { backgroundColor: '#f0f0f0', borderRadius: 8, marginBottom: 16 },
-  cardTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 8, padding: 16, paddingBottom: 0 },
-  placeholderText: { color: '#666', padding: 16 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  navCard: { flex: 1, padding: 24, backgroundColor: '#e0e0e0', borderRadius: 8, marginHorizontal: 4, alignItems: 'center' },
-  navText: { fontSize: 16, fontWeight: 'bold' },
-  loader: { marginVertical: 20 }
+  container: { flex: 1, padding: spacing.md, backgroundColor: colors.background },
+  header: { ...typography.heading, color: colors.textPrimary, marginBottom: spacing.md },
+  touchableCard: { backgroundColor: colors.surface, borderRadius: radius.md, marginBottom: spacing.md, borderWidth: 1, borderColor: colors.primary },
+  cardTitle: { ...typography.subheading, color: colors.textPrimary, marginBottom: spacing.sm, padding: spacing.md, paddingBottom: 0 },
+  placeholderText: { ...typography.body, color: colors.textSecondary, padding: spacing.md },
+  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.md },
+  navCard: { flex: 1, padding: spacing.lg, backgroundColor: colors.surface, borderRadius: radius.md, marginHorizontal: spacing.xs, alignItems: 'center' },
+  navText: { ...typography.subheading, color: colors.textPrimary },
+  loader: { marginVertical: spacing.lg }
 });

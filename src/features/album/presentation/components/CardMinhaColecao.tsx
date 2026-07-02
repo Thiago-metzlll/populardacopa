@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { colors, spacing, typography, radius } from '../../../../shared/presentation/theme';
 
 interface CardMinhaColecaoProps {
   progress: number;
@@ -15,7 +16,7 @@ export const CardMinhaColecao: React.FC<CardMinhaColecaoProps> = ({ progress }) 
 };
 
 const styles = StyleSheet.create({
-  card: { padding: 16, backgroundColor: '#e0e0e0', borderRadius: 8, marginBottom: 16 },
-  title: { fontSize: 16, fontWeight: 'bold' },
-  progress: { fontSize: 24, marginTop: 8 }
+  card: { padding: spacing.md, backgroundColor: colors.surface, borderRadius: radius.md, marginBottom: spacing.md, borderWidth: 1, borderColor: colors.primary },
+  title: { ...typography.subheading, color: colors.textPrimary },
+  progress: { ...typography.heading, color: colors.primary, marginTop: spacing.sm }
 });
