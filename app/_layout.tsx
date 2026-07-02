@@ -8,6 +8,7 @@ export default function RootLayout() {
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="grupos" options={{ title: 'Grupos', presentation: 'modal' }} />
+        <Stack.Screen name="apostas" options={{ title: 'Apostas', presentation: 'modal' }} />
       </Stack>
     </UserProvider>
   );

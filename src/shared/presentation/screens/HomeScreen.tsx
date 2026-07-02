@@ -3,19 +3,28 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'rea
 import { useRouter } from 'expo-router';
 import { useUserProfile } from '../../../features/album/presentation/hooks/useUserProfile';
 import { CardMinhaColecao } from '../../../features/album/presentation/components/CardMinhaColecao';
+import { useUpcomingMatches } from '../../../features/apostas/presentation/hooks/useUpcomingMatches';
+import { ContainerAposta } from '../../../features/apostas/presentation/components/ContainerAposta';
 
 export const HomeScreen = () => {
   const router = useRouter();
-  const { profile, loading } = useUserProfile();
+  const { profile, loading: profileLoading } = useUserProfile();
+  const { matches, loading: matchesLoading } = useUpcomingMatches();
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Bem-vindo!</Text>
 
-      <View style={styles.card}>
+      <TouchableOpacity onPress={() => router.push('/apostas' as any)} style={styles.touchableCard}>
         <Text style={styles.cardTitle}>Partidas Atuais</Text>
-        <Text style={styles.placeholderText}>Nenhuma partida no momento</Text>
-      </View>
+        {matchesLoading ? (
+          <ActivityIndicator style={{ padding: 16 }} />
+        ) : matches.length > 0 ? (
+          <ContainerAposta match={matches[0]} />
+        ) : (
+          <Text style={styles.placeholderText}>Nenhuma partida no momento</Text>
+        )}
+      </TouchableOpacity>
 
       <View style={styles.row}>
         <TouchableOpacity style={styles.navCard} onPress={() => router.push('/times' as any)}>
@@ -26,7 +35,7 @@ export const HomeScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {loading ? (
+      {profileLoading ? (
         <ActivityIndicator style={styles.loader} />
       ) : profile ? (
         <CardMinhaColecao progress={profile.collection.stickerIds.length} />
@@ -38,9 +47,9 @@ export const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
   header: { fontSize: 24, fontWeight: 'bold', marginBottom: 16 },
-  card: { padding: 16, backgroundColor: '#f0f0f0', borderRadius: 8, marginBottom: 16 },
-  cardTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 8 },
-  placeholderText: { color: '#666' },
+  touchableCard: { backgroundColor: '#f0f0f0', borderRadius: 8, marginBottom: 16 },
+  cardTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 8, padding: 16, paddingBottom: 0 },
+  placeholderText: { color: '#666', padding: 16 },
   row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   navCard: { flex: 1, padding: 24, backgroundColor: '#e0e0e0', borderRadius: 8, marginHorizontal: 4, alignItems: 'center' },
   navText: { fontSize: 16, fontWeight: 'bold' },
