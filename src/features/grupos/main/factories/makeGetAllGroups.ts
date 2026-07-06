@@ -1,7 +1,6 @@
 import { GetAllGroups } from '../../domain/usecases/GetAllGroups';
-import { MockGroupRepository } from '../../infra/repositories/MockGroupRepository';
+import { groupRepositoryInstance } from './repositoryInstance';
 
 export const makeGetAllGroups = (): GetAllGroups => {
-  const repository = new MockGroupRepository();
-  return new GetAllGroups(repository);
+  return new GetAllGroups(groupRepositoryInstance);
 };

@@ -5,16 +5,24 @@ import { colors, spacing, typography, radius } from '../../../../shared/presenta
 
 interface ContainerApostaProps {
   match: Match;
+  onPress?: () => void;
 }
 
-export const ContainerAposta: React.FC<ContainerApostaProps> = ({ match }) => {
+export const ContainerAposta: React.FC<ContainerApostaProps> = ({ match, onPress }) => {
+  const handlePress = () => {
+    if (onPress) {
+      onPress();
+    } else {
+      console.log('Dar Palpite clicado para a partida:', match.id);
+    }
+  };
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <View style={styles.phasePill}>
           <Text style={styles.phaseText}>{match.phase.toUpperCase()}</Text>
         </View>
-        <TouchableOpacity style={styles.palpiteButton}>
+        <TouchableOpacity style={styles.palpiteButton} onPress={handlePress}>
           <Text style={styles.palpiteButtonText}>Dar Palpite</Text>
         </TouchableOpacity>
       </View>
