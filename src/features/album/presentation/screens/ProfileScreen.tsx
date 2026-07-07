@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { useOpenPackage } from '../hooks/useOpenPackage';
-import { CardMinhaColecao } from '../components/CardMinhaColecao';
+import { CardColecao } from '../../../../shared/presentation/components/CardColecao';
 import { colors, spacing, typography, radius } from '../../../../shared/presentation/theme';
 
 export const ProfileScreen = () => {
@@ -18,7 +18,7 @@ export const ProfileScreen = () => {
 
   return (
     <View style={styles.container}>
-      {profile && <CardMinhaColecao progress={profile.collection.stickerIds.length} />}
+      {profile && <CardColecao progress={profile.collection.stickerIds.length} />}
       
       <TouchableOpacity 
         style={[styles.button, opening && styles.buttonDisabled]} 

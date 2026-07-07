@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useUserProfile } from '../../../features/album/presentation/hooks/useUserProfile';
-import { CardMinhaColecao } from '../../../features/album/presentation/components/CardMinhaColecao';
+import { CardColecao } from '../components/CardColecao';
 import { useUpcomingMatches } from '../../../features/apostas/presentation/hooks/useUpcomingMatches';
 import { ContainerAposta } from '../../../features/apostas/presentation/components/ContainerAposta';
 import { colors, spacing, typography, radius } from '../theme';
@@ -63,7 +63,7 @@ export const HomeScreen = () => {
       {profileLoading ? (
         <ActivityIndicator style={styles.loader} color={colors.primary} />
       ) : profile ? (
-        <CardMinhaColecao progress={profile.collection.stickerIds.length} />
+        <CardColecao progress={profile.collection.stickerIds.length} />
       ) : null}
     </ScrollView>
   );

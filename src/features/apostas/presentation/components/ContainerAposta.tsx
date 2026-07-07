@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Match } from '../../domain/entities/Match';
 import { colors, spacing, typography, radius } from '../../../../shared/presentation/theme';
+import { MolduraIndividualPais } from '../../../../shared/presentation/components/MolduraIndividualPais';
 
 interface ContainerApostaProps {
   match: Match;
@@ -29,7 +30,7 @@ export const ContainerAposta: React.FC<ContainerApostaProps> = ({ match, onPress
 
       <View style={styles.teamsRow}>
         <View style={styles.teamContainer}>
-          <View style={styles.flagPlaceholder} />
+          <MolduraIndividualPais teamId={match.homeTeamId} size="md" />
           <Text style={styles.teamName}>{match.homeTeamId.substring(0, 3).toUpperCase()}</Text>
         </View>
 
@@ -41,7 +42,7 @@ export const ContainerAposta: React.FC<ContainerApostaProps> = ({ match, onPress
         </View>
 
         <View style={styles.teamContainer}>
-          <View style={styles.flagPlaceholder} />
+          <MolduraIndividualPais teamId={match.awayTeamId} size="md" />
           <Text style={styles.teamName}>{match.awayTeamId.substring(0, 3).toUpperCase()}</Text>
         </View>
       </View>

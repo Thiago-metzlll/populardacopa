@@ -1,4 +1,4 @@
-﻿# Popular da Copa
+# Popular da Copa
 
 **Popular da Copa** é um aplicativo mobile para torcedores acompanharem a Copa do Mundo com engajamento ativo: visualize grupos e classificações, gerencie seus times favoritos, colecione figurinhas digitais e dê palpites nas partidas para ganhar moedas virtuais.
 
@@ -12,7 +12,7 @@ O aplicativo é organizado em quatro pilares de funcionalidade principais, prece
 Exibe a tabela de cada grupo da Copa (pontuação, saldo de gols, vitórias/empates/derrotas), refletindo o estado atual do torneio.
 
 ### 🃏 Perfil & Álbum de Figurinhas
-Hub da coleção pessoal. O usuário vê seu progresso via `CardMinhaColeção`, pode visitar o Mercado de Figurinhas para trocar duplicatas, abrir pacotes com animação e compartilhar figurinhas via `CompartilhBtn`.
+Hub da coleção pessoal. O usuário vê seu progresso via `CardColeção`, pode visitar o Mercado de Figurinhas para trocar duplicatas, abrir pacotes com animação e compartilhar figurinhas via `CompartilhBtn`.
 
 ### ⭐ Times (Meus Times)
 O usuário monta seu painel de seleções favoritas com `SearchInput` para busca com debounce. Uma tela de detalhes do time exibe conquistas (`CardConquistas`) e o molde de jogadores (`MoldeJogadores`). Ao tocar em um jogador, abre a tela com `CardCaracterísticas`.
@@ -32,7 +32,7 @@ O grafo define **5 fases** de implementação, da mais simples à mais complexa:
 | Tela | Use cases / Componentes chave |
 |---|---|
 | Tela Grupos | Use cases, Componentes |
-| Tela Perfil (com as figurinhas) | Use cases, Componentes ↔ `CardMinhaColeção` |
+| Tela Perfil (com as figurinhas) | Use cases, Componentes ↔ `CardColeção` |
 | Tela Times | Use cases, Componentes → `SearchInput` |
 | Tela Apostas | Use cases, Componentes |
 
@@ -97,7 +97,7 @@ App
 └── Telas principais (Fases 1–3)
     ├── Tela Grupos
     ├── Tela Perfil (com as figurinhas)
-    │   ├── CardMinhaColeção
+    │   ├── CardColeção
     │   ├── Tela Mercado de Figurinhas
     │   │   └── CompartilhBtn
     │   └── Animação Abrir Pacote
@@ -127,6 +127,8 @@ App
 | expo-image | ~56 | Imagens otimizadas (flags, fotos) |
 | react-native-reanimated | 4.3.1 | Animações (abertura de pacote) |
 | @expo/vector-icons | ^15 | Ícones Ionicons nas tabs |
+| react-native-svg | ~15 | Renderização de bandeiras SVG |
+| react-native-svg-transformer | ^1.5 | Suporte a importações de SVG |
 
 ---
 
@@ -166,9 +168,10 @@ src/
     domain/entities/      → User, Country, Confederation
     presentation/
       components/         → CustomHeader
-                            [pendente] NavBar, MenuBar, CardFigurinha,
-                                       MolduraIndividualPaís, BotãoHomeMolde,
-                                       CardColeção, PalpiteBtn
+                            [pendente] NavBar, MenuBar
+                            [pronto] CardColeção, CardFigurinha,
+                                     MolduraIndividualPaís, BotãoHomeMolde,
+                                     PalpiteBtn
       contexts/           → UserContext (usuário logado global)
       screens/            → HomeScreen
                             [pendente] Tela Home com MoldeCardHome + CardPartida
@@ -180,7 +183,7 @@ src/
                             [pendente] Tela Time (CardConquistas, MoldeJogadores)
                                        Tela Jogador (CardCaracterísticas)
     album/                → Sticker, UserCollection | GetUserProfile, OpenPackage
-                            → ProfileScreen + CardMinhaColeção
+                            → ProfileScreen + CardColeção
                             [pendente] Mercado de Figurinhas (CompartilhBtn)
                                        Animação Abrir Pacote
     apostas/              → Match, Prediction | GetUpcomingMatches, CreatePrediction
@@ -209,7 +212,7 @@ src/
 | Fase | Tela / Componente | Status |
 |------|---|---|
 | **Fase 1** | GroupsScreen | ✅ |
-| **Fase 1** | ProfileScreen + CardMinhaColeção | ✅ |
+| **Fase 1** | ProfileScreen + CardColeção | ✅ |
 | **Fase 1** | TimesScreen + SearchInput | ✅ |
 | **Fase 1** | ApostasScreen + ContainerAposta + BotaoHistorico | ✅ |
 | **Fase 2** | Tela Mercado de Figurinhas + CompartilhBtn | ⬜ |
@@ -220,7 +223,8 @@ src/
 | **Fase 3** | Tela Histórico de Apostas | ⬜ |
 | **Fase 4** | Tela Entrar + Tela Cadastro + MoldeInputs | ⬜ |
 | **Fase 5** | Tela Home + MoldeCardHome + CardPartida | ⬜ |
-| **Global** | NavBar, MenuBar, CardFigurinha, MolduraIndividualPaís, BotãoHomeMolde, CardColeção, PalpiteBtn | ⬜ |
+| **Global** | CardFigurinha, MolduraIndividualPaís, BotãoHomeMolde, CardColeção, PalpiteBtn | ✅ |
+| **Global** | NavBar, MenuBar | ⬜ |
 
 ---
 

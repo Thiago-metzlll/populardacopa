@@ -114,11 +114,11 @@ Definidos no grafo como componentes reutilizáveis em nível de aplicação:
 |---|---|---|
 | `NavBar` | `src/shared/presentation/components/NavBar` | ⬜ |
 | `MenuBar` | `src/shared/presentation/components/MenuBar` | ⬜ |
-| `CardFigurinha` | `src/shared/presentation/components/CardFigurinha` | ⬜ |
-| `MolduraIndividualPaís` | `src/shared/presentation/components/MolduraIndividualPais` | ⬜ |
-| `BotãoHomeMolde` | `src/shared/presentation/components/BotaoHomeMolde` | ⬜ |
-| `CardColeção` | `src/shared/presentation/components/CardColecao` | ⬜ |
-| `PalpiteBtn` | `src/shared/presentation/components/PalpiteBtn` | ⬜ |
+| `CardFigurinha` | `src/shared/presentation/components/CardFigurinha` | ✅ |
+| `MolduraIndividualPaís` | `src/shared/presentation/components/MolduraIndividualPais` | ✅ |
+| `BotãoHomeMolde` | `src/shared/presentation/components/BotaoHomeMolde` | ✅ |
+| `CardColeção` | `src/shared/presentation/components/CardColecao` | ✅ |
+| `PalpiteBtn` | `src/shared/presentation/components/PalpiteBtn` | ✅ |
 
 > `CustomHeader` já está implementado como componente global em `src/shared/presentation/components/CustomHeader.tsx`.
 
@@ -147,7 +147,7 @@ Definidos no grafo como componentes reutilizáveis em nível de aplicação:
 - **Domain**: `Sticker { id, playerId, rarity, obtainedAt }` · `UserCollection { stickerIds[] }` · `Package { stickers[] }`
 - **Use Cases**: `GetUserProfile.execute(userId)` · `OpenPackage.execute(userId)` → `Sticker[]`
 - **Infra**: `MockAlbumRepository` — 100 figurinhas no seed, 78 pré-atribuídas ao usuário mock · `openPackage` sorteia 3 stickers não duplicados
-- **Presentation (✅)**: `ProfileScreen` via `useUserProfile` + `useOpenPackage` · `CardMinhaColeção` reutilizado na `HomeScreen`
+- **Presentation (✅)**: `ProfileScreen` via `useUserProfile` + `useOpenPackage` · `CardColeção` (shared) reutilizado na `HomeScreen`
 - **Pendente (Fase 2)**: `Tela Mercado de Figurinhas` → `CompartilhBtn`
 - **Pendente (Fase 3)**: `Animação Abrir Pacote` (react-native-reanimated)
 
@@ -318,7 +318,7 @@ interface PlayerStats {
 O grafo original posiciona a **Tela Home como Fase 5** — última a ser construída, após Auth (Fase 4). Na implementação, a `HomeScreen` foi criada de forma antecipada como hub de navegação funcional.
 
 **Isso não quebra nenhuma dependência do grafo.** A `HomeScreen` atual:
-- Reutiliza `ContainerAposta` (apostas) e `CardMinhaColecao` (album) — componentes já implementados na Fase 1
+- Reutiliza `ContainerAposta` (apostas) e `CardColecao` (shared) — componentes já implementados na Fase 1
 - Serve como ponto de entrada visual enquanto Auth (Fase 4) e a Home definitiva (Fase 5) não existem
 - **Será substituída** pela Tela Home definitiva com `MoldeCardHome` + `CardPartida` quando a Fase 5 for executada
 
@@ -328,7 +328,7 @@ Todos os nomes de componentes definidos no grafo foram **preservados no código*
 
 | Grafo | Nome no código | Fase | Status |
 |---|---|---|---|
-| `CardMinhaColeção` | `CardMinhaColecao.tsx` | 1 | ✅ |
+| `CardColeção` | `CardColecao/index.tsx` | 1 | ✅ |
 | `SearchInput` | `SearchInput.tsx` | 1 | ✅ |
 | `ContainerAposta` | `ContainerAposta.tsx` | 1 | ✅ |
 | `BotaoHistorico` | `BotaoHistorico.tsx` | 1 | ✅ |
