@@ -8,16 +8,16 @@
 
 O aplicativo é organizado em quatro pilares de funcionalidade principais, precedidos por um fluxo de autenticação e uma Home centralizada:
 
-### 🏆 Grupos
+### Grupos
 Exibe a tabela de cada grupo da Copa (pontuação, saldo de gols, vitórias/empates/derrotas), refletindo o estado atual do torneio.
 
-### 🃏 Perfil & Álbum de Figurinhas
+### Perfil & Álbum de Figurinhas
 Hub da coleção pessoal. O usuário vê seu progresso via `CardColeção`, pode visitar o Mercado de Figurinhas para trocar duplicatas, abrir pacotes com animação e compartilhar figurinhas via `CompartilhBtn`.
 
-### ⭐ Times (Meus Times)
+### Times (Meus Times)
 O usuário monta seu painel de seleções favoritas com `SearchInput` para busca com debounce. Uma tela de detalhes do time exibe conquistas (`CardConquistas`) e o molde de jogadores (`MoldeJogadores`). Ao tocar em um jogador, abre a tela com `CardCaracterísticas`.
 
-### 🎯 Apostas & Palpites
+### Apostas & Palpites
 Lista as próximas partidas. O usuário confirma um palpite pela Tela Palpite e consulta resultados na Tela Histórico de Apostas.
 
 ---
@@ -81,119 +81,7 @@ Instanciados no nível raiz e disponibilizados para todas as features:
 | `CardColeção` | Card de resumo de coleção (usado em múltiplos contextos) |
 | `PalpiteBtn` | Botão de confirmar palpite, reutilizável entre telas |
 
----
 
-## Navegação e fluxo de telas
-
-```
-App
-│
-├── Auth (Fase 4)
-│   ├── Tela Entrar       ← Login com MoldeInputs
-│   └── Tela Cadastro     ← Cadastro com MoldeInputs
-│
-├── Tela Home (Fase 5)    ← MoldeCardHome + CardPartida
-│
-└── Telas principais (Fases 1–3)
-    ├── Tela Grupos
-    ├── Tela Perfil (com as figurinhas)
-    │   ├── CardColeção
-    │   ├── Tela Mercado de Figurinhas
-    │   │   └── CompartilhBtn
-    │   └── Animação Abrir Pacote
-    ├── Tela Times
-    │   ├── SearchInput
-    │   └── Tela Time
-    │       ├── CardConquistas
-    │       ├── MoldeJogadores
-    │       └── Tela Jogador
-    │           └── CardCaracterísticas
-    └── Tela Apostas
-        ├── Tela Palpite
-        └── Tela Histórico de Apostas
-```
-
----
-
-## Stack tecnológica
-
-| Tecnologia | Versão | Uso |
-|---|---|---|
-| React Native | 0.85.3 | UI nativa cross-platform |
-| Expo SDK | ~56 | Build, plugins, dev tools |
-| Expo Router | ~56.2 | Roteamento file-system |
-| TypeScript | ~6.0 | Tipagem estrita end-to-end |
-| expo-linear-gradient | ~56 | Gradientes nos cards |
-| expo-image | ~56 | Imagens otimizadas (flags, fotos) |
-| react-native-reanimated | 4.3.1 | Animações (abertura de pacote) |
-| @expo/vector-icons | ^15 | Ícones Ionicons nas tabs |
-| react-native-svg | ~15 | Renderização de bandeiras SVG |
-| react-native-svg-transformer | ^1.5 | Suporte a importações de SVG |
-
----
-
-## Arquitetura
-
-O projeto segue **Clean Architecture** com separação estrita de camadas:
-
-```
-Presentation  →  Main (Factories)  →  Domain (Use Cases + Entities)
-                                   ←  Infra (implementações concretas)
-```
-
-| Camada | Responsabilidade | Pode importar |
-|--------|-----------------|---------------|
-| **Domain** | Entidades, interfaces de repository, use cases | Nada externo |
-| **Infra** | Implementações concretas (Mock, futuramente API) | Domain |
-| **Main** | Factories que conectam Infra ↔ Use Cases | Domain + Infra |
-| **Presentation** | Hooks, telas, componentes | Domain (tipos) + Main (factories) |
-
----
-
-## Estrutura de pastas
-
-```
-app/
-│   _layout.tsx           ← Root Stack (UserProvider + Stack global)
-│   apostas.tsx           → ApostasScreen
-│   grupos.tsx            → GroupsScreen
-│   (tabs)/
-│       _layout.tsx       ← Tabs + CustomHeader
-│       index.tsx         → HomeScreen (atual, stub da Fase 5)
-│       times.tsx         → TimesScreen
-│       perfil.tsx        → ProfileScreen
-
-src/
-  shared/
-    domain/entities/      → User, Country, Confederation
-    presentation/
-      components/         → CustomHeader
-                            [pendente] NavBar, MenuBar
-                            [pronto] CardColeção, CardFigurinha,
-                                     MolduraIndividualPaís, BotãoHomeMolde,
-                                     PalpiteBtn
-      contexts/           → UserContext (usuário logado global)
-      screens/            → HomeScreen
-                            [pendente] Tela Home com MoldeCardHome + CardPartida
-      theme/              → colors, typography, spacing, radius
-
-  features/
-    grupos/               → Group, GroupStanding | GetAllGroups | GroupsScreen
-    times/                → Team, Player | SearchTeams, ToggleFavorite | TimesScreen + SearchInput
-                            [pendente] Tela Time (CardConquistas, MoldeJogadores)
-                                       Tela Jogador (CardCaracterísticas)
-    album/                → Sticker, UserCollection | GetUserProfile, OpenPackage
-                            → ProfileScreen + CardColeção
-                            [pendente] Mercado de Figurinhas (CompartilhBtn)
-                                       Animação Abrir Pacote
-    apostas/              → Match, Prediction | GetUpcomingMatches, CreatePrediction
-                            → ApostasScreen + ContainerAposta + BotaoHistorico
-                            [pendente] Tela Palpite
-                                       Tela Histórico de Apostas
-    auth/                 → [pendente] Tela Entrar + Tela Cadastro + MoldeInputs
-```
-
----
 
 ## Status de implementação
 
@@ -233,8 +121,6 @@ src/
 ```bash
 npm install
 npx expo start
-# Limpar cache Metro após mudanças estruturais:
-npx expo start --clear
 ```
 
 ---
@@ -248,3 +134,7 @@ npx expo start --clear
 - **Palpite vs Aposta**: "Aposta" é a feature/tela. "Palpite" (`Prediction`) é a entidade — previsão de resultado do usuário.
 - **Tela Times** exibe apenas times favoritados (`GetFavoriteTeams`), não a lista global de seleções.
 - **Use case antes da tela**: conforme o grafo, o use case de cada tela é construído antes da interface visual.
+
+---
+
+Para mais detalhes sobre a arquitetura, convenções adicionais e estrutura de pastas do projeto, consulte a [Documentação Técnica](docs/technical-readme.md).

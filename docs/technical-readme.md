@@ -75,6 +75,79 @@ app/
 
 **Fase 4 (Auth)**: as telas `Tela Entrar` e `Tela Cadastro` serão adicionadas como Stack screens na raiz, antes do acesso às tabs.
 
+### 2.1 Navegação e fluxo de telas (Grafo)
+
+```
+App
+│
+├── Auth (Fase 4)
+│   ├── Tela Entrar       ← Login com MoldeInputs
+│   └── Tela Cadastro     ← Cadastro com MoldeInputs
+│
+├── Tela Home (Fase 5)    ← MoldeCardHome + CardPartida
+│
+└── Telas principais (Fases 1–3)
+    ├── Tela Grupos
+    ├── Tela Perfil (com as figurinhas)
+    │   ├── CardColeção
+    │   ├── Tela Mercado de Figurinhas
+    │   │   └── CompartilhBtn
+    │   └── Animação Abrir Pacote
+    ├── Tela Times
+    │   ├── SearchInput
+    │   └── Tela Time
+    │       ├── CardConquistas
+    │       ├── MoldeJogadores
+    │       └── Tela Jogador
+    │           └── CardCaracterísticas
+    └── Tela Apostas
+        ├── Tela Palpite
+        └── Tela Histórico de Apostas
+```
+
+### 2.2 Estrutura de pastas completa
+
+```
+app/
+│   _layout.tsx           ← Root Stack (UserProvider + Stack global)
+│   apostas.tsx           → ApostasScreen
+│   grupos.tsx            → GroupsScreen
+│   (tabs)/
+│       _layout.tsx       ← Tabs + CustomHeader
+│       index.tsx         → HomeScreen (atual, stub da Fase 5)
+│       times.tsx         → TimesScreen
+│       perfil.tsx        → ProfileScreen
+
+src/
+  shared/
+    domain/entities/      → User, Country, Confederation
+    presentation/
+      components/         → CustomHeader
+                            [pendente] NavBar, MenuBar
+                            [pronto] CardColeção, CardFigurinha,
+                                     MolduraIndividualPaís, BotãoHomeMolde,
+                                     PalpiteBtn
+      contexts/           → UserContext (usuário logado global)
+      screens/            → HomeScreen
+                            [pendente] Tela Home com MoldeCardHome + CardPartida
+      theme/              → colors, typography, spacing, radius
+
+  features/
+    grupos/               → Group, GroupStanding | GetAllGroups | GroupsScreen
+    times/                → Team, Player | SearchTeams, ToggleFavorite | TimesScreen + SearchInput
+                            [pendente] Tela Time (CardConquistas, MoldeJogadores)
+                                       Tela Jogador (CardCaracterísticas)
+    album/                → Sticker, UserCollection | GetUserProfile, OpenPackage
+                            → ProfileScreen + CardColeção
+                            [pendente] Mercado de Figurinhas (CompartilhBtn)
+                                       Animação Abrir Pacote
+    apostas/              → Match, Prediction | GetUpcomingMatches, CreatePrediction
+                            → ApostasScreen + ContainerAposta + BotaoHistorico
+                            [pendente] Tela Palpite
+                                       Tela Histórico de Apostas
+    auth/                 → [pendente] Tela Entrar + Tela Cadastro + MoldeInputs
+```
+
 ---
 
 ## 3. Design System (Theme)
@@ -347,13 +420,12 @@ Os contratos abaixo foram **intencionalmente expandidos** durante a Fase 1 em re
 | Entidade | Evolução |
 |---|---|
 | `Prediction` | `predictedOutcome` substituído por `predictedHomeScore` + `predictedAwayScore`; adicionados `reward: PredictionReward` e `status: 'pending' \| 'won' \| 'lost'` |
-| `PredictionHistory` | Adicionados `totalPoints` e `successRate`; `userId` removido (histórico é consultado por contexto) |
+| `PredictionHistory` | Adicionados `totalPoints` and `successRate`; `userId` removido (histórico é consultado por contexto) |
 | `Sticker` | `rarity` em português (`'comum'`, `'rara'`, `'lendaria'`); `teamId?` e `imageUrl` adicionados para suportar figurinhas de seleções além de jogadores |
-| `UserCollection` | `albumId` e `progress` adicionados para suportar múltiplos álbuns futuros |
+| `UserCollection` | `albumId` and `progress` adicionados para suportar múltiplos álbuns futuros |
 | `PlayerStats` | Substituído por `matchesPlayed` + `worldCupsPlayed` (contexto Copa do Mundo); `yellowCards`, `redCards`, `minutesPlayed` removidos por não serem relevantes para o MVP |
 | `Match` | `odds` tornado opcional; `homeScore?` e `awayScore?` adicionados para partidas `'finished'` |
 
 ### 9.4 Nota sobre Singleton em `grupos`
 
 A feature `grupos` foi atualizada e **agora utiliza o padrão singleton** via `repositoryInstance.ts`, alinhando-a arquiteturalmente com as outras features (times, album, apostas). A factory `makeGetAllGroups` consome essa instância única, garantindo que o estado não seja perdido entre navegações se os `standings` sofrerem atualizações futuras.
-
