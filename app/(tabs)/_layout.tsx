@@ -1,43 +1,38 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { CustomHeader } from '../../src/shared/presentation/components/CustomHeader';
-import { colors } from '../../src/shared/presentation/theme';
+import { MenuBar } from '../../src/shared/presentation/components/MenuBar';
+import { NavBar, navBarScreenOptions } from '../../src/shared/presentation/components/NavBar';
 
 export default function TabsLayout() {
   return (
     <Tabs
+      tabBar={(props) => <NavBar {...props} />}
       screenOptions={{
-        header: () => <CustomHeader />,
-        tabBarStyle: {
-          backgroundColor: colors.background,
-          borderTopWidth: 0,
-          elevation: 0,
-        },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
+        header: () => <MenuBar />,
+        ...navBarScreenOptions,
       }}
     >
-      <Tabs.Screen 
-        name="index" 
-        options={{ 
+      <Tabs.Screen
+        name="index"
+        options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />
-        }} 
+          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
+        }}
       />
-      <Tabs.Screen 
-        name="times" 
-        options={{ 
+      <Tabs.Screen
+        name="times"
+        options={{
           title: 'Times',
-          tabBarIcon: ({ color, size }) => <Ionicons name="people" size={size} color={color} />
-        }} 
+          tabBarIcon: ({ color, size }) => <Ionicons name="people" size={size} color={color} />,
+        }}
       />
-      <Tabs.Screen 
-        name="perfil" 
-        options={{ 
+      <Tabs.Screen
+        name="perfil"
+        options={{
           title: 'Perfil',
-          tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />
-        }} 
+          tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
+        }}
       />
     </Tabs>
   );

@@ -122,8 +122,9 @@ src/
   shared/
     domain/entities/      → User, Country, Confederation
     presentation/
-      components/         → CustomHeader
-                            [pendente] NavBar, MenuBar
+      components/         → MenuBar (top header, canônico)
+                            NavBar (tab bar inferior, canônico)
+                            CustomHeader (re-export de MenuBar — compat.)
                             [pronto] CardColeção, CardFigurinha,
                                      MolduraIndividualPaís, BotãoHomeMolde,
                                      PalpiteBtn
@@ -185,8 +186,8 @@ Definidos no grafo como componentes reutilizáveis em nível de aplicação:
 
 | Componente | Localização planejada | Status |
 |---|---|---|
-| `NavBar` | `src/shared/presentation/components/NavBar` | ⬜ |
-| `MenuBar` | `src/shared/presentation/components/MenuBar` | ⬜ |
+| `NavBar` | `src/shared/presentation/components/NavBar` | ✅ |
+| `MenuBar` | `src/shared/presentation/components/MenuBar` | ✅ |
 | `CardFigurinha` | `src/shared/presentation/components/CardFigurinha` | ✅ |
 | `MolduraIndividualPaís` | `src/shared/presentation/components/MolduraIndividualPais` | ✅ |
 | `BotãoHomeMolde` | `src/shared/presentation/components/BotaoHomeMolde` | ✅ |
