@@ -38,7 +38,38 @@ export default function RootLayout() {
             headerTitleStyle: { fontWeight: 'bold' } 
           }} 
         />
+
+        {/* Fase 3 */}
+        <Stack.Screen
+          name="players/[playerId]"
+          options={{
+            title: 'Perfil do Jogador',
+            headerTintColor: '#FFFFFF',
+            headerStyle: { backgroundColor: '#1A1A1E' },
+            headerTitleStyle: { fontWeight: 'bold' },
+          }}
+        />
+        <Stack.Screen
+          name="apostas/historico"
+          options={{
+            title: 'Histórico de Apostas',
+            headerTintColor: '#FFFFFF',
+            headerStyle: { backgroundColor: '#1A1A1E' },
+            headerTitleStyle: { fontWeight: 'bold' },
+          }}
+        />
+        <Stack.Screen
+          name="abrir-pacote/[packId]"
+          options={{
+            title: 'Abrir Pacote',
+            presentation: 'modal',
+            headerTintColor: '#FFFFFF',
+            headerStyle: { backgroundColor: '#1A1A1E' },
+            headerTitleStyle: { fontWeight: 'bold' },
+          }}
+        />
       </Stack>
     </UserProvider>
   );
 }
+

@@ -7,4 +7,6 @@ export interface TeamRepository {
   toggleFavorite(userId: string, teamId: string): Promise<void>;
   getById(teamId: string): Promise<Team>;
   getPlayersByTeam(teamId: string): Promise<Player[]>;
+  getPlayerById(playerId: string): Promise<Player>;
 }
+

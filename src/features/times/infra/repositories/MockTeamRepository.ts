@@ -44,4 +44,12 @@ export class MockTeamRepository implements TeamRepository {
     await delay(300);
     return mockPlayers.filter((p) => p.teamId === teamId);
   }
+
+  async getPlayerById(playerId: string): Promise<Player> {
+    await delay(300);
+    const player = mockPlayers.find((p) => p.id === playerId);
+    if (!player) throw new Error('Player not found');
+    return player;
+  }
 }
+

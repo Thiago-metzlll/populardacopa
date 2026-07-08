@@ -13,14 +13,6 @@ A Fase 3 depende de dois use cases de escrita que deveriam ter sido implementado
 
 Se esses ainda não existirem, tratar como **Fase 2.5** antes de seguir, ou incluir explicitamente neste escopo.
 
-### Open Questions
-
-1. Como o app trata predictions com `outcome: pendente` (partida em andamento) na Tela Histórico de Apostas? O Figma mostra esse terceiro estado, mas o fluxograma só cobre `CardVitoria`/`CardDerrota`.
-2. `BuyStickerPack` (Fase 2) precisa ser redesenhado para retornar um `packId` navegável, em vez de resolver a compra inline?
-3. Qual lib de animação já está no radar do projeto (se houver), para não introduzir uma dependência desnecessária?
-
----
-
 ## Proposed Changes
 
 ### Componente 1: Feature `players` (Tela Jogador)
