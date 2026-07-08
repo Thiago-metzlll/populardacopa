@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useFavoriteTeams } from '../hooks/useFavoriteTeams';
 import { SearchInput } from '../components/SearchInput';
 import { colors, spacing, typography, radius } from '../../../../shared/presentation/theme';
 
 export const TimesScreen = () => {
+  const router = useRouter();
   const { teams, loading, error, search, toggleFavorite } = useFavoriteTeams();
   const [query, setQuery] = useState('');
 
@@ -27,12 +29,19 @@ export const TimesScreen = () => {
           data={teams}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View style={styles.teamCard}>
+            <TouchableOpacity 
+              style={styles.teamCard} 
+              onPress={() => router.push(`/times/${item.id}`)}
+              activeOpacity={0.8}
+            >
               <Text style={styles.title}>{item.name}</Text>
-              <TouchableOpacity style={styles.removeButton} onPress={() => toggleFavorite(item.id)}>
+              <TouchableOpacity 
+                style={styles.removeButton} 
+                onPress={() => toggleFavorite(item.id)}
+              >
                 <Text style={styles.removeButtonText}>Remover</Text>
               </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           )}
         />
       )}

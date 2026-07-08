@@ -10,6 +10,13 @@ export const mockAlbums: Album[] = [
     ownedStickersCount: 78,
     price: 50,
   },
+  {
+    id: 'a2',
+    name: 'Álbum de Lendas da Copa',
+    totalStickers: 50,
+    ownedStickersCount: 15,
+    price: 80,
+  },
 ];
 
 const generateStickers = (): Sticker[] => {

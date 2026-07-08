@@ -1,13 +1,15 @@
 import { Album } from '../../domain/entities/Album';
 import { Sticker } from '../../domain/entities/Sticker';
 import { UserCollection } from '../../domain/entities/UserCollection';
-import { AlbumRepository } from '../../domain/repositories/AlbumRepository';
+import { AlbumRepository, BuyStickerPackResult } from '../../domain/repositories/AlbumRepository';
 import { mockAlbums, mockStickers, mockUserCollection } from '../seed/AlbumSeed';
 
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
 export class MockAlbumRepository implements AlbumRepository {
   private collectionState = { ...mockUserCollection, stickerIds: [...mockUserCollection.stickerIds] };
+  private coinsState: Record<string, number> = { u1: 200 };
+  private packsState: Record<string, Sticker[]> = {};
 
   async getUserCollection(userId: string): Promise<UserCollection> {
     await delay(350);
@@ -54,5 +56,67 @@ export class MockAlbumRepository implements AlbumRepository {
     this.collectionState.progress = (this.collectionState.stickerIds.length / mockAlbums[0].totalStickers) * 100;
     
     return newStickers;
+  }
+
+  async getMarketAlbums(): Promise<Album[]> {
+    await delay(300);
+    return mockAlbums.map((a) => ({
+      ...a,
+      ownedStickersCount: a.id === 'a1' ? this.collectionState.stickerIds.length : 15
+    }));
+  }
+
+  async buyStickerPack(userId: string, albumId: string, cost: number): Promise<BuyStickerPackResult> {
+    await delay(600);
+    
+    const userCoins = this.coinsState[userId] ?? 200;
+    if (userCoins < cost) {
+      throw new Error('Saldo de moedas insuficiente');
+    }
+
+    // Deduct coins
+    this.coinsState[userId] = userCoins - cost;
+
+    // Draw 3 random stickers
+    // Filter stickers corresponding to the team ranges or general mockStickers
+    const albumStickers = mockStickers;
+    const drawn: Sticker[] = [];
+    
+    // Choose 3 random stickers
+    for (let i = 0; i < 3; i++) {
+      const randomIndex = Math.floor(Math.random() * albumStickers.length);
+      const sticker = albumStickers[randomIndex];
+      const updatedSticker = { ...sticker, obtainedAt: new Date().toISOString() };
+      drawn.push(updatedSticker);
+
+      // Add to collection if not already owned
+      if (!this.collectionState.stickerIds.includes(sticker.id)) {
+        this.collectionState.stickerIds.push(sticker.id);
+      }
+    }
+
+    // Update collection progress
+    this.collectionState.progress = (this.collectionState.stickerIds.length / mockAlbums[0].totalStickers) * 100;
+
+    const packId = `pkg_${Date.now()}`;
+    this.packsState[packId] = drawn;
+
+    return {
+      packId,
+      stickers: drawn
+    };
+  }
+
+  async getUserCoins(userId: string): Promise<number> {
+    await delay(200);
+    return this.coinsState[userId] ?? 200;
+  }
+
+  async deductUserCoins(userId: string, amount: number): Promise<number> {
+    await delay(200);
+    const userCoins = this.coinsState[userId] ?? 200;
+    const newBalance = Math.max(0, userCoins - amount);
+    this.coinsState[userId] = newBalance;
+    return newBalance;
   }
 }

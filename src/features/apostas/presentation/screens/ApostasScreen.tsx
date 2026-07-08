@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, FlatList, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useUpcomingMatches } from '../hooks/useUpcomingMatches';
 import { usePredictionHistory } from '../hooks/usePredictionHistory';
 import { BotaoHistorico } from '../components/BotaoHistorico';
@@ -7,6 +8,7 @@ import { ContainerAposta } from '../components/ContainerAposta';
 import { colors, spacing, typography } from '../../../../shared/presentation/theme';
 
 export const ApostasScreen = () => {
+  const router = useRouter();
   const { matches, loading: matchesLoading, error: matchesError } = useUpcomingMatches();
   const { history, loading: historyLoading } = usePredictionHistory();
 
@@ -25,7 +27,12 @@ export const ApostasScreen = () => {
       <FlatList
         data={matches}
         keyExtractor={item => item.id}
-        renderItem={({ item }) => <ContainerAposta match={item} />}
+        renderItem={({ item }) => (
+          <ContainerAposta 
+            match={item} 
+            onPress={() => router.push(`/palpite/${item.id}`)}
+          />
+        )}
       />
     </View>
   );
