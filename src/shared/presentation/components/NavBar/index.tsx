@@ -1,5 +1,5 @@
 import React from 'react';
-import { BottomTabBar, BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { BottomTabBar, BottomTabBarProps } from "expo-router/js-tabs";
 import { colors } from '../../theme';
 
 /**
