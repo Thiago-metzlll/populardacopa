@@ -1,0 +1,245 @@
+# Fase 2 — Telas Secundárias Derivadas
+
+Implementação das três telas secundárias do projeto, cada uma derivada de uma tela de Fase 1 já existente. Nenhuma delas exige criação de novas entidades de domínio ou repositórios — toda a infraestrutura necessária já está pronta. O trabalho é quase inteiramente na camada **Presentation**, com adição de fábricas pontuais e novas rotas no Expo Router.
+
+---
+
+## Visão geral das entregas
+
+| Tela | Feature | Derivada de | Componentes novos |
+|---|---|---|---|
+| **Tela Time** | `times` | `TimesScreen` | `CardConquistas`, `MoldeJogadores` |
+| **Tela Palpite** | `apostas` | `ApostasScreen` | `PalpiteBtn` (já existe em shared) |
+| **Tela Mercado de Figurinhas** | `album` | `ProfileScreen` | `CompartilhBtn` |
+
+---
+
+## Open Questions
+
+> [!IMPORTANT]
+> **Rota da Tela Time**: A `TimesScreen` lista times. Ao tocar em um time, deve navegar para `Tela Time`. A convenção do projeto usa `Stack` em `app/`. Proposta: criar `app/times/[teamId].tsx` como shell. Confirmar se prefere `app/time/[teamId].tsx` (singular) ou `app/times/[teamId].tsx` (plural, dentro da pasta da tab).
+
+> [!IMPORTANT]
+> **Rota da Tela Palpite**: `ApostasScreen` está em `app/apostas.tsx` (modal). A `Tela Palpite` é derivada dela. Opções: (A) nova rota `app/palpite/[matchId].tsx` no Stack global, (B) modal aninhada. A documentação não especifica — proposta padrão: Stack screen `app/palpite/[matchId].tsx`.
+
+> [!IMPORTANT]
+> **Rota do Mercado de Figurinhas**: Derivada do `ProfileScreen` (tab `perfil`). Proposta: `app/mercado.tsx` como modal, similar a `grupos` e `apostas`.
+
+> [!NOTE]
+> **`expo-sharing`**: `CompartilhBtn` requer `expo-sharing`. Verificar se já está instalado. Se não, será necessário `npx expo install expo-sharing`.
+
+> [!NOTE]
+> **Dados de conquistas/título do time no seed**: `MockTeamRepository` tem dados de 9 seleções. Será necessário adicionar campo `titles` (ou similar) às entidades para `CardConquistas`, ou usar dados estáticos na UI? Proposta: adicionar `titles: string[]` e `worldCupWins: number` à entidade `Team` existente e ao seed.
+
+---
+
+## Proposed Changes
+
+### 1 — Feature `times`: Tela Time
+
+#### [MODIFY] [Team.ts](file:///c:/Users/thiago.9943/populardacopa/src/features/times/domain/entities/Team.ts)
+
+Adicionar campos de conquistas à entidade:
+```ts
+titles: string[];       // ex: ['1958', '1962', '1970', '1994', '2002']
+worldCupWins: number;   // ex: 5
+flagUrl?: string;       // URL/caminho da bandeira (já pode existir)
+```
+
+#### [MODIFY] MockTeamRepository (infra/seed)
+
+Adicionar `titles` e `worldCupWins` nos dados das 9 seleções do seed.
+
+#### [NEW] `useTeamDetail.ts`
+
+```
+src/features/times/presentation/hooks/useTeamDetail.ts
+```
+Hook que recebe `teamId`, chama use case `GetTeamById` (factory nova), retorna `{ team, players, loading, error }`.
+
+> [!NOTE]
+> O use case `GetTeamById` não existe ainda. Precisa ser criado no domain/usecase e na factory (veja abaixo).
+
+#### [NEW] `GetTeamById.ts` (use case)
+
+```
+src/features/times/domain/usecases/GetTeamById.ts
+```
+- `execute(teamId: string): Promise<{ team: Team; players: Player[] }>`
+- Usa o `TeamRepository` (interface já existente — verificar se precisa adicionar `getById` e `getPlayersByTeam`).
+
+#### [MODIFY] `ITeamRepository` (domain/repositories)
+
+Adicionar assinaturas:
+```ts
+getById(teamId: string): Promise<Team>;
+getPlayersByTeam(teamId: string): Promise<Player[]>;
+```
+
+#### [MODIFY] `MockTeamRepository` (infra)
+
+Implementar `getById` e `getPlayersByTeam`.
+
+#### [NEW] `makeGetTeamById.ts` (factory)
+
+```
+src/features/times/main/factories/makeGetTeamById.ts
+```
+
+#### [NEW] `CardConquistas.tsx`
+
+```
+src/features/times/presentation/components/CardConquistas.tsx
+```
+Card visual com número de títulos mundiais e lista de anos. Usa o design system (`colors`, `typography`, `spacing`).
+
+#### [NEW] `MoldeJogadores.tsx`
+
+```
+src/features/times/presentation/components/MoldeJogadores.tsx
+```
+Template de linha de jogador: número, nome, posição. Usado em `FlatList` dentro da `TelaTime`.
+
+#### [NEW] `TelaTime.tsx` (screen)
+
+```
+src/features/times/presentation/screens/TelaTime.tsx
+```
+- Lê `teamId` via `useLocalSearchParams`
+- Consome `useTeamDetail`
+- Layout: cabeçalho (bandeira + nome do time) → `CardConquistas` → `FlatList` com `MoldeJogadores`
+- Cada `MoldeJogadores` terá pressable para navegar à `Tela Jogador` (Fase 3)
+
+#### [NEW] `app/times/[teamId].tsx` (rota shell)
+
+```
+app/times/[teamId].tsx
+```
+Shell que importa `TelaTime`.
+
+#### [MODIFY] `app/_layout.tsx`
+
+Registrar nova Stack screen para `times/[teamId]`:
+```tsx
+<Stack.Screen name="times/[teamId]" options={{ title: '' }} />
+```
+
+#### [MODIFY] `TimesScreen.tsx`
+
+Adicionar `onPress` em cada card de time para navegar via `router.push('/times/' + team.id)`.
+
+---
+
+### 2 — Feature `apostas`: Tela Palpite
+
+> O hook `useCreatePrediction` já existe e está completo. A factory `makeCreatePrediction` também. Nenhum domain novo é necessário.
+
+#### [NEW] `TelaPalpite.tsx` (screen)
+
+```
+src/features/apostas/presentation/screens/TelaPalpite.tsx
+```
+- Lê `matchId` via `useLocalSearchParams`
+- Busca dados da partida via `useUpcomingMatches` (já existe) e filtra pelo `matchId`, ou cria `useMatchDetail` pontual
+- UI: nome dos times + data → seletores de placar (home / away com `+/-`) → `PalpiteBtn` (já existe em `src/shared/presentation/components/PalpiteBtn`) → confirma via `useCreatePrediction` → navega de volta com feedback de sucesso
+
+#### [NEW] `app/palpite/[matchId].tsx` (rota shell)
+
+```
+app/palpite/[matchId].tsx
+```
+
+#### [MODIFY] `app/_layout.tsx`
+
+Registrar:
+```tsx
+<Stack.Screen name="palpite/[matchId]" options={{ title: 'Fazer Palpite', presentation: 'modal' }} />
+```
+
+#### [MODIFY] `ContainerAposta.tsx` ou `ApostasScreen`
+
+Adicionar navegação `router.push('/palpite/' + match.id)` no botão/card de aposta.
+
+---
+
+### 3 — Feature `album`: Tela Mercado de Figurinhas
+
+> `useUserProfile` e `useOpenPackage` já existem. Será necessário verificar se `expo-sharing` está instalado.
+
+#### [NEW] `CompartilhBtn.tsx`
+
+```
+src/features/album/presentation/components/CompartilhBtn.tsx
+```
+- Recebe `sticker: Sticker` como prop
+- Usa `expo-sharing` para compartilhar `sticker.imageUrl`
+- Estilizado conforme design system
+
+#### [NEW] `TelaMercado.tsx` (screen)
+
+```
+src/features/album/presentation/screens/TelaMercado.tsx
+```
+- Consome `useUserProfile` (já existe) para listar figurinhas do usuário
+- FlatList de figurinhas com `CardFigurinha` (já existe em shared) + `CompartilhBtn`
+- Header: "Mercado de Figurinhas" + contador de figurinhas
+
+#### [NEW] `app/mercado.tsx` (rota shell)
+
+```
+app/mercado.tsx
+```
+
+#### [MODIFY] `app/_layout.tsx`
+
+Registrar:
+```tsx
+<Stack.Screen name="mercado" options={{ title: 'Mercado', presentation: 'modal' }} />
+```
+
+#### [MODIFY] `ProfileScreen.tsx`
+
+Adicionar botão para navegar ao mercado: `router.push('/mercado')`.
+
+---
+
+## Ordem de execução sugerida
+
+```
+1. times/domain  →  ITeamRepository (novas assinaturas) + GetTeamById (use case)
+2. times/infra   →  MockTeamRepository (getById + getPlayersByTeam + seed atualizado)
+3. times/main    →  makeGetTeamById factory
+4. times/presentation  →  useTeamDetail → CardConquistas → MoldeJogadores → TelaTime
+5. app/times/[teamId].tsx + _layout.tsx (registro) + TimesScreen (link)
+
+6. apostas/presentation  →  TelaPalpite (usa hooks/factory já prontos)
+7. app/palpite/[matchId].tsx + _layout.tsx + ContainerAposta (link)
+
+8. album/presentation  →  CompartilhBtn → TelaMercado
+9. app/mercado.tsx + _layout.tsx + ProfileScreen (link)
+```
+
+---
+
+## Verification Plan
+
+### Build / Metro
+```bash
+npx expo start --clear
+```
+Verificar ausência de erros de TypeScript e que o Metro compila sem warnings.
+
+### Manual — Tela Time
+- Abrir `TimesScreen` → tocar em um time → checar se navega para `TelaTime`
+- Confirmar que `CardConquistas` exibe `worldCupWins` e `titles` do seed
+- Confirmar que `MoldeJogadores` lista os jogadores do time
+
+### Manual — Tela Palpite
+- Abrir `ApostasScreen` → tocar em uma partida → checar navegação
+- Incrementar/decrementar placar → confirmar palpite → verificar retorno à tela anterior
+- Confirmar que `useCreatePrediction` não dispara erro
+
+### Manual — Mercado de Figurinhas
+- Abrir `ProfileScreen` → tocar no botão de mercado → checar modal
+- Confirmar que figurinhas do perfil aparecem com `CompartilhBtn`
+- Testar fluxo de compartilhamento (simulator pode não abrir o share sheet, mas não deve crashar)

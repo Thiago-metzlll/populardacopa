@@ -1,0 +1,43 @@
+# Phase 2 Implementation Tasks
+
+- [ ] Install `expo-sharing` dependency
+- [ ] **Feature: Times (Team Detail)**
+  - [ ] Modify `Team.ts` domain entity
+  - [ ] Create `PlayerSeed.ts` mock data
+  - [ ] Modify `TeamSeed.ts` mock data
+  - [ ] Modify `TeamRepository.ts` domain repository
+  - [ ] Modify `MockTeamRepository.ts` infra repository
+  - [ ] Create `GetTeamById.ts` use case
+  - [ ] Create `makeGetTeamById.ts` factory
+  - [ ] Create `useTeamDetail.ts` presentation hook
+  - [ ] Create `CardConquistas.tsx` component
+  - [ ] Create `MoldeJogadores.tsx` component
+  - [ ] Create `TelaTime.tsx` screen
+  - [ ] Create `app/times/[teamId].tsx` shell route
+  - [ ] Modify `app/_layout.tsx` for routing
+  - [ ] Modify `TimesScreen.tsx` for navigation
+- [ ] **Feature: Apostas (Match Prediction)**
+  - [ ] Modify `Match.ts` domain entity
+  - [ ] Modify `MatchSeed.ts` mock data
+  - [ ] Create `SavePrediction.ts` use case
+  - [ ] Create `makeSavePrediction.ts` factory
+  - [ ] Create `useMatchDetail.ts` presentation hook
+  - [ ] Create `TelaPalpite.tsx` screen
+  - [ ] Create `app/palpite/[matchId].tsx` shell route
+  - [ ] Modify `app/_layout.tsx` for routing
+  - [ ] Modify `ApostasScreen.tsx` & `ContainerAposta.tsx` for navigation
+- [ ] **Feature: Album (Sticker Market)**
+  - [ ] Modify `Album.ts` domain entity
+  - [ ] Modify `AlbumRepository.ts` domain repository
+  - [ ] Modify `MockAlbumRepository.ts` & `AlbumSeed.ts` infra
+  - [ ] Create `BuyStickerPack.ts` use case
+  - [ ] Create `makeBuyStickerPack.ts` factory
+  - [ ] Create `useMarketAlbums.ts` & `useBuyStickerPack.ts` hooks
+  - [ ] Create `CompartilhBtn.tsx` component
+  - [ ] Create `TelaMercado.tsx` screen
+  - [ ] Create `app/mercado.tsx` shell route
+  - [ ] Modify `app/_layout.tsx` for routing
+  - [ ] Modify `ProfileScreen.tsx` for navigation
+- [ ] **Verification**
+  - [ ] Build and ensure no errors
+  - [ ] Update walkthrough.md

@@ -6,4 +6,8 @@ export interface Team {
   ranking: number;
   winRate: number;
   isFavorite: boolean;
+  titles: string[];
+  worldCupWins: number;
+  description: string;
+  isUnbeaten: boolean;
 }

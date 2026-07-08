@@ -1,6 +1,8 @@
 import { Team } from '../../domain/entities/Team';
+import { Player } from '../../domain/entities/Player';
 import { TeamRepository } from '../../domain/repositories/TeamRepository';
 import { mockTeams } from '../seed/TeamSeed';
+import { mockPlayers } from '../seed/PlayerSeed';
 
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
@@ -29,5 +31,17 @@ export class MockTeamRepository implements TeamRepository {
         isFavorite: !this.teamsState[teamIndex].isFavorite
       };
     }
+  }
+
+  async getById(teamId: string): Promise<Team> {
+    await delay(300);
+    const team = this.teamsState.find((t) => t.id === teamId);
+    if (!team) throw new Error('Team not found');
+    return team;
+  }
+
+  async getPlayersByTeam(teamId: string): Promise<Player[]> {
+    await delay(300);
+    return mockPlayers.filter((p) => p.teamId === teamId);
   }
 }
