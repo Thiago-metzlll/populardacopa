@@ -1,13 +1,13 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useUserProfile } from '../../../features/album/presentation/hooks/useUserProfile';
-import { CardColecao } from '../components/CardColecao';
-import { useUpcomingMatches } from '../../../features/apostas/presentation/hooks/useUpcomingMatches';
 import { ContainerAposta } from '../../../features/apostas/presentation/components/ContainerAposta';
-import { colors, spacing, typography, radius } from '../theme';
+import { useUpcomingMatches } from '../../../features/apostas/presentation/hooks/useUpcomingMatches';
+import { CardColecao } from '../components/CardColecao';
+import { colors, radius, spacing, typography } from '../theme';
 
 export const HomeScreen = () => {
   const router = useRouter();
@@ -70,20 +70,20 @@ export const HomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: colors.background 
+  container: {
+    flex: 1,
+    backgroundColor: colors.background
   },
   contentContainer: {
     padding: spacing.md,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.xl,
   },
-  sectionTitle: { 
-    ...typography.heading, 
-    color: colors.textPrimary, 
+  sectionTitle: {
+    ...typography.heading,
+    color: colors.textPrimary,
     fontSize: 28,
     fontWeight: '900',
-    marginBottom: spacing.md 
+    marginBottom: spacing.md
   },
   matchCardWrapper: {
     marginBottom: spacing.lg,
@@ -97,19 +97,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.primary,
   },
-  placeholderText: { 
-    ...typography.body, 
-    color: colors.textSecondary, 
+  placeholderText: {
+    ...typography.body,
+    color: colors.textSecondary,
     padding: spacing.md,
     textAlign: 'center',
   },
-  row: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    marginBottom: spacing.lg 
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.lg
   },
-  navCardWrapper: { 
-    flex: 1, 
+  navCardWrapper: {
+    flex: 1,
     marginHorizontal: spacing.xs,
   },
   navCardGradient: {
@@ -128,13 +128,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  navText: { 
-    ...typography.heading, 
+  navText: {
+    ...typography.heading,
     color: colors.textPrimary,
     fontSize: 22,
     marginTop: spacing.md,
   },
-  loader: { 
-    marginVertical: spacing.lg 
+  loader: {
+    marginVertical: spacing.lg
   }
 });
