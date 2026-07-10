@@ -1,0 +1,79 @@
+/**
+ * Script de seed — cria um usuário de exemplo no Firestore.
+ * Usa o Firebase ADMIN SDK (server-side) com o service account.
+ *
+ * ⚠️  PRÉ-REQUISITOS:
+ *   1. Revogue a chave anterior e gere uma nova:
+ *      Firebase Console → Project Settings → Service accounts → Generate new private key
+ *   2. Substitua o conteúdo de scripts/serviceAccountKey.json pela nova chave
+ *   3. Instale as dependências do script:
+ *      npm install --save-dev firebase-admin ts-node
+ *
+ * COMO RODAR:
+ *   npx ts-node scripts/seedFirestoreUser.ts
+ */
+
+import * as admin from 'firebase-admin';
+import serviceAccount from './serviceAccountKey.json';
+
+// Inicializa o Admin SDK com a service account
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+});
+
+const db = admin.firestore();
+const authAdmin = admin.auth();
+
+async function seedUser() {
+  const email = 'thiago@populardacopa.com';
+  const password = 'Copa2026!';
+  const name = 'Thiago';
+
+  console.log(`\n🔥 Criando usuário de exemplo: ${email}`);
+
+  try {
+    // 1. Cria usuário no Firebase Auth via Admin SDK
+    const userRecord = await authAdmin.createUser({
+      email,
+      password,
+      displayName: name,
+    });
+    console.log(`✅ Auth: uid gerado → ${userRecord.uid}`);
+
+    // 2. Cria documento no Firestore com dados iniciais realistas
+    const stickerIds = Array.from({ length: 78 }, (_, i) => `s${i + 1}`);
+    const progress = (stickerIds.length / 100) * 100; // 78%
+
+    await db.collection('users').doc(userRecord.uid).set({
+      name,
+      email,
+      coins: 200,
+      stickerIds,
+      progress,
+      favoriteTeamIds: ['t1', 't3'],
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    console.log(`✅ Firestore: documento criado em users/${userRecord.uid}`);
+    console.log(`\n📋 Dados criados:`);
+    console.log(`   • Nome: ${name}`);
+    console.log(`   • Email: ${email}`);
+    console.log(`   • Moedas: 200`);
+    console.log(`   • Figurinhas: ${stickerIds.length} (${progress}% do álbum)`);
+    console.log(`   • Times favoritos: Brasil (t1), Argentina (t3)`);
+    console.log(`\n🎉 Seed concluído! Faça login no app com: ${email} / ${password}\n`);
+  } catch (error: unknown) {
+    const err = error as { code?: string; message?: string };
+    if (err.code === 'auth/email-already-exists') {
+      console.log('⚠️  Usuário já existe — seed ignorado.');
+    } else {
+      console.error('❌ Erro:', err.message);
+      process.exit(1);
+    }
+  }
+
+  process.exit(0);
+}
+
+seedUser();
+

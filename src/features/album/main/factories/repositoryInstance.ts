@@ -1,2 +1,4 @@
-import { MockAlbumRepository } from '../../infra/repositories/MockAlbumRepository';
-export const albumRepositoryInstance = new MockAlbumRepository();
+import { FirestoreAlbumRepository } from '../../infra/repositories/FirestoreAlbumRepository';
+
+// Para voltar ao mock: substituir FirestoreAlbumRepository por MockAlbumRepository
+export const albumRepositoryInstance = new FirestoreAlbumRepository();
