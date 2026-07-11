@@ -4,7 +4,7 @@ import { getAuth } from 'firebase/auth';
 
 /**
  * Credenciais Firebase via variáveis de ambiente.
- * Crie um arquivo .env.local na raiz do projeto com as chaves abaixo
+ * Crie um arquivo .env na raiz do projeto com as chaves abaixo
  * (veja .env.example para o template).
  * Prefixo EXPO_PUBLIC_ é obrigatório para o Expo expor vars ao bundle.
  */
@@ -20,10 +20,17 @@ const firebaseConfig = {
 // Garante singleton — evita re-inicialização em hot reload
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-export const db = initializeFirestore(app, {
-  host: 'firestore.googleapis.com',
-  ssl: true,
-  ignoreUndefinedProperties: true,
-});
+// initializeFirestore lança erro se chamado duas vezes no mesmo app (hot reload).
+// databaseId: '(default)' é especificado explicitamente — bug conhecido no SDK v12
+// onde o banco não é encontrado sem o ID explícito em alguns projetos.
+let db: ReturnType<typeof getFirestore>;
+try {
+  db = initializeFirestore(app, {
+    ignoreUndefinedProperties: true,
+  }, 'default');
+} catch {
+  db = getFirestore(app, 'default');
+}
+export { db };
 export const auth = getAuth(app);
 export default app;

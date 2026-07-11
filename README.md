@@ -83,6 +83,19 @@ Instanciados no nível raiz e disponibilizados para todas as features:
 
 
 
+## Arquitetura de Dados (Nuvem vs Local)
+
+Para otimização de performance e custos, os dados são divididos seguindo a seguinte regra:
+
+| Critério | Vai pra onde |
+| --- | --- |
+| Dado estático, igual pra todos os usuários, não muda durante o projeto | **SQLite local** (Ex: lista de países, regras, informações globais) |
+| Dado que pertence a um usuário específico, ou muda com o tempo | **Firestore (nuvem)** (Ex: progresso, figurinhas, moedas, palpites) |
+
+> **Nota sobre o Firestore**: Ao inicializar o Firebase SDK v12, foi necessário declarar o database ID como `'default'` (sem parênteses) explicitamente no `initializeFirestore` para evitar o erro `Database '(default)' not found`.
+
+---
+
 ## Status de implementação
 
 ### Domain + Infra

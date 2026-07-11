@@ -430,3 +430,24 @@ Os contratos abaixo foram **intencionalmente expandidos** durante a Fase 1 em re
 ### 9.4 Nota sobre Singleton em `grupos`
 
 A feature `grupos` foi atualizada e **agora utiliza o padrão singleton** via `repositoryInstance.ts`, alinhando-a arquiteturalmente com as outras features (times, album, apostas). A factory `makeGetAllGroups` consome essa instância única, garantindo que o estado não seja perdido entre navegações se os `standings` sofrerem atualizações futuras.
+
+---
+
+## 10. Arquitetura de Dados (Nuvem vs Local)
+
+O aplicativo divide o armazenamento de dados visando otimização extrema de performance, redução de latência e diminuição de custos (reads/writes) no banco em nuvem.
+
+### Regra de Ouro
+
+| Critério | Solução de Armazenamento | Exemplos |
+|---|---|---|
+| **Dado estático**, igual para todos os usuários, que não muda durante o projeto | **SQLite local** | Tabela de países/seleções, configurações globais padrão, regras do jogo, estrutura fixa dos pacotes |
+| **Dado mutável ou pessoal**, pertence a um usuário específico ou muda frequentemente | **Firestore (nuvem)** | Progresso do álbum, figurinhas possuídas, quantidade de moedas, histórico de palpites, dados da conta |
+
+### Observações sobre a Implementação do Firestore
+
+Foi identificado um comportamento atípico do Firebase Web SDK (v12) em projetos com bases de dados que utilizam IDs nomeados ou foram provisionados de forma genérica.
+- **Sintoma:** O SDK retornava `Database '(default)' not found`.
+- **Causa:** O banco de dados no Google Cloud estava nomeado literalmente como `default` e não `(default)` (com parênteses), que é a norma tradicional.
+- **Solução:** No arquivo `src/shared/infra/firebase/firebaseConfig.ts`, o `databaseId` foi especificado **explicitamente** como o terceiro parâmetro: `initializeFirestore(app, {...}, 'default')` e no fallback `getFirestore(app, 'default')`.
+Isso solucionou definitivamente os falsos erros de `404 Not Found` na comunicação interna do Firebase.

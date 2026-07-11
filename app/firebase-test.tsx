@@ -130,6 +130,38 @@ export default function FirebaseTestScreen() {
     setRunning(false);
   }
 
+  async function seedUsers() {
+    setResults([]);
+    setRunning(true);
+    addResult({ name: 'Seed 4 Usuários', status: 'running', detail: 'Criando...' });
+    
+    const mockUsers = [
+      { id: 'user1', name: 'João Silva', email: 'joao@teste.com', coins: 150, favoriteTeamIds: ['brazil'] },
+      { id: 'user2', name: 'Maria Souza', email: 'maria@teste.com', coins: 300, favoriteTeamIds: ['argentina'] },
+      { id: 'user3', name: 'Carlos Alberto', email: 'carlos@teste.com', coins: 50, favoriteTeamIds: ['france'] },
+      { id: 'user4', name: 'Ana Clara', email: 'ana@teste.com', coins: 500, favoriteTeamIds: ['germany'] },
+    ];
+
+    try {
+      for (const u of mockUsers) {
+        const ref = doc(db, COLLECTIONS.USERS, u.id);
+        await setDoc(ref, {
+          [USER_FIELDS.NAME]: u.name,
+          [USER_FIELDS.EMAIL]: u.email,
+          [USER_FIELDS.COINS]: u.coins,
+          [USER_FIELDS.STICKER_IDS]: [],
+          [USER_FIELDS.PROGRESS]: 0,
+          [USER_FIELDS.FAVORITE_TEAM_IDS]: u.favoriteTeamIds,
+          [USER_FIELDS.CREATED_AT]: serverTimestamp(),
+        }, { merge: true });
+      }
+      updateLast({ status: 'ok', detail: '4 usuários criados com sucesso!' });
+    } catch (err: any) {
+      updateLast({ status: 'error', detail: `Erro: ${err.message || String(err)}` });
+    }
+    setRunning(false);
+  }
+
   const allPassed =
     results.length === 4 && results.every((r) => r.status === 'ok');
   const hasFailed = results.some((r) => r.status === 'error');
@@ -151,6 +183,14 @@ export default function FirebaseTestScreen() {
         ) : (
           <Text style={styles.buttonText}>▶ Rodar Testes</Text>
         )}
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.button, { backgroundColor: '#10b981' }, running && styles.buttonDisabled]}
+        onPress={seedUsers}
+        disabled={running}
+      >
+        <Text style={styles.buttonText}>🌱 Popular 4 Usuários (Seed)</Text>
       </TouchableOpacity>
 
       {results.map((r, i) => (
