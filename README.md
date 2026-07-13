@@ -116,16 +116,16 @@ Para otimização de performance e custos, os dados são divididos seguindo a se
 | **Fase 1** | ProfileScreen + CardColeção | ✅ |
 | **Fase 1** | TimesScreen + SearchInput | ✅ |
 | **Fase 1** | ApostasScreen + ContainerAposta + BotaoHistorico | ✅ |
-| **Fase 2** | Tela Mercado de Figurinhas + CompartilhBtn | ⬜ |
-| **Fase 2** | Tela Time + CardConquistas + MoldeJogadores | ⬜ |
-| **Fase 2** | Tela Palpite | ⬜ |
-| **Fase 3** | Animação Abrir Pacote | ⬜ |
-| **Fase 3** | Tela Jogador + CardCaracterísticas | ⬜ |
-| **Fase 3** | Tela Histórico de Apostas | ⬜ |
+| **Fase 2** | Tela Mercado de Figurinhas + CompartilhBtn | ✅ |
+| **Fase 2** | Tela Time + CardConquistas + MoldeJogadores | ✅ |
+| **Fase 2** | Tela Palpite | ✅ |
+| **Fase 3** | Animação Abrir Pacote | ✅ |
+| **Fase 3** | Tela Jogador + CardCaracterísticas | ✅ |
+| **Fase 3** | Tela Histórico de Apostas | ✅ |
 | **Fase 4** | Tela Entrar + Tela Cadastro + MoldeInputs | ⬜ |
 | **Fase 5** | Tela Home + MoldeCardHome + CardPartida | ⬜ |
 | **Global** | CardFigurinha, MolduraIndividualPaís, BotãoHomeMolde, CardColeção, PalpiteBtn | ✅ |
-| **Global** | NavBar, MenuBar | ⬜ |
+| **Global** | NavBar, MenuBar | ✅ |
 
 ---
 

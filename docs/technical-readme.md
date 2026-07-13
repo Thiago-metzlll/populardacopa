@@ -136,16 +136,16 @@ src/
   features/
     grupos/               → Group, GroupStanding | GetAllGroups | GroupsScreen
     times/                → Team, Player | SearchTeams, ToggleFavorite | TimesScreen + SearchInput
-                            [pendente] Tela Time (CardConquistas, MoldeJogadores)
-                                       Tela Jogador (CardCaracterísticas)
+                            [pronto] Tela Time (CardConquistas, MoldeJogadores)
+                                     Tela Jogador (CardCaracterísticas)
     album/                → Sticker, UserCollection | GetUserProfile, OpenPackage
                             → ProfileScreen + CardColeção
-                            [pendente] Mercado de Figurinhas (CompartilhBtn)
-                                       Animação Abrir Pacote
+                            [pronto] Mercado de Figurinhas (CompartilhBtn)
+                                     Animação Abrir Pacote
     apostas/              → Match, Prediction | GetUpcomingMatches, CreatePrediction
                             → ApostasScreen + ContainerAposta + BotaoHistorico
-                            [pendente] Tela Palpite
-                                       Tela Histórico de Apostas
+                            [pronto] Tela Palpite
+                                     Tela Histórico de Apostas
     auth/                 → [pendente] Tela Entrar + Tela Cadastro + MoldeInputs
 ```
 
@@ -207,25 +207,25 @@ Definidos no grafo como componentes reutilizáveis em nível de aplicação:
 - **Infra**: `MockGroupRepository` com seed de 2 grupos e standings ranqueados por pontos
 - **Presentation**: `GroupsScreen` via `useGroups` · Rota: `/grupos` (modal)
 
-### `times` — ✅ Fase 1 completa · ⬜ Fases 2 e 3 pendentes
+### `times` — ✅ Fases 1, 2 e 3 completas
 
-- **Domain**: `Team`, `Player`, `PlayerStats` · `TeamRepository`: `getAll`, `getFavorites`, `toggleFavorite`, `search`
-- **Use Cases**: `GetFavoriteTeams`, `SearchTeams`, `ToggleFavoriteTeam`
+- **Domain**: `Team`, `Player`, `PlayerStats` · `TeamRepository`: `getAll`, `getFavorites`, `toggleFavorite`, `search`, `getTeamById`, `getPlayersByTeamId`, `getPlayerById`
+- **Use Cases**: `GetFavoriteTeams`, `SearchTeams`, `ToggleFavoriteTeam`, `GetTeamById`, `GetPlayerById`
 - **Infra**: `MockTeamRepository` com estado mutável em memória · 9 seleções no seed
 - **Presentation (✅)**: `TimesScreen` + `SearchInput` (debounce 500ms) via `useFavoriteTeams`
-- **Pendente (Fase 2)**: `Tela Time` → `CardConquistas` + `MoldeJogadores`
-- **Pendente (Fase 3)**: `Tela Jogador` → `CardCaracterísticas`
+- **Presentation (✅) (Fase 2)**: `Tela Time` → `CardConquistas` + `MoldeJogadores`
+- **Presentation (✅) (Fase 3)**: `Tela Jogador` → `CardCaracterísticas`
 
-### `album` — ✅ Fase 1 completa · ⬜ Fases 2 e 3 pendentes
+### `album` — ✅ Fases 1, 2 e 3 completas
 
 - **Domain**: `Sticker { id, playerId, rarity, obtainedAt }` · `UserCollection { stickerIds[] }` · `Package { stickers[] }`
-- **Use Cases**: `GetUserProfile.execute(userId)` · `OpenPackage.execute(userId)` → `Sticker[]`
+- **Use Cases**: `GetUserProfile.execute(userId)` · `OpenPackage.execute(userId)` · `GetMarketAlbums`, `BuyStickerPack`
 - **Infra**: `MockAlbumRepository` — 100 figurinhas no seed, 78 pré-atribuídas ao usuário mock · `openPackage` sorteia 3 stickers não duplicados
 - **Presentation (✅)**: `ProfileScreen` via `useUserProfile` + `useOpenPackage` · `CardColeção` (shared) reutilizado na `HomeScreen`
-- **Pendente (Fase 2)**: `Tela Mercado de Figurinhas` → `CompartilhBtn`
-- **Pendente (Fase 3)**: `Animação Abrir Pacote` (react-native-reanimated)
+- **Presentation (✅) (Fase 2)**: `Tela Mercado de Figurinhas` → `CompartilhBtn`
+- **Presentation (✅) (Fase 3)**: `Animação Abrir Pacote` (react-native-reanimated)
 
-### `apostas` — ✅ Fase 1 completa · ⬜ Fases 2 e 3 pendentes
+### `apostas` — ✅ Fases 1, 2 e 3 completas
 
 - **Domain**:
   - `Match { id, homeTeamId, awayTeamId, date, phase, status, odds: MatchOdds }`
@@ -234,8 +234,8 @@ Definidos no grafo como componentes reutilizáveis em nível de aplicação:
 - **Use Cases**: `GetUpcomingMatches`, `CreatePrediction`, `GetPredictionHistory`
 - **Infra**: `MockMatchRepository` filtra por `status === 'scheduled'` · seed com 4 partidas
 - **Presentation (✅)**: `ApostasScreen` + `ContainerAposta` + `BotaoHistorico`
-- **Pendente (Fase 2)**: `Tela Palpite` (formulário de confirmação do palpite)
-- **Pendente (Fase 3)**: `Tela Histórico de Apostas`
+- **Presentation (✅) (Fase 2)**: `Tela Palpite` (formulário de confirmação do palpite)
+- **Presentation (✅) (Fase 3)**: `Tela Histórico de Apostas`
 
 ### `auth` — ⬜ Fase 4 (não iniciada)
 
@@ -406,10 +406,10 @@ Todos os nomes de componentes definidos no grafo foram **preservados no código*
 | `SearchInput` | `SearchInput.tsx` | 1 | ✅ |
 | `ContainerAposta` | `ContainerAposta.tsx` | 1 | ✅ |
 | `BotaoHistorico` | `BotaoHistorico.tsx` | 1 | ✅ |
-| `CompartilhBtn` | — | 2 | ⬜ pendente |
-| `CardConquistas` | — | 2 | ⬜ pendente |
-| `MoldeJogadores` | — | 2 | ⬜ pendente |
-| `CardCaracterísticas` | — | 3 | ⬜ pendente |
+| `CompartilhBtn` | `CompartilhBtn.tsx` | 2 | ✅ |
+| `CardConquistas` | `CardConquistas.tsx` | 2 | ✅ |
+| `MoldeJogadores` | `MoldeJogadores.tsx` | 2 | ✅ |
+| `CardCaracterísticas` | `CardCaracteristicas.tsx` | 3 | ✅ |
 | `MoldeInputs` | — | 4 | ⬜ pendente |
 | `MoldeCardHome` | — | 5 | ⬜ pendente |
 | `CardPartida` | — | 5 | ⬜ pendente |
