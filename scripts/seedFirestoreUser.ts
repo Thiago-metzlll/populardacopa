@@ -25,9 +25,9 @@ const db = admin.firestore();
 const authAdmin = admin.auth();
 
 async function seedUser() {
-  const email = 'thiago@populardacopa.com';
+  const email = 'elianam@populardacopa.com';
   const password = 'Copa2026!';
-  const name = 'Thiago';
+  const name = 'Eliana';
 
   console.log(`\n🔥 Criando usuário de exemplo: ${email}`);
 
