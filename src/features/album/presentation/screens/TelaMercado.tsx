@@ -76,7 +76,11 @@ export const TelaMercado: React.FC = () => {
             : '0';
 
           return (
-            <View style={styles.albumCard}>
+            <TouchableOpacity
+              style={styles.albumCard}
+              onPress={() => router.push(`/mercado/${item.id}`)}
+              activeOpacity={0.9}
+            >
               <View style={styles.albumHeader}>
                 <Ionicons name="albums-outline" size={24} color={colors.primary} />
                 <View style={styles.albumTitleContainer}>
@@ -111,7 +115,7 @@ export const TelaMercado: React.FC = () => {
                   <Text style={styles.buyButtonText}>COMPRAR PACOTE</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </TouchableOpacity>
           );
         }}
         ListEmptyComponent={

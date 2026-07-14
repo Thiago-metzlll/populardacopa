@@ -19,30 +19,59 @@ export const mockAlbums: Album[] = [
   },
 ];
 
-const generateStickers = (): Sticker[] => {
+const LEGENDARY_NAMES = ['Pelé', 'Diego Maradona', 'Zinedine Zidane', 'Ronaldo Fenômeno', 'Zico'];
+const RARE_NAMES = ['Neymar Jr', 'Kylian Mbappé', 'Lionel Messi', 'Cristiano Ronaldo', 'Luka Modrić', 'Karim Benzema', 'Kevin De Bruyne', 'Vinícius Jr.'];
+
+const RARITY_PRICE: Record<Sticker['rarity'], number> = {
+  comum: 20,
+  rara: 60,
+  lendaria: 150,
+};
+
+const generateStickers = (albumId: string, count: number, idOffset: number): Sticker[] => {
   const stickers: Sticker[] = [];
   const baseDate = new Date('2026-06-01T10:00:00Z').getTime();
+  let legendaryIdx = 0;
+  let rareIdx = 0;
 
-  for (let i = 1; i <= 100; i++) {
-    let rarity: 'comum' | 'rara' | 'lendaria' = 'comum';
+  for (let i = 1; i <= count; i++) {
+    let rarity: Sticker['rarity'] = 'comum';
     if (i % 20 === 0) rarity = 'lendaria';
     else if (i % 5 === 0) rarity = 'rara';
 
-    const obtainedAt = new Date(baseDate + i * 86400000).toISOString(); 
+    const globalIndex = idOffset + i;
+    let playerName: string;
+    if (rarity === 'lendaria') {
+      playerName = LEGENDARY_NAMES[legendaryIdx % LEGENDARY_NAMES.length];
+      legendaryIdx++;
+    } else if (rarity === 'rara') {
+      playerName = RARE_NAMES[rareIdx % RARE_NAMES.length];
+      rareIdx++;
+    } else {
+      playerName = `Jogador ${globalIndex}`;
+    }
+
+    const obtainedAt = new Date(baseDate + globalIndex * 86400000).toISOString();
 
     stickers.push({
-      id: `s${i}`,
-      playerId: `p${i}`,
-      teamId: `t${(i % 10) + 1}`,
+      id: `s${globalIndex}`,
+      albumId,
+      playerId: `p${globalIndex}`,
+      teamId: `t${(globalIndex % 10) + 1}`,
+      playerName,
+      price: RARITY_PRICE[rarity],
       rarity,
-      imageUrl: `https://fakeimg.pl/200x300/?text=Sticker+${i}`,
+      imageUrl: `https://fakeimg.pl/200x300/?text=${encodeURIComponent(playerName)}`,
       obtainedAt,
     });
   }
   return stickers;
 };
 
-export const mockStickers: Sticker[] = generateStickers();
+export const mockStickers: Sticker[] = [
+  ...generateStickers('a1', 100, 0),
+  ...generateStickers('a2', 50, 100),
+];
 
 export const mockUserCollection: UserCollection = {
   userId: 'u1',

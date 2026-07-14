@@ -119,4 +119,45 @@ export class MockAlbumRepository implements AlbumRepository {
     this.coinsState[userId] = newBalance;
     return newBalance;
   }
+
+  async getStickersByAlbumId(albumId: string): Promise<Sticker[]> {
+    await delay(300);
+    return mockStickers.filter((s) => s.albumId === albumId);
+  }
+
+  async getAllStickers(): Promise<Sticker[]> {
+    await delay(300);
+    return mockStickers;
+  }
+
+  async buyIndividualSticker(userId: string, stickerId: string, cost: number): Promise<Sticker> {
+    await delay(500);
+
+    const sticker = mockStickers.find((s) => s.id === stickerId);
+    if (!sticker) throw new Error('Figurinha não encontrada');
+
+    const userCoins = this.coinsState[userId] ?? 200;
+    if (userCoins < cost) {
+      throw new Error('Saldo de moedas insuficiente');
+    }
+    this.coinsState[userId] = userCoins - cost;
+
+    const updatedSticker = { ...sticker, obtainedAt: new Date().toISOString() };
+    const index = mockStickers.findIndex((s) => s.id === stickerId);
+    if (index !== -1) mockStickers[index] = updatedSticker;
+
+    if (!this.collectionState.stickerIds.includes(stickerId)) {
+      this.collectionState.stickerIds = [...this.collectionState.stickerIds, stickerId];
+    }
+
+    const album = mockAlbums.find((a) => a.id === sticker.albumId);
+    if (album) {
+      const ownedInAlbum = this.collectionState.stickerIds.filter((id) =>
+        mockStickers.find((s) => s.id === id)?.albumId === sticker.albumId
+      ).length;
+      this.collectionState.progress = (ownedInAlbum / album.totalStickers) * 100;
+    }
+
+    return updatedSticker;
+  }
 }

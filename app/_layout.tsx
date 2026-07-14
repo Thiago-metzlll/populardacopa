@@ -68,6 +68,35 @@ export default function RootLayout() {
             headerTitleStyle: { fontWeight: 'bold' },
           }}
         />
+
+        {/* Fase 4 — Alinhamento com Figma */}
+        <Stack.Screen
+          name="mercado/[albumId]"
+          options={{
+            title: 'Coleção',
+            headerTintColor: '#FFFFFF',
+            headerStyle: { backgroundColor: '#1A1A1E' },
+            headerTitleStyle: { fontWeight: 'bold' },
+          }}
+        />
+        <Stack.Screen
+          name="figurinha/[stickerId]"
+          options={{
+            title: 'Figurinha',
+            headerTintColor: '#FFFFFF',
+            headerStyle: { backgroundColor: '#1A1A1E' },
+            headerTitleStyle: { fontWeight: 'bold' },
+          }}
+        />
+        <Stack.Screen
+          name="figurinhas"
+          options={{
+            title: 'Todas as Figurinhas',
+            headerTintColor: '#FFFFFF',
+            headerStyle: { backgroundColor: '#1A1A1E' },
+            headerTitleStyle: { fontWeight: 'bold' },
+          }}
+        />
       </Stack>
     </UserProvider>
   );

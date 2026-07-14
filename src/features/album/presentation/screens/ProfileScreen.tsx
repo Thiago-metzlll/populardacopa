@@ -71,6 +71,10 @@ export const ProfileScreen = () => {
           </View>
         )}
       />
+
+      <TouchableOpacity style={styles.viewAllLink} onPress={() => router.push('/figurinhas')}>
+        <Text style={styles.viewAllLinkText}>Ver todas as figurinhas →</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -87,6 +91,8 @@ const styles = StyleSheet.create({
   marketButton: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.primary },
   marketButtonText: { ...typography.subheading, color: colors.primary, fontWeight: 'bold' },
   sectionTitle: { ...typography.heading, color: colors.textPrimary, marginTop: spacing.md, marginBottom: spacing.sm },
+  viewAllLink: { alignItems: 'center', marginTop: spacing.lg },
+  viewAllLinkText: { ...typography.subheading, color: colors.primary, fontWeight: 'bold' },
   stickersList: { paddingBottom: spacing.sm },
   stickerCard: { padding: spacing.md, backgroundColor: colors.surface, borderRadius: radius.md, marginRight: spacing.sm, minWidth: 120, alignItems: 'center', justifyContent: 'space-between' },
   stickerCardRare: { borderColor: colors.secondary, borderWidth: 1 },

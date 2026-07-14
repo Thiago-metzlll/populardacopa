@@ -96,6 +96,14 @@ export class FirestoreAlbumRepository implements AlbumRepository {
     return mockAlbums.map((a) => ({ ...a }));
   }
 
+  async getStickersByAlbumId(albumId: string): Promise<Sticker[]> {
+    return mockStickers.filter((s) => s.albumId === albumId);
+  }
+
+  async getAllStickers(): Promise<Sticker[]> {
+    return mockStickers;
+  }
+
   // ─── Lógica de negócio (híbrida: sorteio local + persistência Firestore) ───
 
   async openPackage(packageId: string, userId: string): Promise<Sticker[]> {
@@ -150,5 +158,32 @@ export class FirestoreAlbumRepository implements AlbumRepository {
 
     const packId = `pkg_${Date.now()}`;
     return { packId, stickers: drawn };
+  }
+
+  async buyIndividualSticker(userId: string, stickerId: string, cost: number): Promise<Sticker> {
+    const sticker = mockStickers.find((s) => s.id === stickerId);
+    if (!sticker) throw new Error('Figurinha não encontrada');
+
+    const coins = await this.getUserCoins(userId);
+    if (coins < cost) throw new Error('Saldo de moedas insuficiente');
+
+    const newBalance = coins - cost;
+    const updatedSticker = { ...sticker, obtainedAt: new Date().toISOString() };
+
+    const collection = await this.getUserCollection(userId);
+    const album = mockAlbums.find((a) => a.id === sticker.albumId);
+    const updatedIds = [...new Set([...collection.stickerIds, stickerId])];
+    const ownedInAlbum = updatedIds.filter(
+      (id) => mockStickers.find((s) => s.id === id)?.albumId === sticker.albumId
+    ).length;
+    const newProgress = album ? (ownedInAlbum / album.totalStickers) * 100 : collection.progress;
+
+    await updateDoc(this.userRef(userId), {
+      [USER_FIELDS.COINS]: newBalance,
+      [USER_FIELDS.STICKER_IDS]: arrayUnion(stickerId),
+      [USER_FIELDS.PROGRESS]: newProgress,
+    });
+
+    return updatedSticker;
   }
 }

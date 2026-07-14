@@ -16,4 +16,7 @@ export interface AlbumRepository {
   buyStickerPack(userId: string, albumId: string, cost: number): Promise<BuyStickerPackResult>;
   getUserCoins(userId: string): Promise<number>;
   deductUserCoins(userId: string, amount: number): Promise<number>;
+  getStickersByAlbumId(albumId: string): Promise<Sticker[]>;
+  getAllStickers(): Promise<Sticker[]>;
+  buyIndividualSticker(userId: string, stickerId: string, cost: number): Promise<Sticker>;
 }
