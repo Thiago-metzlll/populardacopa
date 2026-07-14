@@ -10,4 +10,6 @@ export interface AuthRepository {
   register(name: string, email: string, password: string): Promise<FirebaseUser>;
   signOut(): Promise<void>;
   getCurrentUser(): FirebaseUser | null;
+  resetPassword(email: string): Promise<void>;
+  onAuthStateChanged(callback: (user: FirebaseUser | null) => void): () => void;
 }

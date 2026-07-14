@@ -97,6 +97,11 @@ export default function RootLayout() {
             headerTitleStyle: { fontWeight: 'bold' },
           }}
         />
+        {/* Auth Screens */}
+        <Stack.Screen 
+          name="(auth)" 
+          options={{ headerShown: false, presentation: 'modal' }} 
+        />
       </Stack>
     </UserProvider>
   );

@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { initializeFirestore, getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { initializeAuth, getReactNativePersistence, getAuth } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
  * Credenciais Firebase via variáveis de ambiente.
@@ -8,6 +9,27 @@ import { getAuth } from 'firebase/auth';
  * (veja .env.example para o template).
  * Prefixo EXPO_PUBLIC_ é obrigatório para o Expo expor vars ao bundle.
  */
+
+// Valida variáveis obrigatórias antes de inicializar o Firebase
+const requiredEnvVars = {
+  EXPO_PUBLIC_FIREBASE_API_KEY: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  EXPO_PUBLIC_FIREBASE_PROJECT_ID: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  EXPO_PUBLIC_FIREBASE_APP_ID: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+};
+
+const missingVars = Object.entries(requiredEnvVars)
+  .filter(([, value]) => !value || value.includes('SUA_') || value.includes('SEU_'))
+  .map(([key]) => key);
+
+if (missingVars.length > 0) {
+  throw new Error(
+    `[Firebase] Variáveis de ambiente ausentes ou com valores placeholder:\n` +
+    missingVars.map((v) => `  - ${v}`).join('\n') +
+    `\n\nPreencha o arquivo .env na raiz do projeto com as credenciais do Firebase Console.` +
+    `\nConsole → Project Settings → Your apps → SDK setup and configuration → Config`
+  );
+}
+
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -32,5 +54,17 @@ try {
   db = getFirestore(app, 'default');
 }
 export { db };
-export const auth = getAuth(app);
+
+// initializeAuth com getReactNativePersistence garante que a sessão sobrevive
+// a restarts do app. O try/catch segue o mesmo padrão singleton do db acima:
+// re-inicializar lança erro em hot reload, então o fallback usa getAuth.
+let auth: ReturnType<typeof getAuth>;
+try {
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage),
+  });
+} catch {
+  auth = getAuth(app);
+}
+export { auth };
 export default app;

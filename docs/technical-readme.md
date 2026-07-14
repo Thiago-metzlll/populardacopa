@@ -127,7 +127,12 @@ app/
 │   mercado/[albumId].tsx → TelaCompraColecao
 │   figurinha/[stickerId].tsx → TelaCompraFigurinha
 │   figurinhas.tsx        → TelaTodasFigurinhas
-│   (tabs)/
+│   (auth)/               ← Rotas de Autenticação (públicas)
+│       _layout.tsx       ← Stack modal
+│       entrar.tsx        → TelaEntrar
+│       cadastro.tsx      → TelaCadastro
+│       esqueci-senha.tsx → TelaEsqueciSenha
+│   (tabs)/               ← Rotas Principais (públicas e privadas controladas)
 │       _layout.tsx       ← Tabs + CustomHeader
 │       index.tsx         → HomeScreen (atual, stub da Fase 5)
 │       times.tsx         → TimesScreen

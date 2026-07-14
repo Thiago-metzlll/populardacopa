@@ -1,0 +1,195 @@
+# Telas de Auth: Login, Cadastro e Esqueceu Senha
+
+## Diagnóstico da conexão atual
+
+### ✅ Firebase conectado
+O terminal mostra que o `.env` foi carregado com sucesso e o app iniciou sem o erro `auth/invalid-api-key`.
+
+### ⚠️ Dois avisos do terminal a corrigir no escopo deste plano
+
+| Aviso | Causa | Correção |
+|---|---|---|
+| `Auth (12.16.0): initializing Firebase Auth without AsyncStorage` | `getAuth(app)` puro — sessão não persiste entre restarts | Substituir por `initializeAuth` com `getReactNativePersistence` |
+| `SafeAreaView deprecated` | `MenuBar` usa `SafeAreaView` do `react-native` | Substituir por `SafeAreaView` do `react-native-safe-area-context` |
+
+### 🔴 Backend de auth existe mas está desconectado
+- `FirebaseAuthRepository` completo (`signInWithEmail`, `register`, `signOut`, `signInAnonymously`)
+- Factories prontas (`makeSignInWithEmail`, `makeRegister`, etc.)
+- `UserContext` retorna usuário fixo `{ id: 'u1' }` — nunca chama Firebase
+
+---
+
+## O que este plano cobre
+
+Escopo **focado nas telas de auth** e nos pré-requisitos mínimos para elas funcionarem:
+
+1. Persistência de sessão (`AsyncStorage`)
+2. Listener reativo de auth state (`onAuthStateChanged`) no `UserContext`
+3. Tela de Login (`/entrar`)
+4. Tela de Cadastro (`/cadastro`)
+5. Tela de Esqueceu Senha (`/esqueci-senha`)
+6. Componente reutilizável `MoldeInputs`
+
+> [!IMPORTANT]
+> O plano do `composed-humming-flame.md` inclui também: `UserRepository` para dados do Firestore, gate "sob demanda" nas ações protegidas, e SQLite de países. **Esses itens ficam para a próxima fase** — este plano entrega apenas as telas de auth funcionando end-to-end.
+
+---
+
+## Open Questions
+
+> [!NOTE]
+> **Navegação pós-login**: o `composed-humming-flame.md` define `router.back()` após login (usuário retorna para onde estava). A rota `/entrar` será aberta como **modal** (mesmo padrão de `apostas`, `grupos`). Confirmar?
+
+> [!NOTE]
+> **Tela de Esqueceu Senha**: o `AuthRepository` ainda não tem `resetPassword(email)`. Precisarei adicionar o método na interface e implementar no `FirebaseAuthRepository` usando `sendPasswordResetEmail` do SDK. Aceita?
+
+---
+
+## Proposed Changes
+
+### Dependência nova
+
+```bash
+npx expo install @react-native-async-storage/async-storage
+```
+
+---
+
+### Shared Infra — Firebase
+
+#### [MODIFY] [firebaseConfig.ts](file:///c:/Users/thiago.9943/populardacopa/src/shared/infra/firebase/firebaseConfig.ts)
+- Trocar `getAuth(app)` por `initializeAuth` com `getReactNativePersistence(AsyncStorage)`
+- Mesmo padrão try/catch do `db` para sobreviver a hot reload
+
+---
+
+### Auth — Domain
+
+#### [MODIFY] [AuthRepository.ts](file:///c:/Users/thiago.9943/populardacopa/src/features/auth/domain/repositories/AuthRepository.ts)
+- Adicionar `resetPassword(email: string): Promise<void>`
+- Adicionar `onAuthStateChanged(callback: (user: FirebaseUser | null) => void): () => void`
+
+---
+
+### Auth — Infra
+
+#### [MODIFY] [FirebaseAuthRepository.ts](file:///c:/Users/thiago.9943/populardacopa/src/features/auth/infra/repositories/FirebaseAuthRepository.ts)
+- Implementar `resetPassword` usando `sendPasswordResetEmail` do SDK
+- Implementar `onAuthStateChanged` envolvendo o listener do SDK
+
+---
+
+### Auth — Main/Factories
+
+#### [NEW] makeOnAuthStateChanged.ts
+- `src/features/auth/main/factories/makeOnAuthStateChanged.ts`
+- Segue o mesmo padrão das factories existentes
+
+#### [NEW] makeResetPassword.ts
+- `src/features/auth/main/factories/makeResetPassword.ts`
+
+---
+
+### Shared Presentation
+
+#### [NEW] MoldeInputs/index.tsx
+- `src/shared/presentation/components/MoldeInputs/index.tsx`
+- Props: `label`, `value`, `onChangeText`, `placeholder`, `secureTextEntry`, `error`, `keyboardType`, `autoCapitalize`
+- Estilo consistente com o tema: `height: 48`, `borderColor: colors.border`, `borderRadius: radius.md`, `backgroundColor: colors.surface`
+- Label acima + mensagem de erro em `colors.danger` abaixo
+
+#### [MODIFY] [UserContext.tsx](file:///c:/Users/thiago.9943/populardacopa/src/shared/presentation/contexts/UserContext.tsx)
+- Assinar `makeOnAuthStateChanged` no `useEffect`
+- Expor `loading: boolean` no contexto
+- Quando Firebase emitir `FirebaseUser` → montar `User` com `id = uid` e dados do Firebase
+- Quando emitir `null` → `setUser(null)`
+
+> [!NOTE]
+> Nesta fase o `User` será montado direto do `FirebaseUser` (sem buscar `coins`/`favoriteTeamIds` no Firestore). O `UserRepository` do Firestore fica para a próxima fase do plano (`composed-humming-flame.md` §1.3).
+
+#### [MODIFY] [MenuBar/index.tsx](file:///c:/Users/thiago.9943/populardacopa/src/shared/presentation/components/MenuBar/index.tsx)
+- Substituir `SafeAreaView` do `react-native` pelo de `react-native-safe-area-context`
+- Corrige o warning de deprecation do terminal
+
+---
+
+### Auth — Presentation
+
+#### [NEW] useLogin.ts
+- `src/features/auth/presentation/hooks/useLogin.ts`
+- Estado: `{ loading, error }` + função `execute(email, password)`
+- Chama `makeSignInWithEmail().execute()`
+
+#### [NEW] useRegister.ts
+- `src/features/auth/presentation/hooks/useRegister.ts`
+- Estado: `{ loading, error }` + função `execute(name, email, password)`
+- Chama `makeRegister().execute()`
+
+#### [NEW] useForgotPassword.ts
+- `src/features/auth/presentation/hooks/useForgotPassword.ts`
+- Estado: `{ loading, error, sent }` + função `execute(email)`
+- Chama `makeResetPassword().execute()`
+
+#### [NEW] TelaEntrar.tsx
+- `src/features/auth/presentation/screens/TelaEntrar.tsx`
+- Campos: email + senha
+- Link "Esqueceu a senha?" → navega para `/esqueci-senha`
+- Link "Criar conta" → navega para `/cadastro`
+- Ao suceder: `router.back()`
+
+#### [NEW] TelaCadastro.tsx
+- `src/features/auth/presentation/screens/TelaCadastro.tsx`
+- Campos: nome + email + senha + confirmar senha (validação local)
+- Link "Já tenho conta" → volta para `/entrar`
+- Ao suceder: `router.back()`
+
+#### [NEW] TelaEsqueciSenha.tsx
+- `src/features/auth/presentation/screens/TelaEsqueciSenha.tsx`
+- Campo: email
+- Após envio: mostra mensagem de confirmação no lugar do formulário
+- Link "Voltar para o login"
+
+---
+
+### App Routes
+
+#### [NEW] app/entrar.tsx
+- Re-exporta `TelaEntrar`
+
+#### [NEW] app/cadastro.tsx
+- Re-exporta `TelaCadastro`
+
+#### [NEW] app/esqueci-senha.tsx
+- Re-exporta `TelaEsqueciSenha`
+
+#### [MODIFY] [app/_layout.tsx](file:///c:/Users/thiago.9943/populardacopa/app/_layout.tsx)
+- Adicionar `Stack.Screen` modal para `entrar`, `cadastro` e `esqueci-senha`
+- Mesmo estilo (header escuro) dos modais existentes
+
+---
+
+## Design das Telas
+
+Paleta do projeto: `background: #1A1A1E`, `surface: #24242B`, `primary: #B4FF00`, `secondary: #FF6B35`, `danger: #FF4B4B`.
+
+Estilo visual das telas:
+- Fundo `colors.background` com gradiente sutil via `expo-linear-gradient` (já instalado)
+- Logotipo/título "Popular da Copa" no topo com acento verde `#B4FF00`
+- Inputs com borda `colors.border`, fundo `colors.surface`, label branca
+- Botão primário com `backgroundColor: colors.primary`, texto preto bold
+- Links secundários em `colors.textSecondary` com destaque em `colors.primary`
+
+---
+
+## Verification Plan
+
+### Automatizado
+- `npx expo start --clear` — deve iniciar sem warnings de auth ou SafeAreaView
+
+### Manual
+1. Abrir o app → deve aparecer nas tabs normalmente (sem bloqueio de login)
+2. Navegar para `/entrar` (via rota direta) → testar login com email/senha real
+3. Após login: verificar que `UserContext` reflete o usuário real (nome, uid)
+4. Fechar e reabrir o app → sessão deve persistir sem pedir login de novo
+5. Em `/esqueci-senha`: inserir email e verificar recebimento do email do Firebase
+6. Em `/cadastro`: criar conta nova e verificar criação do doc em Firestore

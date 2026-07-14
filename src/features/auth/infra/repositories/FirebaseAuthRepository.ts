@@ -4,6 +4,8 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
   signOut as fbSignOut,
+  sendPasswordResetEmail,
+  onAuthStateChanged as fbOnAuthStateChanged,
 } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../../../shared/infra/firebase/firebaseConfig';
@@ -82,5 +84,15 @@ export class FirebaseAuthRepository implements AuthRepository {
     const user = auth.currentUser;
     if (!user) return null;
     return toFirebaseUser(user);
+  }
+
+  async resetPassword(email: string): Promise<void> {
+    await sendPasswordResetEmail(auth, email);
+  }
+
+  onAuthStateChanged(callback: (user: FirebaseUser | null) => void): () => void {
+    return fbOnAuthStateChanged(auth, (user) => {
+      callback(user ? toFirebaseUser(user) : null);
+    });
   }
 }
