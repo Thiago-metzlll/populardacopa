@@ -30,7 +30,8 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# env files (contêm credenciais — nunca commitar)
+.env
 .env*.local
 
 # Firebase Admin SDK — service account key (NUNCA commitar)
