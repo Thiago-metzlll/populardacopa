@@ -56,12 +56,19 @@ export const makeGetUpcomingMatches = () =>
 
 ```
 app/
-  _layout.tsx       → RootLayout: <UserProvider><Stack>
-                        Stack.Screen "(tabs)"   headerShown: false
-                        Stack.Screen "grupos"   presentation: modal
-                        Stack.Screen "apostas"  presentation: modal
-  apostas.tsx       → modal de apostas
-  grupos.tsx        → modal de grupos
+  _layout.tsx           → RootLayout: <UserProvider><Stack>
+                            Stack.Screen "(tabs)"              headerShown: false
+                            Stack.Screen "grupos"               presentation: modal
+                            Stack.Screen "apostas"               presentation: modal
+                            Stack.Screen "mercado/[albumId]"     → Tela Compra Coleção
+                            Stack.Screen "figurinha/[stickerId]" → Tela Compra Figurinha Individual
+                            Stack.Screen "figurinhas"            → Tela Todas as Figurinhas
+  apostas.tsx           → modal de apostas
+  grupos.tsx            → modal de grupos
+  mercado.tsx           → Tela Mercado de Figurinhas
+  mercado/[albumId].tsx → Tela Compra Coleção (grid de figurinhas de um álbum)
+  figurinha/[stickerId].tsx → Tela Compra Figurinha Individual
+  figurinhas.tsx        → Tela Todas as Figurinhas (catálogo por raridade)
   (tabs)/
     _layout.tsx     → TabsLayout: header={() => <CustomHeader />}
                         tabBarStyle: background #1E1E24, sem borda
@@ -91,7 +98,11 @@ App
     ├── Tela Perfil (com as figurinhas)
     │   ├── CardColeção
     │   ├── Tela Mercado de Figurinhas
-    │   │   └── CompartilhBtn
+    │   │   ├── CompartilhBtn
+    │   │   └── Tela Compra Coleção        ← grid de figurinhas do álbum
+    │   │       └── Tela Compra Figurinha Individual
+    │   ├── Tela Todas as Figurinhas       ← catálogo por raridade (Lendárias/Raras/Comuns)
+    │   │   └── Tela Compra Figurinha Individual
     │   └── Animação Abrir Pacote
     ├── Tela Times
     │   ├── SearchInput
@@ -112,6 +123,10 @@ app/
 │   _layout.tsx           ← Root Stack (UserProvider + Stack global)
 │   apostas.tsx           → ApostasScreen
 │   grupos.tsx            → GroupsScreen
+│   mercado.tsx           → TelaMercado
+│   mercado/[albumId].tsx → TelaCompraColecao
+│   figurinha/[stickerId].tsx → TelaCompraFigurinha
+│   figurinhas.tsx        → TelaTodasFigurinhas
 │   (tabs)/
 │       _layout.tsx       ← Tabs + CustomHeader
 │       index.tsx         → HomeScreen (atual, stub da Fase 5)
@@ -142,6 +157,9 @@ src/
                             → ProfileScreen + CardColeção
                             [pronto] Mercado de Figurinhas (CompartilhBtn)
                                      Animação Abrir Pacote
+                                     Tela Compra Coleção (StickerCard, por álbum)
+                                     Tela Compra Figurinha Individual (BuyIndividualSticker)
+                                     Tela Todas as Figurinhas (agrupada por raridade)
     apostas/              → Match, Prediction | GetUpcomingMatches, CreatePrediction
                             → ApostasScreen + ContainerAposta + BotaoHistorico
                             [pronto] Tela Palpite
@@ -176,6 +194,12 @@ typography = {
 
 spacing  = { xs, sm, md, lg, xl, xxl }
 radius   = { sm, md, lg }
+
+rarityColors = {  // token trazido do Figma, mapeado por Sticker['rarity']
+  lendaria: { border: '#8432E5', badgeBg: '#EDDCFF', badgeText: '#290055', label: 'Lendária' },
+  rara:     { border: '#C3F400', badgeBg: '#EFFFB0', badgeText: '#556D00', label: 'Rara' },
+  comum:    { border: '#8E9379', badgeBg: '#E5E2E1', badgeText: '#3A3D30', label: 'Comum' },
+}
 ```
 
 ---
@@ -216,14 +240,15 @@ Definidos no grafo como componentes reutilizáveis em nível de aplicação:
 - **Presentation (✅) (Fase 2)**: `Tela Time` → `CardConquistas` + `MoldeJogadores`
 - **Presentation (✅) (Fase 3)**: `Tela Jogador` → `CardCaracterísticas`
 
-### `album` — ✅ Fases 1, 2 e 3 completas
+### `album` — ✅ Fases 1, 2 e 3 completas + alinhamento com Figma
 
-- **Domain**: `Sticker { id, playerId, rarity, obtainedAt }` · `UserCollection { stickerIds[] }` · `Package { stickers[] }`
-- **Use Cases**: `GetUserProfile.execute(userId)` · `OpenPackage.execute(userId)` · `GetMarketAlbums`, `BuyStickerPack`
-- **Infra**: `MockAlbumRepository` — 100 figurinhas no seed, 78 pré-atribuídas ao usuário mock · `openPackage` sorteia 3 stickers não duplicados
+- **Domain**: `Sticker { id, albumId, playerId, teamId, playerName, price, rarity, imageUrl, obtainedAt }` · `UserCollection { stickerIds[] }` · `Package { stickers[] }`
+- **Use Cases**: `GetUserProfile`, `OpenPackage`, `GetMarketAlbums`, `BuyStickerPack`, `GetUserCoins` · (novos) `GetAlbumById`, `GetAlbumStickers`, `GetAllStickers`, `GetStickersByIds`, `GetUserCollection`, `BuyIndividualSticker`
+- **Infra**: `MockAlbumRepository` + `FirestoreAlbumRepository` (ativo) — 150 figurinhas no seed (100 no álbum `a1`, 50 no `a2`), preço por raridade (comum=20, rara=60, lendária=150) · `openPackage`/`buyStickerPack` sorteiam 3 stickers não duplicados · `buyIndividualSticker` compra 1 sticker específico calculando progresso contra o álbum correto
 - **Presentation (✅)**: `ProfileScreen` via `useUserProfile` + `useOpenPackage` · `CardColeção` (shared) reutilizado na `HomeScreen`
 - **Presentation (✅) (Fase 2)**: `Tela Mercado de Figurinhas` → `CompartilhBtn`
 - **Presentation (✅) (Fase 3)**: `Animação Abrir Pacote` (react-native-reanimated)
+- **Presentation (✅) (Alinhamento com Figma)**: `Tela Compra Coleção` (`app/mercado/[albumId]`) — grid de figurinhas de um álbum via `useAlbumStickers` · `Tela Compra Figurinha Individual` (`app/figurinha/[stickerId]`) — compra/visualização de 1 sticker via `useStickerDetail` + `useBuyIndividualSticker` · `Tela Todas as Figurinhas` (`app/figurinhas`) — catálogo completo agrupado por raridade via `useAllStickers` · `StickerCard` (componente compartilhado do feature) e `rarityColors` (token de tema) usados nas 3 telas para padronizar a linguagem visual de raridade trazida do Figma
 
 ### `apostas` — ✅ Fases 1, 2 e 3 completas
 
@@ -334,8 +359,11 @@ interface PredictionHistory {
 // album
 interface Sticker {
   id: string;
+  albumId: string;
   playerId?: string;
   teamId?: string;
+  playerName: string;
+  price: number;         // preço de catálogo, usado na compra individual
   rarity: 'comum' | 'rara' | 'lendaria';
   imageUrl: string;
   obtainedAt: string;
@@ -430,6 +458,19 @@ Os contratos abaixo foram **intencionalmente expandidos** durante a Fase 1 em re
 ### 9.4 Nota sobre Singleton em `grupos`
 
 A feature `grupos` foi atualizada e **agora utiliza o padrão singleton** via `repositoryInstance.ts`, alinhando-a arquiteturalmente com as outras features (times, album, apostas). A factory `makeGetAllGroups` consome essa instância única, garantindo que o estado não seja perdido entre navegações se os `standings` sofrerem atualizações futuras.
+
+### 9.5 Alinhamento com o Figma — Compra de Coleção, Figurinha Individual e Catálogo Completo
+
+> Registrado em 07/2026, após comparação direta do arquivo Figma ("popular da copa") com o código.
+
+A comparação identificou 3 telas presentes no Figma sem equivalente no código: **Tela Compra Coleção**, **Tela Compra Figurinha Individual** e **Telas All Figurinhas**. As telas de **Login**/**Cadastro** também apareceram nessa comparação, mas ficam de fora deste trabalho — já fazem parte do plano de Autenticação em andamento (ver plano de Auth + SQLite).
+
+Essas 3 telas foram implementadas dentro do feature `album` existente (não como feature nova), pois pertencem ao mesmo domínio de figurinhas/álbuns:
+
+- `Sticker` ganhou `albumId`, `playerName` e `price` — necessários porque a tela de Coleção precisa saber quais figurinhas pertencem a qual álbum, e a compra individual precisa de um preço de catálogo por figurinha (antes só existia `Album.price`, o preço do pacote aleatório).
+- O repositório ativo em produção é o `FirestoreAlbumRepository` (não o `MockAlbumRepository`) — qualquer novo método da interface `AlbumRepository` precisou de implementação nos dois.
+- Novo token de tema `rarityColors` (seção 3) traz a linguagem visual de raridade do Figma (cores por `comum`/`rara`/`lendaria`) para um lugar único e reutilizável, em vez de replicar o visual do Figma tela por tela — o "meio termo" entre o visual mais limpo do código atual e o Figma.
+- Fora de escopo, por decisão consciente: refatorar os cards já existentes na `ProfileScreen`/`TelaMercado` para usar o novo `StickerCard`; corrigir o cálculo de progresso hardcoded em `openPackage`/`buyStickerPack` (que sempre usa `mockAlbums[0]`); adicionar uma 4ª aba "Mercado" na bottom nav (o Figma tem 4 abas — Home/Mercado/Perfil/Times — mas o código tem 3, com Mercado como modal).
 
 ---
 
