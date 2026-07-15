@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   stickerCardOuter: {
-    borderRadius: radius.xl || 20,
+    borderRadius: radius.xl,
     shadowOpacity: 0.6,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 0 },
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
   stickerCard: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    borderRadius: radius.xl || 20,
+    borderRadius: radius.xl,
     padding: 12,
   },
   glowBorder: {

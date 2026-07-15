@@ -3,12 +3,14 @@ import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert } fr
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMatchDetail } from '../hooks/useMatchDetail';
 import { useCreatePrediction } from '../hooks/useCreatePrediction';
+import { useCurrentUser } from '../../../../shared/presentation/contexts/UserContext';
 import { MolduraIndividualPais } from '../../../../shared/presentation/components/MolduraIndividualPais';
 import { colors, spacing, typography, radius } from '../../../../shared/presentation/theme';
 
 export const TelaPalpite: React.FC = () => {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const router = useRouter();
+  const user = useCurrentUser();
   
   const { match, loading: loadingMatch, error: matchError } = useMatchDetail(matchId || '');
   
@@ -38,6 +40,17 @@ export const TelaPalpite: React.FC = () => {
   }
 
   const handleSave = async () => {
+    if (!user) {
+      Alert.alert(
+        'Login necessário',
+        'Faça login para salvar seu palpite!',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Entrar', onPress: () => router.push('/entrar') },
+        ]
+      );
+      return;
+    }
     await createPrediction(match.id, homeScore, awayScore);
   };
 

@@ -19,7 +19,7 @@ const PUBLIC_SEGMENTS = ['(tabs)', 'index', 'times', 'grupos', 'players', 'entra
 
 function isProtectedRoute(segments: string[]): boolean {
   // Rotas protegidas por segmento
-  const PROTECTED = ['perfil', 'palpite', 'mercado', 'apostas', 'abrir-pacote', 'figurinhas', 'figurinha'];
+  const PROTECTED = ['perfil', 'mercado', 'abrir-pacote', 'figurinhas', 'figurinha'];
   return segments.some((seg) => PROTECTED.includes(seg));
 }
 

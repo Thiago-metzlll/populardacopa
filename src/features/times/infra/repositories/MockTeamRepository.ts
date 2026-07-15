@@ -9,16 +9,21 @@ const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 export class MockTeamRepository implements TeamRepository {
   private teamsState: Team[] = [...mockTeams];
 
+  async getAllTeams(): Promise<Team[]> {
+    await delay(300);
+    return [...this.teamsState];
+  }
+
   async getFavoriteTeams(userId: string): Promise<Team[]> {
     await delay(300);
     return this.teamsState.filter((t) => t.isFavorite);
   }
 
-  async searchTeams(userId: string, query: string): Promise<Team[]> {
+  async searchTeams(userId: string | undefined, query: string): Promise<Team[]> {
     await delay(400);
     const lowerQuery = query.toLowerCase();
-    return this.teamsState.filter((t) => 
-      t.isFavorite && t.name.toLowerCase().includes(lowerQuery)
+    return this.teamsState.filter((t) =>
+      t.name.toLowerCase().includes(lowerQuery)
     );
   }
 
