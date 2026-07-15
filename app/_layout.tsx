@@ -8,16 +8,7 @@ export default function RootLayout() {
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="grupos" options={{ title: 'Grupos', presentation: 'modal' }} />
-        <Stack.Screen 
-          name="mercado" 
-          options={{ 
-            title: 'Mercado de Figurinhas', 
-            presentation: 'modal',
-            headerTintColor: '#FFFFFF',
-            headerStyle: { backgroundColor: '#1A1A1E' },
-            headerTitleStyle: { fontWeight: 'bold' }
-          }} 
-        />
+
         <Stack.Screen name="apostas" options={{ title: 'Apostas', presentation: 'modal' }} />
         <Stack.Screen 
           name="palpite/[matchId]" 

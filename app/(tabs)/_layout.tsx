@@ -21,10 +21,10 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="times"
+        name="mercado"
         options={{
-          title: 'Times',
-          tabBarIcon: ({ color, size }) => <Ionicons name="people" size={size} color={color} />,
+          title: 'Mercado',
+          tabBarIcon: ({ color, size }) => <Ionicons name="cart" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -32,6 +32,13 @@ export default function TabsLayout() {
         options={{
           title: 'Perfil',
           tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="times"
+        options={{
+          title: 'Times',
+          tabBarIcon: ({ color, size }) => <Ionicons name="people" size={size} color={color} />,
         }}
       />
     </Tabs>
