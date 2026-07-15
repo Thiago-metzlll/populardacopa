@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../../../shared/presentation/theme/colors';
@@ -25,59 +25,69 @@ export function TelaEsqueciSenha() {
       colors={[colors.background, '#0a0a0c']}
       style={styles.container}
     >
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Recuperar Senha</Text>
-          <Text style={styles.subtitle}>Enviaremos um link de recuperação</Text>
-        </View>
-
-        <View style={styles.form}>
-          {sent ? (
-            <View style={styles.successContainer}>
-              <Text style={styles.successText}>
-                Email de recuperação enviado! Verifique sua caixa de entrada (e o spam).
-              </Text>
-              <TouchableOpacity 
-                style={styles.primaryButton}
-                onPress={() => router.replace('/entrar')}
-              >
-                <Text style={styles.primaryButtonText}>Voltar para o Login</Text>
-              </TouchableOpacity>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <Text style={styles.title}>Recuperar Senha</Text>
+              <Text style={styles.subtitle}>Enviaremos um link de recuperação</Text>
             </View>
-          ) : (
-            <>
-              <MoldeInputs
-                label="E-mail"
-                placeholder="Seu e-mail cadastrado"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                error={error}
-              />
 
-              <TouchableOpacity 
-                style={[styles.primaryButton, (!email || loading) && styles.primaryButtonDisabled]}
-                onPress={handleReset}
-                disabled={!email || loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#000" />
-                ) : (
-                  <Text style={styles.primaryButtonText}>Enviar Link</Text>
-                )}
-              </TouchableOpacity>
+            <View style={styles.form}>
+              {sent ? (
+                <View style={styles.successContainer}>
+                  <Text style={styles.successText}>
+                    Email de recuperação enviado! Verifique sua caixa de entrada (e o spam).
+                  </Text>
+                  <TouchableOpacity 
+                    style={styles.primaryButton}
+                    onPress={() => router.replace('/entrar')}
+                  >
+                    <Text style={styles.primaryButtonText}>Voltar para o Login</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <>
+                  <MoldeInputs
+                    label="E-mail"
+                    placeholder="Seu e-mail cadastrado"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    error={error}
+                  />
 
-              <TouchableOpacity 
-                style={styles.secondaryButton}
-                onPress={() => router.back()}
-              >
-                <Text style={styles.secondaryButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      </View>
+                  <TouchableOpacity 
+                    style={[styles.primaryButton, (!email || loading) && styles.primaryButtonDisabled]}
+                    onPress={handleReset}
+                    disabled={!email || loading}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color="#000" />
+                    ) : (
+                      <Text style={styles.primaryButtonText}>Enviar Link</Text>
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={styles.secondaryButton}
+                    onPress={() => router.back()}
+                  >
+                    <Text style={styles.secondaryButtonText}>Cancelar</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </LinearGradient>
   );
 }
@@ -86,8 +96,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
   content: {
-    flex: 1,
     padding: spacing.xl,
     justifyContent: 'center',
   },

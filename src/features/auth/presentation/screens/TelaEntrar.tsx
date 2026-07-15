@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../../../shared/presentation/theme/colors';
@@ -33,58 +33,75 @@ export function TelaEntrar() {
       colors={[colors.background, '#0a0a0c']}
       style={styles.container}
     >
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Bem-vindo de volta!</Text>
-          <Text style={styles.subtitle}>Faça login para continuar</Text>
-        </View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <Text style={styles.title}>Bem-vindo de volta!</Text>
+              <Text style={styles.subtitle}>Faça login para continuar</Text>
+            </View>
 
-        <View style={styles.form}>
-          <MoldeInputs
-            label="E-mail"
-            placeholder="Seu e-mail"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+            <View style={styles.form}>
+              <MoldeInputs
+                label="E-mail"
+                placeholder="Seu e-mail"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
 
-          <MoldeInputs
-            label="Senha"
-            placeholder="Sua senha"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            error={error}
-          />
+              <MoldeInputs
+                label="Senha"
+                placeholder="Sua senha"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                error={error}
+              />
 
-          <TouchableOpacity 
-            onPress={() => router.push('/esqueci-senha')}
-            style={styles.forgotPasswordButton}
-          >
-            <Text style={styles.forgotPasswordText}>Esqueci minha senha</Text>
-          </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={() => router.push('/esqueci-senha')}
+                style={styles.forgotPasswordButton}
+              >
+                <Text style={styles.forgotPasswordText}>Esqueci minha senha</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.primaryButton, (!email || !password || loading) && styles.primaryButtonDisabled]}
-            onPress={handleLogin}
-            disabled={!email || !password || loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#000" />
-            ) : (
-              <Text style={styles.primaryButtonText}>Entrar</Text>
-            )}
-          </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.primaryButton, (!email || !password || loading) && styles.primaryButtonDisabled]}
+                onPress={handleLogin}
+                disabled={!email || !password || loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#000" />
+                ) : (
+                  <Text style={styles.primaryButtonText}>Entrar</Text>
+                )}
+              </TouchableOpacity>
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Ainda não tem conta?</Text>
-            <TouchableOpacity onPress={() => router.replace('/cadastro')}>
-              <Text style={styles.footerLink}>Cadastre-se</Text>
-            </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.skipButton}
+                onPress={() => router.replace('/(tabs)')}
+              >
+                <Text style={styles.skipButtonText}>Continuar sem login</Text>
+              </TouchableOpacity>
+
+              <View style={styles.footer}>
+                <Text style={styles.footerText}>Ainda não tem conta?</Text>
+                <TouchableOpacity onPress={() => router.replace('/cadastro')}>
+                  <Text style={styles.footerLink}>Cadastre-se</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
-        </View>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </LinearGradient>
   );
 }
@@ -93,8 +110,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
   content: {
-    flex: 1,
     padding: spacing.xl,
     justifyContent: 'center',
   },
@@ -138,6 +158,20 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#000',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  skipButton: {
+    borderWidth: 1,
+    borderColor: colors.textSecondary,
+    height: 48,
+    borderRadius: radius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  skipButtonText: {
+    color: colors.textSecondary,
     fontWeight: 'bold',
     fontSize: 16,
   },

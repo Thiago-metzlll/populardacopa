@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../../../shared/presentation/theme/colors';
@@ -45,67 +45,77 @@ export function TelaCadastro() {
       colors={[colors.background, '#0a0a0c']}
       style={styles.container}
     >
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Criar Conta</Text>
-          <Text style={styles.subtitle}>Junte-se ao Popular da Copa</Text>
-        </View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <Text style={styles.title}>Criar Conta</Text>
+              <Text style={styles.subtitle}>Junte-se ao Popular da Copa</Text>
+            </View>
 
-        <View style={styles.form}>
-          <MoldeInputs
-            label="Nome"
-            placeholder="Como quer ser chamado?"
-            value={name}
-            onChangeText={setName}
-            autoCapitalize="words"
-          />
+            <View style={styles.form}>
+              <MoldeInputs
+                label="Nome"
+                placeholder="Como quer ser chamado?"
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
+              />
 
-          <MoldeInputs
-            label="E-mail"
-            placeholder="Seu melhor e-mail"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+              <MoldeInputs
+                label="E-mail"
+                placeholder="Seu e-mail cadastrado"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
 
-          <MoldeInputs
-            label="Senha"
-            placeholder="Mínimo 6 caracteres"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+              <MoldeInputs
+                label="Senha"
+                placeholder="Mínimo 6 caracteres"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+              />
 
-          <MoldeInputs
-            label="Confirmar Senha"
-            placeholder="Repita a senha"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            error={displayError}
-          />
+              <MoldeInputs
+                label="Confirmar Senha"
+                placeholder="Repita a senha"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry
+                error={displayError}
+              />
 
-          <TouchableOpacity 
-            style={[styles.primaryButton, (!name || !email || !password || !confirmPassword || loading) && styles.primaryButtonDisabled]}
-            onPress={handleRegister}
-            disabled={!name || !email || !password || !confirmPassword || loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#000" />
-            ) : (
-              <Text style={styles.primaryButtonText}>Cadastrar</Text>
-            )}
-          </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.primaryButton, (!name || !email || !password || !confirmPassword || loading) && styles.primaryButtonDisabled]}
+                onPress={handleRegister}
+                disabled={!name || !email || !password || !confirmPassword || loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#000" />
+                ) : (
+                  <Text style={styles.primaryButtonText}>Cadastrar</Text>
+                )}
+              </TouchableOpacity>
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Já tem uma conta?</Text>
-            <TouchableOpacity onPress={() => router.replace('/entrar')}>
-              <Text style={styles.footerLink}>Entrar</Text>
-            </TouchableOpacity>
+              <View style={styles.footer}>
+                <Text style={styles.footerText}>Já tem uma conta?</Text>
+                <TouchableOpacity onPress={() => router.replace('/entrar')}>
+                  <Text style={styles.footerLink}>Entrar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
-        </View>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </LinearGradient>
   );
 }
@@ -114,8 +124,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
   content: {
-    flex: 1,
     padding: spacing.xl,
     justifyContent: 'center',
   },
