@@ -3,10 +3,12 @@ import { useRouter, useSegments } from 'expo-router';
 import { User } from '../../domain/entities/User';
 import { FirebaseUser } from '../../../features/auth/domain/entities/FirebaseUser';
 import { makeOnAuthStateChanged } from '../../../features/auth/main/factories/makeOnAuthStateChanged';
+import { makeGetUserCoins } from '../../../features/album/main/factories/makeGetUserCoins';
 
 interface UserContextData {
   user: User | null;
   loading: boolean;
+  refreshCoins: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextData>({} as UserContextData);
@@ -24,16 +26,18 @@ function isProtectedRoute(segments: string[]): boolean {
 }
 
 /**
- * Converte FirebaseUser (auth) → User (domínio shared).
- * Nesta fase, coins e favoriteTeamIds são valores-padrão —
- * a busca do perfil completo no Firestore fica para a próxima fase.
+ * Converte FirebaseUser (auth) → User (domínio shared), buscando o saldo
+ * real de moedas no Firestore (via AlbumRepository, que é quem possui esse dado).
+ * favoriteTeamIds continua com valor-padrão — times favoritos são resolvidos
+ * separadamente por useFavoriteTeams/TeamRepository.
  */
-function toUser(fbUser: FirebaseUser): User {
+async function toUser(fbUser: FirebaseUser): Promise<User> {
+  const coins = await makeGetUserCoins().execute(fbUser.uid);
   return {
     id: fbUser.uid,
     name: fbUser.displayName ?? fbUser.email?.split('@')[0] ?? 'Usuário',
     email: fbUser.email ?? '',
-    coins: 0,
+    coins,
     favoriteTeamIds: [],
   };
 }
@@ -59,14 +63,27 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const unsubscribe = makeOnAuthStateChanged().execute((fbUser: FirebaseUser | null) => {
-      setUser(fbUser ? toUser(fbUser) : null);
-      setLoading(false);
+      if (!fbUser) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      toUser(fbUser).then((nextUser) => {
+        setUser(nextUser);
+        setLoading(false);
+      });
     });
     return unsubscribe;
   }, []);
 
+  const refreshCoins = async () => {
+    if (!user) return;
+    const coins = await makeGetUserCoins().execute(user.id);
+    setUser((prev) => (prev ? { ...prev, coins } : prev));
+  };
+
   return (
-    <UserContext.Provider value={{ user, loading }}>
+    <UserContext.Provider value={{ user, loading, refreshCoins }}>
       <AuthGuard>{children}</AuthGuard>
     </UserContext.Provider>
   );
@@ -86,4 +103,12 @@ export const useAuthLoading = () => {
     throw new Error('useAuthLoading must be used within a UserProvider');
   }
   return context.loading;
+};
+
+export const useRefreshCoins = () => {
+  const context = useContext(UserContext);
+  if (!context) {
+    throw new Error('useRefreshCoins must be used within a UserProvider');
+  }
+  return context.refreshCoins;
 };

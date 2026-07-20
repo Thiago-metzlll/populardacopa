@@ -1,16 +1,17 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, radius } from '../../../../shared/presentation/theme';
 
 interface StatItemProps {
   label: string;
   value: string | number;
-  icon: string;
+  icon: keyof typeof Ionicons.glyphMap;
 }
 
 const StatItem: React.FC<StatItemProps> = ({ label, value, icon }) => (
   <View style={styles.statItem}>
-    <Text style={styles.statIcon}>{icon}</Text>
+    <Ionicons name={icon} size={22} color={colors.primary} style={styles.statIcon} />
     <Text style={styles.statValue}>{value}</Text>
     <Text style={styles.statLabel}>{label}</Text>
   </View>
@@ -33,10 +34,10 @@ export const CardCaracteristicas: React.FC<CardCaracteristicasProps> = ({
     <View style={styles.card}>
       <Text style={styles.cardTitle}>ESTATÍSTICAS</Text>
       <View style={styles.grid}>
-        <StatItem label="Gols" value={goals} icon="⚽" />
-        <StatItem label="Assistências" value={assists} icon="🎯" />
-        <StatItem label="Partidas" value={matchesPlayed} icon="📋" />
-        <StatItem label="Copas" value={worldCupsPlayed} icon="🏆" />
+        <StatItem label="Gols" value={goals} icon="football" />
+        <StatItem label="Assistências" value={assists} icon="locate" />
+        <StatItem label="Partidas" value={matchesPlayed} icon="clipboard" />
+        <StatItem label="Copas" value={worldCupsPlayed} icon="trophy" />
       </View>
     </View>
   );
@@ -74,7 +75,6 @@ const styles = StyleSheet.create({
     borderColor: '#333',
   },
   statIcon: {
-    fontSize: 22,
     marginBottom: 4,
   },
   statValue: {

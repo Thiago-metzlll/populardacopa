@@ -1,10 +1,12 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useUserProfile } from '../hooks/useUserProfile';
-import { useOpenPackage } from '../hooks/useOpenPackage';
 import { CompartilhBtn } from '../components/CompartilhBtn';
 import { CardColecao } from '../../../../shared/presentation/components/CardColecao';
+import { CardRecompensaDiaria } from '../components/CardRecompensaDiaria';
+import { CardPacoteGratis } from '../components/CardPacoteGratis';
 import { colors, spacing, typography, radius } from '../../../../shared/presentation/theme';
 import { useCurrentUser } from '../../../../shared/presentation/contexts/UserContext';
 import { makeSignOut } from '../../../auth/main/factories/makeAuth';
@@ -13,7 +15,6 @@ export const ProfileScreen = () => {
   const router = useRouter();
   const user = useCurrentUser();
   const { profile, loading, error, refetch } = useUserProfile();
-  const { openPackage, loading: opening } = useOpenPackage(() => refetch());
 
   const handleLogout = async () => {
     try {
@@ -41,28 +42,25 @@ export const ProfileScreen = () => {
   if (loading && !profile) return <View style={styles.center}><ActivityIndicator color={colors.primary} size="large" /></View>;
   if (error) return <View style={styles.center}><Text style={styles.errorText}>Error: {error}</Text></View>;
 
-  const handleOpenPackage = () => {
-    openPackage('pkg_1');
-  };
-
   return (
     <ScrollView 
       style={styles.container}
       contentContainerStyle={styles.scrollContainer}
     >
-      {profile && <CardColecao progress={profile.collection.stickerIds.length} />}
-      
-      <View style={styles.buttonRow}>
-        <TouchableOpacity 
-          style={[styles.button, styles.flexButton, opening && styles.buttonDisabled]} 
-          onPress={handleOpenPackage} 
-          disabled={opening}
-        >
-          <Text style={styles.buttonText}>{opening ? "Abrindo..." : "Abrir Pacote"}</Text>
-        </TouchableOpacity>
+      <View style={styles.coinsRow}>
+        <Ionicons name="wallet-outline" size={18} color="#FFD700" />
+        <Text style={styles.coinsText}>{user.coins} moedas</Text>
+      </View>
 
-        <TouchableOpacity 
-          style={[styles.button, styles.flexButton, styles.marketButton]} 
+      {profile && <CardColecao progress={profile.collection.stickerIds.length} />}
+
+      <CardRecompensaDiaria />
+
+      <CardPacoteGratis onClaimed={refetch} />
+
+      <View style={styles.buttonRow}>
+        <TouchableOpacity
+          style={[styles.button, styles.flexButton, styles.marketButton]}
           onPress={() => router.push('/mercado')}
         >
           <Text style={styles.marketButtonText}>Ir ao Mercado</Text>
@@ -120,6 +118,20 @@ const styles = StyleSheet.create({
   scrollContainer: { padding: spacing.md, paddingBottom: spacing.xl },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
   errorText: { ...typography.body, color: colors.danger },
+  coinsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    borderColor: '#FFD700',
+    borderWidth: 1,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.md,
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  coinsText: { ...typography.body, color: '#FFD700', fontWeight: 'bold' },
   buttonRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
   flexButton: { flex: 1 },
   button: { padding: spacing.md, backgroundColor: colors.primary, borderRadius: radius.lg, alignItems: 'center' },

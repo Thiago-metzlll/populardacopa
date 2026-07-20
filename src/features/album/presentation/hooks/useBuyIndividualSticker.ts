@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { makeBuyIndividualSticker } from '../../main/factories/makeBuyIndividualSticker';
-import { useCurrentUser } from '../../../../shared/presentation/contexts/UserContext';
+import { useCurrentUser, useRefreshCoins } from '../../../../shared/presentation/contexts/UserContext';
 import { Sticker } from '../../domain/entities/Sticker';
 
 export const useBuyIndividualSticker = (onSuccess?: (sticker: Sticker) => void) => {
   const user = useCurrentUser();
+  const refreshCoins = useRefreshCoins();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,6 +16,7 @@ export const useBuyIndividualSticker = (onSuccess?: (sticker: Sticker) => void) 
       setError(null);
       const useCase = makeBuyIndividualSticker();
       const result = await useCase.execute(user.id, stickerId, cost);
+      await refreshCoins();
       if (onSuccess) onSuccess(result);
       return result;
     } catch (err: any) {

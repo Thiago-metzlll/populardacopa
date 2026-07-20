@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Prediction } from '../../domain/entities/Prediction';
 import { colors, spacing, typography, radius } from '../../../../shared/presentation/theme';
 
@@ -41,7 +42,7 @@ export const CardVitoria: React.FC<CardVitoriaProps> = ({
 
       {/* Reward */}
       <View style={styles.rewardRow}>
-        <Text style={styles.rewardIcon}>🎁</Text>
+        <Ionicons name="gift" size={14} color={colors.textSecondary} />
         <Text style={styles.rewardText}>{prediction.reward.description}</Text>
       </View>
 
@@ -131,9 +132,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     marginBottom: spacing.xs,
-  },
-  rewardIcon: {
-    fontSize: 14,
   },
   rewardText: {
     ...typography.caption,

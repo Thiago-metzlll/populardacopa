@@ -36,5 +36,15 @@ export const mockMatches: Match[] = [
     phase: 'Fase de Grupos',
     status: 'scheduled',
     odds: { homeWin: 2.2, draw: 3.0, awayWin: 3.2 }
+  },
+  {
+    id: 'm9',
+    homeTeamId: 't1', // Brasil
+    awayTeamId: 't5', // Espanha
+    homeScore: 2,
+    awayScore: 1,
+    date: new Date(Date.now() - 86400000).toISOString(),
+    phase: 'Fase de Grupos',
+    status: 'finished',
   }
 ];

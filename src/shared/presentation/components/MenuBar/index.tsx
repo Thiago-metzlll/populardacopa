@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography } from '../../theme';
 
 export const MenuBar = () => {
@@ -8,7 +9,7 @@ export const MenuBar = () => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <View style={styles.logoContainer}>
-          <Text style={styles.logoPlaceholder}>📱</Text>
+          <Ionicons name="football" size={16} color={colors.primary} />
         </View>
         <Text style={styles.title}>Popular da Copa</Text>
       </View>
@@ -39,9 +40,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.sm,
-  },
-  logoPlaceholder: {
-    fontSize: 16,
   },
   title: {
     ...typography.heading,

@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useUpcomingMatches } from '../hooks/useUpcomingMatches';
 import { usePredictionHistory } from '../hooks/usePredictionHistory';
+import { useSettlePendingPredictions } from '../hooks/useSettlePendingPredictions';
 import { BotaoHistorico } from '../components/BotaoHistorico';
 import { ContainerAposta } from '../components/ContainerAposta';
 import { colors, spacing, typography } from '../../../../shared/presentation/theme';
@@ -10,7 +11,16 @@ import { colors, spacing, typography } from '../../../../shared/presentation/the
 export const ApostasScreen = () => {
   const router = useRouter();
   const { matches, loading: matchesLoading, error: matchesError } = useUpcomingMatches();
-  const { history, loading: historyLoading } = usePredictionHistory();
+  const { history, loading: historyLoading, refetch: refetchHistory } = usePredictionHistory();
+
+  useSettlePendingPredictions((settled) => {
+    refetchHistory();
+    const won = settled.filter((p) => p.status === 'won');
+    if (won.length > 0) {
+      const summary = won.map((p) => `• ${p.reward.description}`).join('\n');
+      Alert.alert('Seus palpites foram resolvidos!', `Você ganhou:\n${summary}`);
+    }
+  });
 
   const handleHistoricoPress = () => {
     router.push('/apostas/historico');

@@ -2,17 +2,58 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  SectionList,
+  ScrollView,
   ActivityIndicator,
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useTimesScreen } from '../hooks/useTimesScreen';
 import { SearchInput } from '../components/SearchInput';
+import { MolduraIndividualPais } from '../../../../shared/presentation/components/MolduraIndividualPais';
 import { colors, spacing, typography, radius } from '../../../../shared/presentation/theme';
 import { useCurrentUser } from '../../../../shared/presentation/contexts/UserContext';
 import { Team } from '../../domain/entities/Team';
+
+interface TeamCardProps {
+  team: Team;
+  showLoggedIn: boolean;
+  onPress: () => void;
+  onToggleFavorite: () => void;
+}
+
+const TeamCard: React.FC<TeamCardProps> = ({ team, showLoggedIn, onPress, onToggleFavorite }) => (
+  <TouchableOpacity style={styles.teamCard} onPress={onPress} activeOpacity={0.85}>
+    <View style={styles.rankBadge}>
+      <Text style={styles.rankBadgeText}>#{team.ranking}</Text>
+    </View>
+
+    {showLoggedIn && (
+      <TouchableOpacity
+        style={styles.favoriteToggle}
+        onPress={onToggleFavorite}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Ionicons
+          name={team.isFavorite ? 'star' : 'star-outline'}
+          size={18}
+          color={team.isFavorite ? colors.primary : colors.textSecondary}
+        />
+      </TouchableOpacity>
+    )}
+
+    <MolduraIndividualPais teamId={team.id} size="lg" showBorder={team.isFavorite} />
+    <Text style={styles.teamName} numberOfLines={1}>{team.name}</Text>
+
+    {team.worldCupWins > 0 && (
+      <View style={styles.titlesRow}>
+        <Ionicons name="trophy" size={11} color={colors.textSecondary} />
+        <Text style={styles.titlesText}>{team.worldCupWins}x campeão</Text>
+      </View>
+    )}
+  </TouchableOpacity>
+);
 
 export const TimesScreen = () => {
   const router = useRouter();
@@ -27,51 +68,17 @@ export const TimesScreen = () => {
     return () => clearTimeout(delayDebounceFn);
   }, [query]);
 
-  const sections = [
-    ...(user && favoriteTeams.length > 0
-      ? [{ title: 'Meus Times', data: favoriteTeams }]
-      : []),
-    { title: 'Todos os Times', data: allTeams },
-  ];
-
-  const renderItem = ({ item, section }: { item: Team; section: { title: string } }) => {
-    const isFavoriteSection = section.title === 'Meus Times';
-
-    return (
-      <TouchableOpacity
-        style={styles.teamCard}
-        onPress={() => router.push(`/times/${item.id}`)}
-        activeOpacity={0.8}
-      >
-        <View style={styles.cardLeft}>
-          {item.isFavorite && !isFavoriteSection && (
-            <Text style={styles.starIcon}>⭐</Text>
-          )}
-          <Text style={styles.title}>{item.name}</Text>
-        </View>
-        {user && (
-          <TouchableOpacity
-            style={[
-              styles.favoriteButton,
-              isFavoriteSection ? styles.removeButton : styles.addButton,
-            ]}
-            onPress={() => toggleFavorite(item.id)}
-          >
-            <Text style={styles.favoriteButtonText}>
-              {isFavoriteSection ? 'Remover' : item.isFavorite ? '⭐ Favorito' : '+ Favoritar'}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </TouchableOpacity>
-    );
-  };
-
-  const renderSectionHeader = ({ section }: { section: { title: string } }) => (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionHeaderText}>
-        {section.title === 'Meus Times' ? '⭐ ' : '🌍 '}
-        {section.title}
-      </Text>
+  const renderGrid = (teams: Team[]) => (
+    <View style={styles.grid}>
+      {teams.map((team) => (
+        <TeamCard
+          key={team.id}
+          team={team}
+          showLoggedIn={!!user}
+          onPress={() => router.push(`/times/${team.id}`)}
+          onToggleFavorite={() => toggleFavorite(team.id)}
+        />
+      ))}
     </View>
   );
 
@@ -85,10 +92,16 @@ export const TimesScreen = () => {
           onPress={() => router.push('/entrar')}
           activeOpacity={0.85}
         >
-          <Text style={styles.loginBannerText}>
-            🔒 Faça login para salvar seus times favoritos
-          </Text>
-          <Text style={styles.loginBannerCta}>Entrar →</Text>
+          <View style={styles.loginBannerLeft}>
+            <Ionicons name="lock-closed" size={14} color={colors.textSecondary} />
+            <Text style={styles.loginBannerText}>
+              Faça login para salvar seus times favoritos
+            </Text>
+          </View>
+          <View style={styles.loginBannerCtaRow}>
+            <Text style={styles.loginBannerCta}>Entrar</Text>
+            <Ionicons name="arrow-forward" size={14} color={colors.primary} />
+          </View>
         </TouchableOpacity>
       )}
 
@@ -101,20 +114,30 @@ export const TimesScreen = () => {
           <Text style={styles.errorText}>Error: {error}</Text>
         </View>
       ) : (
-        <SectionList
-          sections={sections}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          renderSectionHeader={renderSectionHeader}
-          stickySectionHeadersEnabled={false}
-          contentContainerStyle={styles.listContent}
-          SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}
-          ListEmptyComponent={
+        <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
+          {user && favoriteTeams.length > 0 && (
+            <>
+              <View style={styles.sectionHeaderRow}>
+                <Ionicons name="star" size={13} color={colors.textSecondary} />
+                <Text style={styles.sectionHeaderText}>Meus Times</Text>
+              </View>
+              {renderGrid(favoriteTeams)}
+            </>
+          )}
+
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="earth" size={13} color={colors.textSecondary} />
+            <Text style={styles.sectionHeaderText}>Todos os Times</Text>
+          </View>
+
+          {allTeams.length > 0 ? (
+            renderGrid(allTeams)
+          ) : (
             <View style={styles.center}>
               <Text style={styles.emptyText}>Nenhum time encontrado.</Text>
             </View>
-          }
-        />
+          )}
+        </ScrollView>
       )}
     </View>
   );
@@ -144,7 +167,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.xl,
   },
-  sectionHeader: {
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
     paddingVertical: spacing.sm,
     marginTop: spacing.md,
   },
@@ -156,48 +182,59 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     fontSize: 12,
   },
-  sectionSeparator: {
-    height: spacing.md,
-  },
-  teamCard: {
-    padding: spacing.md,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    marginBottom: spacing.sm,
+  grid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  cardLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
     gap: spacing.sm,
   },
-  starIcon: {
-    fontSize: 14,
+  teamCard: {
+    width: '48%',
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.sm,
+    marginBottom: spacing.sm,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2E2E38',
+    gap: spacing.sm,
   },
-  title: {
+  rankBadge: {
+    position: 'absolute',
+    top: spacing.sm,
+    left: spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderRadius: radius.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  rankBadgeText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '700',
+    fontSize: 10,
+  },
+  favoriteToggle: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+  },
+  teamName: {
     ...typography.subheading,
     color: colors.textPrimary,
+    fontWeight: '700',
+    textAlign: 'center',
   },
-  favoriteButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.sm,
+  titlesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  removeButton: {
-    backgroundColor: colors.danger,
-  },
-  addButton: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  favoriteButtonText: {
-    ...typography.body,
-    color: colors.textPrimary,
-    fontSize: 12,
+  titlesText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontSize: 11,
   },
   loginBanner: {
     marginHorizontal: spacing.md,
@@ -211,6 +248,18 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: colors.primary,
   },
+  loginBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    flex: 1,
+  },
+  loginBannerCtaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginLeft: spacing.sm,
+  },
   loginBannerText: {
     ...typography.body,
     color: colors.textSecondary,
@@ -221,6 +270,5 @@ const styles = StyleSheet.create({
     ...typography.subheading,
     color: colors.primary,
     fontWeight: '700',
-    marginLeft: spacing.sm,
   },
 });

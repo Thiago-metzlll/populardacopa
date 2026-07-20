@@ -241,19 +241,20 @@ Definidos no grafo como componentes reutilizáveis em nível de aplicação:
 - **Domain**: `Team`, `Player`, `PlayerStats` · `TeamRepository`: `getAll`, `getFavorites`, `toggleFavorite`, `search`, `getTeamById`, `getPlayersByTeamId`, `getPlayerById`
 - **Use Cases**: `GetFavoriteTeams`, `SearchTeams`, `ToggleFavoriteTeam`, `GetTeamById`, `GetPlayerById`
 - **Infra**: `MockTeamRepository` com estado mutável em memória · 9 seleções no seed
-- **Presentation (✅)**: `TimesScreen` + `SearchInput` (debounce 500ms) via `useFavoriteTeams`
+- **Presentation (✅)**: `TimesScreen` — grid de 2 colunas com bandeira (`MolduraIndividualPais`), ranking e estrela de favorito por card; `SearchInput` (debounce 500ms); seção "Meus Times" acima da lista completa quando logado, via `useTimesScreen`
 - **Presentation (✅) (Fase 2)**: `Tela Time` → `CardConquistas` + `MoldeJogadores`
 - **Presentation (✅) (Fase 3)**: `Tela Jogador` → `CardCaracterísticas`
 
 ### `album` — ✅ Fases 1, 2 e 3 completas + alinhamento com Figma
 
-- **Domain**: `Sticker { id, albumId, playerId, teamId, playerName, price, rarity, imageUrl, obtainedAt }` · `UserCollection { stickerIds[] }` · `Package { stickers[] }`
-- **Use Cases**: `GetUserProfile`, `OpenPackage`, `GetMarketAlbums`, `BuyStickerPack`, `GetUserCoins` · (novos) `GetAlbumById`, `GetAlbumStickers`, `GetAllStickers`, `GetStickersByIds`, `GetUserCollection`, `BuyIndividualSticker`
-- **Infra**: `MockAlbumRepository` + `FirestoreAlbumRepository` (ativo) — 150 figurinhas no seed (100 no álbum `a1`, 50 no `a2`), preço por raridade (comum=20, rara=60, lendária=150) · `openPackage`/`buyStickerPack` sorteiam 3 stickers não duplicados · `buyIndividualSticker` compra 1 sticker específico calculando progresso contra o álbum correto
-- **Presentation (✅)**: `ProfileScreen` via `useUserProfile` + `useOpenPackage` · `CardColeção` (shared) reutilizado na `HomeScreen`
+- **Domain**: `Sticker { id, albumId, playerId, teamId, playerName, price, rarity, imageUrl, obtainedAt }` · `UserCollection { stickerIds[] }` · `Package { stickers[] }` · `DailyClaimStatus { available, nextAvailableAt }` / `DailyCoinsStatus extends DailyClaimStatus { amount }` (`domain/constants/rewards.ts`)
+- **Use Cases**: `GetUserProfile`, `OpenPackage`, `GetMarketAlbums`, `BuyStickerPack`, `GetUserCoins` · `GetAlbumById`, `GetAlbumStickers`, `GetAllStickers`, `GetStickersByIds`, `GetUserCollection`, `BuyIndividualSticker` · (novos, seção 9.6) `AddUserCoins`, `GetDailyCoinsStatus`, `ClaimDailyCoins`, `GetFreePackStatus`, `ClaimFreePackage`, `GrantStickers`
+- **Infra**: `MockAlbumRepository` + `FirestoreAlbumRepository` (ativo) — 150 figurinhas no seed (100 no álbum `a1`, 50 no `a2`), preço por raridade (comum=20, rara=60, lendária=150) · `openPackage`/`buyStickerPack` sorteiam 3 stickers não duplicados (lógica de sorteio extraída para `drawAndGrantStickers`, reusada por `claimFreePackage`) · `buyIndividualSticker` compra 1 sticker específico calculando progresso contra o álbum correto · `grantStickers` concede stickers específicos sem custo (usado pelo settlement de apostas)
+- **Presentation (✅)**: `ProfileScreen` via `useUserProfile` · `CardColeção` (shared) reutilizado na `HomeScreen`
 - **Presentation (✅) (Fase 2)**: `Tela Mercado de Figurinhas` → `CompartilhBtn`
-- **Presentation (✅) (Fase 3)**: `Animação Abrir Pacote` (react-native-reanimated)
+- **Presentation (✅) (Fase 3)**: `Animação Abrir Pacote` (react-native-reanimated) — ver evolução "estilo gacha" na seção 9.6
 - **Presentation (✅) (Alinhamento com Figma)**: `Tela Compra Coleção` (`app/mercado/[albumId]`) — grid de figurinhas de um álbum via `useAlbumStickers` · `Tela Compra Figurinha Individual` (`app/figurinha/[stickerId]`) — compra/visualização de 1 sticker via `useStickerDetail` + `useBuyIndividualSticker` · `Tela Todas as Figurinhas` (`app/figurinhas`) — catálogo completo agrupado por raridade via `useAllStickers` · `StickerCard` (componente compartilhado do feature) e `rarityColors` (token de tema) usados nas 3 telas para padronizar a linguagem visual de raridade trazida do Figma
+- **Presentation (✅) (Economia de moedas, seção 9.6)**: `CardRecompensaDiaria` (moedas diárias) e `CardPacoteGratis` (pacote grátis diário) na `ProfileScreen`, via `useDailyCoinsReward`/`useFreePackage`
 
 ### `apostas` — ✅ Fases 1, 2 e 3 completas
 
@@ -261,18 +262,20 @@ Definidos no grafo como componentes reutilizáveis em nível de aplicação:
   - `Match { id, homeTeamId, awayTeamId, date, phase, status, odds: MatchOdds }`
   - `Prediction { id, userId, matchId, predictedOutcome, predictedScore?, createdAt }`
   - `PredictionHistory { userId, predictions: Prediction[] }`
-- **Use Cases**: `GetUpcomingMatches`, `CreatePrediction`, `GetPredictionHistory`
-- **Infra**: `MockMatchRepository` filtra por `status === 'scheduled'` · seed com 4 partidas
-- **Presentation (✅)**: `ApostasScreen` + `ContainerAposta` + `BotaoHistorico`
+- **Use Cases**: `GetUpcomingMatches`, `CreatePrediction`, `GetPredictionHistory` · (novo, seção 9.6) `SettlePendingPredictions`
+- **Infra**: `MockMatchRepository` filtra por `status === 'scheduled'` em `getUpcomingMatches` e expõe `getMatchById` para o settlement · `MockPredictionRepository` ganhou `updatePredictionStatus` · seed com 5 partidas (4 agendadas + 1 `finished` para demonstrar o settlement)
+- **Presentation (✅)**: `ApostasScreen` + `ContainerAposta` + `BotaoHistorico` · dispara `useSettlePendingPredictions` ao montar (seção 9.6)
 - **Presentation (✅) (Fase 2)**: `Tela Palpite` (formulário de confirmação do palpite)
 - **Presentation (✅) (Fase 3)**: `Tela Histórico de Apostas`
 
-### `auth` — ⬜ Fase 4 (não iniciada)
+### `auth` — ✅ Fase 4 completa
 
-- Feature a ser criada: `src/features/auth/`
-- **Domain**: `AuthRepository` (interface) · use cases: `Login`, `Register`
-- **Presentation**: `Tela Entrar` + `Tela Cadastro` + `MoldeInputs` (componente de input reutilizável)
-- O `MoldeInputs` é compartilhado entre ambas as telas de auth
+- **Domain**: `FirebaseUser { uid, email, displayName, isAnonymous }` · `AuthRepository`: `signInAnonymously`, `signInWithEmail`, `register`, `signOut`, `getCurrentUser`, `resetPassword`, `onAuthStateChanged`
+- **Infra**: `FirebaseAuthRepository` — único repositório da feature (sem variante Mock); cria/garante o documento Firestore do usuário (`ensureUserDocument`) em login/cadastro
+- **Factories**: `makeSignInWithEmail`/`makeRegister`/`makeSignOut`/`makeResetPassword`/`makeOnAuthStateChanged` (wrappers finos sobre `authRepositoryInstance`, sem classe de use case dedicada — o padrão `execute()` é seguido pela factory diretamente)
+- **Presentation**: `MoldeInputs` (input compartilhado com label + estado de erro) · `TelaEntrar` + `TelaCadastro` (via `useLogin`/`useRegister`) · `TelaEsqueciSenha` (via `useForgotPassword`, chama `resetPassword` do Firebase)
+- **Rotas**: `app/(auth)/{entrar,cadastro,esqueci-senha}.tsx`, stack modal público
+- **`UserContext`** (`shared/presentation/contexts/UserContext.tsx`) assina `onAuthStateChanged` e monta o `User` de domínio a partir do `FirebaseUser` + saldo de moedas real (via `album`'s `GetUserCoins`) — ver seção 9.6. `AuthGuard` redireciona rotas protegidas (`perfil`, `mercado`, `abrir-pacote`, `figurinhas`, `figurinha`) para `/entrar` quando deslogado.
 
 ### `home` — ⬜ Fase 5 (stub existente)
 
@@ -381,6 +384,23 @@ interface UserCollection {
   progress: number;
 }
 
+// recompensas diárias (moedas + pacote grátis) — domain/constants/rewards.ts
+interface DailyClaimStatus {
+  available: boolean;
+  nextAvailableAt: string | null;  // ISO, null quando available=true
+}
+interface DailyCoinsStatus extends DailyClaimStatus {
+  amount: number;                  // quantidade de moedas do resgate
+}
+
+// settlement de apostas — apostas/domain/usecases/SettlePendingPredictions.ts
+// injetado no Main, compõe apostas (domínio) com album (recompensa), sem
+// que o domínio de apostas importe nada de album diretamente.
+interface RewardGranter {
+  grantCoins(userId: string, amount: number): Promise<void>;
+  grantStickers(userId: string, stickerIds: string[]): Promise<void>;
+}
+
 // times
 interface Player {
   id: string;
@@ -476,6 +496,28 @@ Essas 3 telas foram implementadas dentro do feature `album` existente (não como
 - O repositório ativo em produção é o `FirestoreAlbumRepository` (não o `MockAlbumRepository`) — qualquer novo método da interface `AlbumRepository` precisou de implementação nos dois.
 - Novo token de tema `rarityColors` (seção 3) traz a linguagem visual de raridade do Figma (cores por `comum`/`rara`/`lendaria`) para um lugar único e reutilizável, em vez de replicar o visual do Figma tela por tela — o "meio termo" entre o visual mais limpo do código atual e o Figma.
 - Fora de escopo, por decisão consciente: refatorar os cards já existentes na `ProfileScreen`/`TelaMercado` para usar o novo `StickerCard`; corrigir o cálculo de progresso hardcoded em `openPackage`/`buyStickerPack` (que sempre usa `mockAlbums[0]`); adicionar uma 4ª aba "Mercado" na bottom nav (o Figma tem 4 abas — Home/Mercado/Perfil/Times — mas o código tem 3, com Mercado como modal).
+
+### 9.6 Ícones, economia de moedas, pacote grátis diário, settlement de apostas e animação gacha
+
+> Registrado em 07/2026. Sessão focada em 6 ajustes pontuais mantendo o rigor da Clean Architecture existente — nenhuma feature nova, apenas evolução das já existentes.
+
+**Ícones (`Ionicons` em vez de emoji)**: os 7 arquivos que usavam caractere emoji cru em `<Text>` (`MenuBar`, `TimesScreen`, `CardCaracteristicas`, `AnimacaoAbrirPacote`, `CardResumoApostas`, `CardVitoria`, `CardDerrota`) foram migrados para `Ionicons`, seguindo o padrão já estabelecido em `StickerCard`/`TelaMercado`. Convenção registrada na seção de Convenções do README.
+
+**Economia de moedas real** (antes só existia débito, nunca crédito):
+- `AlbumRepository` ganhou `addUserCoins`, `getDailyCoinsStatus`, `claimDailyCoins` (50 moedas, cooldown 24h) — implementados em `FirestoreAlbumRepository` (via `increment()` do Firestore, importado mas nunca usado antes) e `MockAlbumRepository`.
+- A regra de cooldown é uma função pura (`computeDailyClaimStatus`, `domain/constants/rewards.ts`), sem dependência de Firebase — testável isoladamente e reusada tanto para moedas quanto para o pacote grátis diário (abaixo).
+- **`UserContext` corrigido**: `coins` era hardcoded `0` em `toUser()` (gap identificado — TODO de uma fase anterior, ver histórico). Agora busca o saldo real via `makeGetUserCoins` ao resolver a sessão, e expõe `refreshCoins()` no contexto para qualquer hook sincronizar o saldo global após uma mutação (já conectado em `useBuyStickerPack`, `useBuyIndividualSticker`, `useDailyCoinsReward`, `useSettlePendingPredictions`).
+- UI: `CardRecompensaDiaria` na `ProfileScreen`.
+
+**Pacote grátis diário**: `AlbumRepository.getFreePackStatus`/`claimFreePackage`, reusando a mesma função pura de cooldown (campo Firestore `lastFreePackClaimAt`). O sorteio de figurinhas (antes só existia dentro de `openPackage`) foi extraído para `drawAndGrantStickers`, compartilhado entre `openPackage` (fluxo legado, sem limite) e `claimFreePackage` (gated). O botão "Abrir Pacote" da `ProfileScreen`, que antes chamava `openPackage` sem nenhum limite, foi substituído pelo card `CardPacoteGratis` (gated); `useOpenPackage.ts` foi removido por ter ficado órfão.
+
+**Settlement de apostas (client-side)**: `SettlePendingPredictions` (domínio de `apostas`) resolve palpites `pending` cuja partida já tem `status: 'finished'`, comparando placar previsto vs. real. A recompensa (`PredictionReward.type: 'coins' | 'sticker'`) é concedida via a interface `RewardGranter` (seção 7), **injetada no Main** (`makeSettlePendingPredictions`) — o domínio de `apostas` não importa nada de `album`, só a composição na factory conhece as duas features. Disparado por `useSettlePendingPredictions` ao montar `ApostasScreen` (usuário resolvido). Antes deste trabalho, `status: 'won'/'lost'` só existia como dado estático de seed — nenhuma partida do mock nunca chegava a `'finished'`; foi adicionada uma partida `m9` finalizada + um palpite `pred_9` pendente no seed para o settlement ser observável em desenvolvimento.
+
+**Tela Times redesenhada**: ver seção 5 (`times`) — de lista de texto (`SectionList`) para grid 2 colunas com bandeira SVG.
+
+**Animação de abrir pacote "estilo gacha"**: ainda 100% `react-native-reanimated` (sem novas dependências — `animejs` não é compatível com React Native). Pacote idle ganhou animação de "respiração" (pulso de escala em loop) e, ao tocar, uma sequência de tremor + expansão antes de revelar; cada figurinha tem uma fase de "carga" (anel pulsante, duração proporcional à raridade — 100ms comum / 500ms rara / 900ms lendária) antes do flip de revelação, seguida de partículas explodindo para fora em raras/lendárias.
+
+**Nota — não era bug**: o problema relatado de "esqueci senha não envia email" foi investigado a fundo (toda a cadeia `TelaEsqueciSenha → useForgotPassword → FirebaseAuthRepository.resetPassword → sendPasswordResetEmail`) e o código estava correto; o email estava caindo na caixa de spam. Nenhuma mudança de código foi necessária.
 
 ---
 

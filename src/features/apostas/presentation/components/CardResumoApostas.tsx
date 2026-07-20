@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, radius } from '../../../../shared/presentation/theme';
 
 interface CardResumoApostasProps {
@@ -15,14 +16,14 @@ export const CardResumoApostas: React.FC<CardResumoApostasProps> = ({
     <View style={styles.row}>
       {/* Total de Palpites */}
       <View style={[styles.card, styles.cardLeft]}>
-        <Text style={styles.emoji}>🎯</Text>
+        <Ionicons name="locate" size={24} color={colors.textPrimary} style={styles.icon} />
         <Text style={styles.value}>{totalPalpites}</Text>
         <Text style={styles.label}>TOTAL DE{'\n'}PALPITES</Text>
       </View>
 
       {/* % de Vitórias */}
       <View style={[styles.card, styles.cardRight]}>
-        <Text style={styles.emoji}>🏆</Text>
+        <Ionicons name="trophy" size={24} color={colors.textPrimary} style={styles.icon} />
         <Text style={[styles.value, { color: winPercentage >= 50 ? colors.primary : colors.secondary }]}>
           {winPercentage}%
         </Text>
@@ -55,8 +56,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.secondary,
     borderTopWidth: 2,
   },
-  emoji: {
-    fontSize: 24,
+  icon: {
     marginBottom: spacing.xs,
   },
   value: {

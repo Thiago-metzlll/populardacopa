@@ -1,6 +1,6 @@
 # Popular da Copa — Agent Instructions
 
-Ver documentação completa: [technical-readme.md](file:///c:/Users/thiago.9943/populardacopa/docs/technical-readme.md)
+Ver documentação completa: [technical-readme.md](docs/technical-readme.md)
 
 ## Stack
 React Native + Expo Router + TypeScript, Clean Architecture.
@@ -16,7 +16,7 @@ React Native + Expo Router + TypeScript, Clean Architecture.
 | expo-linear-gradient | ~56 | Gradientes nos cards |
 | expo-image | ~56 | Imagens otimizadas (flags, fotos) |
 | react-native-reanimated | 4.3.1 | Animações (abertura de pacote) |
-| @expo/vector-icons | ^15 | Ícones Ionicons nas tabs |
+| @expo/vector-icons | ^15 | Ícones Ionicons — único sistema de ícones do app, sem emojis em UI |
 | react-native-svg | ~15 | Renderização de bandeiras SVG |
 | react-native-svg-transformer | ^1.5 | Suporte a importações de SVG |
 

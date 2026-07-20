@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -13,9 +13,12 @@ import Animated, {
   withSpring,
   withSequence,
   withTiming,
+  withRepeat,
+  withDelay,
   runOnJS,
   interpolate,
   Extrapolation,
+  Easing,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -52,8 +55,99 @@ const RARITY_GLOW: Record<Sticker['rarity'], string> = {
 
 const RARITY_LABEL: Record<Sticker['rarity'], string> = {
   comum: 'COMUM',
-  rara: '★ RARA',
-  lendaria: '⚡ LENDÁRIA',
+  rara: 'RARA',
+  lendaria: 'LENDÁRIA',
+};
+
+const RARITY_ICON: Record<Sticker['rarity'], keyof typeof Ionicons.glyphMap | null> = {
+  comum: null,
+  rara: 'star',
+  lendaria: 'flash',
+};
+
+// Duração da "carga" de expectativa antes do reveal — quanto mais rara, mais suspense.
+const RARITY_CHARGE_MS: Record<Sticker['rarity'], number> = {
+  comum: 100,
+  rara: 500,
+  lendaria: 900,
+};
+
+const RARITY_PARTICLES: Record<Sticker['rarity'], number> = {
+  comum: 0,
+  rara: 10,
+  lendaria: 16,
+};
+
+const Particle: React.FC<{ angle: number; distance: number; delay: number; color: string }> = ({
+  angle,
+  distance,
+  delay,
+  color,
+}) => {
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    progress.value = withDelay(
+      delay,
+      withTiming(1, { duration: 650, easing: Easing.out(Easing.cubic) }),
+    );
+  }, []);
+
+  const style = useAnimatedStyle(() => {
+    const dist = progress.value * distance;
+    return {
+      opacity: interpolate(progress.value, [0, 0.15, 1], [0, 1, 0]),
+      transform: [
+        { translateX: Math.cos(angle) * dist },
+        { translateY: Math.sin(angle) * dist },
+        { scale: interpolate(progress.value, [0, 1], [0.5, 1]) },
+      ],
+    };
+  });
+
+  return <Animated.View style={[styles.particle, { backgroundColor: color }, style]} />;
+};
+
+const ParticleBurst: React.FC<{ count: number; color: string }> = ({ count, color }) => {
+  if (count === 0) return null;
+  return (
+    <View style={styles.particleContainer} pointerEvents="none">
+      {Array.from({ length: count }).map((_, i) => {
+        const angle = (i / count) * Math.PI * 2;
+        const distance = 60 + Math.random() * 50;
+        const delay = Math.random() * 120;
+        return <Particle key={i} angle={angle} distance={distance} delay={delay} color={color} />;
+      })}
+    </View>
+  );
+};
+
+const ChargeGlow: React.FC<{ color: string }> = ({ color }) => {
+  const scale = useSharedValue(0.85);
+  const opacity = useSharedValue(0.2);
+
+  useEffect(() => {
+    scale.value = withRepeat(
+      withSequence(
+        withTiming(1.2, { duration: 260, easing: Easing.out(Easing.quad) }),
+        withTiming(0.9, { duration: 260, easing: Easing.in(Easing.quad) }),
+      ),
+      -1,
+      true,
+    );
+    opacity.value = withRepeat(
+      withSequence(withTiming(0.85, { duration: 260 }), withTiming(0.25, { duration: 260 })),
+      -1,
+      true,
+    );
+  }, []);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ scale: scale.value }],
+  }));
+
+  return <Animated.View style={[styles.chargeGlow, { borderColor: color, shadowColor: color }, style]} />;
 };
 
 const StickerRevealCard: React.FC<{
@@ -62,18 +156,28 @@ const StickerRevealCard: React.FC<{
   isLast: boolean;
   onDone: () => void;
 }> = ({ sticker, onAdvance, isLast, onDone }) => {
+  const [phase, setPhase] = useState<'charging' | 'revealed'>(
+    sticker.rarity === 'comum' ? 'revealed' : 'charging',
+  );
   const scale = useSharedValue(0);
   const rotateY = useSharedValue(90);
   const opacity = useSharedValue(0);
 
   useEffect(() => {
+    if (phase !== 'charging') return;
+    const timeout = setTimeout(() => setPhase('revealed'), RARITY_CHARGE_MS[sticker.rarity]);
+    return () => clearTimeout(timeout);
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== 'revealed') return;
     opacity.value = withTiming(1, { duration: 200 });
     rotateY.value = withSpring(0, { damping: 12, stiffness: 100 });
     scale.value = withSequence(
-      withSpring(1.08, { damping: 8, stiffness: 120 }),
-      withSpring(1, { damping: 15, stiffness: 200 })
+      withSpring(1.1, { damping: 8, stiffness: 120 }),
+      withSpring(1, { damping: 15, stiffness: 200 }),
     );
-  }, []);
+  }, [phase]);
 
   const animStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -91,43 +195,54 @@ const StickerRevealCard: React.FC<{
   }));
 
   const glowColor = RARITY_GLOW[sticker.rarity];
+  const particleCount = phase === 'revealed' ? RARITY_PARTICLES[sticker.rarity] : 0;
 
   return (
     <View style={styles.cardWrapper}>
-      <Animated.View style={[styles.stickerCardOuter, { shadowColor: glowColor }, animStyle]}>
-        <LinearGradient
-          colors={RARITY_COLORS[sticker.rarity]}
-          style={styles.stickerCard}
-        >
-          {/* Glow border */}
-          <View style={[styles.glowBorder, { borderColor: glowColor }]}>
-            {/* Sticker emoji avatar */}
-            <View style={styles.stickerImageContainer}>
-              <Text style={styles.stickerEmoji}>
-                {sticker.rarity === 'lendaria' ? '⚡' : sticker.rarity === 'rara' ? '★' : '⚽'}
-              </Text>
+      <View style={styles.cardStage}>
+        {phase === 'charging' && <ChargeGlow color={glowColor} />}
+        {phase === 'revealed' && <ParticleBurst count={particleCount} color={glowColor} />}
+
+        <Animated.View style={[styles.stickerCardOuter, { shadowColor: glowColor }, animStyle]}>
+          <LinearGradient
+            colors={RARITY_COLORS[sticker.rarity]}
+            style={styles.stickerCard}
+          >
+            {/* Glow border */}
+            <View style={[styles.glowBorder, { borderColor: glowColor }]}>
+              {/* Sticker rarity avatar */}
+              <View style={styles.stickerImageContainer}>
+                <Ionicons
+                  name={RARITY_ICON[sticker.rarity] ?? 'football'}
+                  size={64}
+                  color={glowColor}
+                />
+              </View>
+
+              {/* Rarity Badge */}
+              <View style={[styles.rarityBadge, { borderColor: glowColor }]}>
+                {RARITY_ICON[sticker.rarity] && (
+                  <Ionicons name={RARITY_ICON[sticker.rarity]!} size={12} color={glowColor} />
+                )}
+                <Text style={[styles.rarityText, { color: glowColor }]}>
+                  {RARITY_LABEL[sticker.rarity]}
+                </Text>
+              </View>
+
+              {/* Sticker ID */}
+              <Text style={styles.stickerIdText}>Figurinha #{sticker.id}</Text>
+
+              {/* Share button for rare/legendary */}
+              {sticker.rarity !== 'comum' && (
+                <CompartilhBtn
+                  stickerImageUrl={sticker.imageUrl}
+                  stickerId={sticker.id}
+                />
+              )}
             </View>
-
-            {/* Rarity Badge */}
-            <View style={[styles.rarityBadge, { borderColor: glowColor }]}>
-              <Text style={[styles.rarityText, { color: glowColor }]}>
-                {RARITY_LABEL[sticker.rarity]}
-              </Text>
-            </View>
-
-            {/* Sticker ID */}
-            <Text style={styles.stickerIdText}>Figurinha #{sticker.id}</Text>
-
-            {/* Share button for rare/legendary */}
-            {sticker.rarity !== 'comum' && (
-              <CompartilhBtn
-                stickerImageUrl={sticker.imageUrl}
-                stickerId={sticker.id}
-              />
-            )}
-          </View>
-        </LinearGradient>
-      </Animated.View>
+          </LinearGradient>
+        </Animated.View>
+      </View>
 
       {/* Action Button */}
       <TouchableOpacity
@@ -149,8 +264,86 @@ const StickerRevealCard: React.FC<{
           />
         </LinearGradient>
       </TouchableOpacity>
+    </View>
+  );
+};
 
-      {/* Progress dots */}
+const IdlePackCard: React.FC<{ onStartReveal: () => void }> = ({ onStartReveal }) => {
+  const breathScale = useSharedValue(1);
+  const burstScale = useSharedValue(1);
+  const burstOpacity = useSharedValue(1);
+  const shakeX = useSharedValue(0);
+  const [bursting, setBursting] = useState(false);
+
+  useEffect(() => {
+    breathScale.value = withRepeat(
+      withSequence(
+        withTiming(1.04, { duration: 900, easing: Easing.inOut(Easing.quad) }),
+        withTiming(1, { duration: 900, easing: Easing.inOut(Easing.quad) }),
+      ),
+      -1,
+      true,
+    );
+  }, []);
+
+  const handlePress = () => {
+    if (bursting) return;
+    setBursting(true);
+    shakeX.value = withSequence(
+      withTiming(-6, { duration: 60 }),
+      withTiming(6, { duration: 60 }),
+      withTiming(-6, { duration: 60 }),
+      withTiming(6, { duration: 60 }),
+      withTiming(0, { duration: 60 }),
+    );
+    burstScale.value = withDelay(
+      300,
+      withTiming(1.4, { duration: 300, easing: Easing.out(Easing.cubic) }),
+    );
+    burstOpacity.value = withDelay(
+      300,
+      withTiming(0, { duration: 300 }, (finished) => {
+        if (finished) runOnJS(onStartReveal)();
+      }),
+    );
+  };
+
+  const packStyle = useAnimatedStyle(() => ({
+    opacity: burstOpacity.value,
+    transform: [
+      { translateX: shakeX.value },
+      { scale: breathScale.value * burstScale.value },
+    ],
+  }));
+
+  return (
+    <View style={styles.center}>
+      <Animated.View style={packStyle}>
+        <LinearGradient
+          colors={['#1E1E2E', '#24242B']}
+          style={styles.packContainer}
+        >
+          <View style={styles.packGlowRing} />
+          <Ionicons name="cube" size={72} color={colors.primary} style={styles.packIcon} />
+          <Text style={styles.packTitle}>Pacote de Figurinhas</Text>
+          <Text style={styles.packSubtitle}>3 figurinhas aguardando reveal!</Text>
+        </LinearGradient>
+      </Animated.View>
+
+      <TouchableOpacity
+        style={styles.openButton}
+        onPress={handlePress}
+        activeOpacity={0.8}
+        disabled={bursting}
+      >
+        <LinearGradient
+          colors={['#B4FF00', '#88CC00']}
+          style={styles.openButtonGradient}
+        >
+          <Text style={styles.openButtonText}>ABRIR PACOTE</Text>
+          <Ionicons name="sparkles" size={20} color="#0D0D0D" />
+        </LinearGradient>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -183,28 +376,7 @@ export const AnimacaoAbrirPacote: React.FC<AnimacaoAbrirPacoteProps> = ({
   }
 
   if (!isRevealing) {
-    return (
-      <View style={styles.center}>
-        <LinearGradient
-          colors={['#1E1E2E', '#24242B']}
-          style={styles.packContainer}
-        >
-          <Text style={styles.packEmoji}>📦</Text>
-          <Text style={styles.packTitle}>Pacote de Figurinhas</Text>
-          <Text style={styles.packSubtitle}>3 figurinhas aguardando reveal!</Text>
-        </LinearGradient>
-
-        <TouchableOpacity style={styles.openButton} onPress={onStartReveal} activeOpacity={0.8}>
-          <LinearGradient
-            colors={['#B4FF00', '#88CC00']}
-            style={styles.openButtonGradient}
-          >
-            <Text style={styles.openButtonText}>ABRIR PACOTE</Text>
-            <Ionicons name="sparkles" size={20} color="#0D0D0D" />
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
-    );
+    return <IdlePackCard onStartReveal={onStartReveal} />;
   }
 
   const currentSticker = stickers[currentIndex];
@@ -273,9 +445,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#333',
     marginBottom: spacing.xl,
+    overflow: 'hidden',
   },
-  packEmoji: {
-    fontSize: 80,
+  packGlowRing: {
+    position: 'absolute',
+    width: '140%',
+    height: '140%',
+    borderRadius: 999,
+    backgroundColor: 'rgba(180, 255, 0, 0.06)',
+  },
+  packIcon: {
     marginBottom: spacing.md,
   },
   packTitle: {
@@ -351,6 +530,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xl,
   },
+  cardStage: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chargeGlow: {
+    position: 'absolute',
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 2,
+    shadowOpacity: 0.9,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  particleContainer: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    top: '35%',
+    alignSelf: 'center',
+  },
+  particle: {
+    position: 'absolute',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
   stickerCardOuter: {
     borderRadius: radius.xl,
     shadowOpacity: 0.6,
@@ -381,10 +589,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stickerEmoji: {
-    fontSize: 64,
-  },
   rarityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     borderWidth: 1,
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md,

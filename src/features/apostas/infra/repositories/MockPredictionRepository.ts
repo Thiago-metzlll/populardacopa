@@ -26,7 +26,22 @@ export class MockPredictionRepository implements PredictionRepository {
     };
     
     this.historyState.predictions.push(newPrediction);
-    
+
     return newPrediction;
+  }
+
+  async updatePredictionStatus(predictionId: string, status: 'won' | 'lost'): Promise<Prediction> {
+    await delay(200);
+    const prediction = this.historyState.predictions.find(p => p.id === predictionId);
+    if (!prediction) throw new Error('Palpite não encontrado');
+
+    prediction.status = status;
+
+    const settled = this.historyState.predictions.filter(p => p.status !== 'pending');
+    const won = this.historyState.predictions.filter(p => p.status === 'won');
+    this.historyState.successRate = settled.length > 0 ? Math.round((won.length / settled.length) * 100) : 0;
+    this.historyState.totalPoints = won.reduce((acc, p) => acc + (p.reward.coinAmount || 0), 0);
+
+    return prediction;
   }
 }

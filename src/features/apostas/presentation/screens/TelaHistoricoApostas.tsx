@@ -23,6 +23,7 @@ const PHASE_BY_MATCH: Record<string, string> = {
   m6: 'Quartas-de-Final',
   m7: 'Semifinal',
   m8: 'Final',
+  m9: 'Fase de Grupos',
 };
 
 const MATCH_LABEL_BY_ID: Record<string, string> = {
@@ -34,6 +35,7 @@ const MATCH_LABEL_BY_ID: Record<string, string> = {
   m6: 'Argentina vs França',
   m7: 'Brasil vs França',
   m8: 'Argentina vs Portugal',
+  m9: 'Brasil vs Espanha',
 };
 
 const PendingCard: React.FC<{ prediction: Prediction }> = ({ prediction }) => (

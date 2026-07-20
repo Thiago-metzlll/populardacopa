@@ -11,4 +11,9 @@ export class MockMatchRepository implements MatchRepository {
     await delay(300);
     return this.matchesState.filter(m => m.status === 'scheduled');
   }
+
+  async getMatchById(matchId: string): Promise<Match | null> {
+    await delay(150);
+    return this.matchesState.find(m => m.id === matchId) ?? null;
+  }
 }

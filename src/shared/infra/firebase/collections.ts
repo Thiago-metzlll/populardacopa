@@ -14,4 +14,6 @@ export const USER_FIELDS = {
   NAME: 'name',
   EMAIL: 'email',
   CREATED_AT: 'createdAt',
+  LAST_DAILY_COINS_CLAIM_AT: 'lastDailyCoinsClaimAt',
+  LAST_FREE_PACK_CLAIM_AT: 'lastFreePackClaimAt',
 } as const;

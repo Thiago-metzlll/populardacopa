@@ -12,7 +12,8 @@ import { COLLECTIONS, USER_FIELDS } from '../../../../shared/infra/firebase/coll
 import { Album } from '../../domain/entities/Album';
 import { Sticker } from '../../domain/entities/Sticker';
 import { UserCollection } from '../../domain/entities/UserCollection';
-import { AlbumRepository, BuyStickerPackResult } from '../../domain/repositories/AlbumRepository';
+import { AlbumRepository, BuyStickerPackResult, ClaimDailyCoinsResult } from '../../domain/repositories/AlbumRepository';
+import { computeDailyCoinsStatus, computeFreePackStatus, DailyCoinsStatus, DailyClaimStatus } from '../../domain/constants/rewards';
 import { mockAlbums, mockStickers } from '../seed/AlbumSeed';
 
 /**
@@ -80,6 +81,35 @@ export class FirestoreAlbumRepository implements AlbumRepository {
     return newBalance;
   }
 
+  async addUserCoins(userId: string, amount: number): Promise<number> {
+    await this.ensureUserDoc(userId);
+    await updateDoc(this.userRef(userId), {
+      [USER_FIELDS.COINS]: increment(amount),
+    });
+    return this.getUserCoins(userId);
+  }
+
+  async getDailyCoinsStatus(userId: string): Promise<DailyCoinsStatus> {
+    await this.ensureUserDoc(userId);
+    const snap = await getDoc(this.userRef(userId));
+    const lastClaim = snap.data()?.[USER_FIELDS.LAST_DAILY_COINS_CLAIM_AT];
+    const lastClaimIso = lastClaim?.toDate ? lastClaim.toDate().toISOString() : null;
+    return computeDailyCoinsStatus(lastClaimIso);
+  }
+
+  async claimDailyCoins(userId: string): Promise<ClaimDailyCoinsResult> {
+    const status = await this.getDailyCoinsStatus(userId);
+    if (!status.available) {
+      throw new Error('Recompensa diária ainda não disponível.');
+    }
+    await updateDoc(this.userRef(userId), {
+      [USER_FIELDS.COINS]: increment(status.amount),
+      [USER_FIELDS.LAST_DAILY_COINS_CLAIM_AT]: serverTimestamp(),
+    });
+    const coins = await this.getUserCoins(userId);
+    return { coins, amount: status.amount };
+  }
+
   // ─── Dados estáticos do álbum (mocks locais) ────────────────────────────────
 
   async getAlbumById(id: string): Promise<Album> {
@@ -106,7 +136,11 @@ export class FirestoreAlbumRepository implements AlbumRepository {
 
   // ─── Lógica de negócio (híbrida: sorteio local + persistência Firestore) ───
 
-  async openPackage(packageId: string, userId: string): Promise<Sticker[]> {
+  /**
+   * Sorteia até 3 figurinhas não possuídas e grava na coleção do usuário.
+   * Compartilhado por openPackage (fluxo legado) e claimFreePackage (pacote grátis diário).
+   */
+  private async drawAndGrantStickers(userId: string): Promise<Sticker[]> {
     const collection = await this.getUserCollection(userId);
     const notOwned = mockStickers.filter((s) => !collection.stickerIds.includes(s.id));
 
@@ -129,6 +163,50 @@ export class FirestoreAlbumRepository implements AlbumRepository {
     }
 
     return newStickers;
+  }
+
+  async openPackage(packageId: string, userId: string): Promise<Sticker[]> {
+    return this.drawAndGrantStickers(userId);
+  }
+
+  async getFreePackStatus(userId: string): Promise<DailyClaimStatus> {
+    await this.ensureUserDoc(userId);
+    const snap = await getDoc(this.userRef(userId));
+    const lastClaim = snap.data()?.[USER_FIELDS.LAST_FREE_PACK_CLAIM_AT];
+    const lastClaimIso = lastClaim?.toDate ? lastClaim.toDate().toISOString() : null;
+    return computeFreePackStatus(lastClaimIso);
+  }
+
+  async claimFreePackage(userId: string): Promise<Sticker[]> {
+    const status = await this.getFreePackStatus(userId);
+    if (!status.available) {
+      throw new Error('Pacote grátis ainda não disponível.');
+    }
+    const stickers = await this.drawAndGrantStickers(userId);
+    await updateDoc(this.userRef(userId), {
+      [USER_FIELDS.LAST_FREE_PACK_CLAIM_AT]: serverTimestamp(),
+    });
+    return stickers;
+  }
+
+  async grantStickers(userId: string, stickerIds: string[]): Promise<Sticker[]> {
+    await this.ensureUserDoc(userId);
+    const collection = await this.getUserCollection(userId);
+    const newIds = stickerIds.filter((id) => !collection.stickerIds.includes(id));
+    const granted = mockStickers
+      .filter((s) => newIds.includes(s.id))
+      .map((s) => ({ ...s, obtainedAt: new Date().toISOString() }));
+
+    if (granted.length > 0) {
+      const updatedIds = [...collection.stickerIds, ...newIds];
+      const newProgress = (updatedIds.length / mockAlbums[0].totalStickers) * 100;
+      await updateDoc(this.userRef(userId), {
+        [USER_FIELDS.STICKER_IDS]: arrayUnion(...newIds),
+        [USER_FIELDS.PROGRESS]: newProgress,
+      });
+    }
+
+    return granted;
   }
 
   async buyStickerPack(userId: string, albumId: string, cost: number): Promise<BuyStickerPackResult> {

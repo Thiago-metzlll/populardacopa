@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Prediction } from '../../domain/entities/Prediction';
 import { colors, spacing, typography, radius } from '../../../../shared/presentation/theme';
 
@@ -41,7 +42,7 @@ export const CardDerrota: React.FC<CardDerrotaProps> = ({
 
       {/* Reward (pending/not earned) */}
       <View style={styles.rewardRow}>
-        <Text style={styles.rewardIcon}>❌</Text>
+        <Ionicons name="close-circle" size={14} color={colors.textSecondary} />
         <Text style={styles.rewardText}>Recompensa não obtida</Text>
       </View>
 
@@ -131,9 +132,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     marginBottom: spacing.xs,
-  },
-  rewardIcon: {
-    fontSize: 14,
   },
   rewardText: {
     ...typography.caption,

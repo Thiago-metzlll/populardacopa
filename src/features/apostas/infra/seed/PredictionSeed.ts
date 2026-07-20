@@ -82,6 +82,16 @@ export const mockPredictions: Prediction[] = [
     status: 'pending',
     createdAt: '2026-07-05T21:00:00Z',
   },
+  {
+    id: 'pred_9',
+    userId: 'u1',
+    matchId: 'm9',
+    predictedHomeScore: 2,
+    predictedAwayScore: 1,
+    reward: { type: 'coins', description: '+80 moedas', coinAmount: 80 },
+    status: 'pending',
+    createdAt: '2026-07-18T21:00:00Z',
+  },
 ];
 
 const wonPredictions = mockPredictions.filter(p => p.status === 'won');

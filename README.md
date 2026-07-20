@@ -1,12 +1,12 @@
 # Popular da Copa
 
-**Popular da Copa** é um aplicativo mobile para torcedores acompanharem a Copa do Mundo com engajamento ativo: visualize grupos e classificações, gerencie seus times favoritos, colecione figurinhas digitais e dê palpites nas partidas para ganhar moedas virtuais.
+**Popular da Copa** é um aplicativo mobile para torcedores acompanharem a Copa do Mundo com engajamento ativo: visualize grupos e classificações, gerencie seus times favoritos, colecione figurinhas digitais e dê palpites nas partidas para ganhar moedas virtuais ou figurinhas. Não envolve dinheiro real — é um sistema de recompensas e colecionismo, não uma casa de apostas.
 
 ---
 
 ## O que o app faz
 
-O aplicativo é organizado em quatro pilares de funcionalidade principais, precedidos por um fluxo de autenticação e uma Home centralizada:
+O aplicativo é organizado em quatro pilares de funcionalidade principais (Grupos, Perfil/Álbum, Times, Apostas), precedidos por um fluxo de autenticação e uma Home centralizada, com uma economia de moedas e recompensas diárias entrelaçada entre eles:
 
 ### Grupos
 Exibe a tabela de cada grupo da Copa (pontuação, saldo de gols, vitórias/empates/derrotas), refletindo o estado atual do torneio.
@@ -14,11 +14,14 @@ Exibe a tabela de cada grupo da Copa (pontuação, saldo de gols, vitórias/empa
 ### Perfil & Álbum de Figurinhas
 Hub da coleção pessoal. O usuário vê seu progresso via `CardColeção`, pode visitar o Mercado de Figurinhas para trocar duplicatas, abrir pacotes com animação e compartilhar figurinhas via `CompartilhBtn`.
 
-### Times (Meus Times)
-O usuário monta seu painel de seleções favoritas com `SearchInput` para busca com debounce. Uma tela de detalhes do time exibe conquistas (`CardConquistas`) e o molde de jogadores (`MoldeJogadores`). Ao tocar em um jogador, abre a tela com `CardCaracterísticas`.
+### Times
+Grid de 2 colunas com a bandeira (SVG) de cada seleção, ranking e destaque para favoritos, com `SearchInput` para busca com debounce. Times favoritos (quando logado) aparecem em uma seção própria acima da lista completa. Uma tela de detalhes do time exibe conquistas (`CardConquistas`) e o molde de jogadores (`MoldeJogadores`). Ao tocar em um jogador, abre a tela com `CardCaracterísticas`.
 
 ### Apostas & Palpites
-Lista as próximas partidas. O usuário confirma um palpite pela Tela Palpite e consulta resultados na Tela Histórico de Apostas.
+Lista as próximas partidas. O usuário confirma um palpite pela Tela Palpite, ganhando moedas ou figurinhas específicas se acertar o placar. Ao reabrir a tela de Apostas, palpites pendentes cujas partidas já terminaram são resolvidos automaticamente (settlement client-side) e a recompensa é creditada; resultados ficam disponíveis na Tela Histórico de Apostas.
+
+### Moedas e recompensas diárias
+Moedas ficam salvas no Firestore por usuário. Todo dia o usuário pode resgatar uma recompensa de moedas e um pacote de figurinhas grátis (um de cada por período de 24h desde o último resgate), disponíveis como cards na tela de Perfil.
 
 ---
 
@@ -106,7 +109,7 @@ Para otimização de performance e custos, os dados são divididos seguindo a se
 | times   | ✅ | ✅ | ✅ | ✅ |
 | album   | ✅ | ✅ | ✅ | ✅ |
 | apostas | ✅ | ✅ | ✅ | ✅ |
-| auth    | ⬜ | ⬜ | ⬜ | ⬜ |
+| auth    | ✅ | ✅ | ✅ | ✅ |
 
 ### Presentation — por fase do grafo
 
@@ -122,8 +125,8 @@ Para otimização de performance e custos, os dados são divididos seguindo a se
 | **Fase 3** | Animação Abrir Pacote | ✅ |
 | **Fase 3** | Tela Jogador + CardCaracterísticas | ✅ |
 | **Fase 3** | Tela Histórico de Apostas | ✅ |
-| **Fase 4** | Tela Entrar + Tela Cadastro + MoldeInputs | ⬜ |
-| **Fase 5** | Tela Home + MoldeCardHome + CardPartida | ⬜ |
+| **Fase 4** | Tela Entrar + Tela Cadastro + Tela Esqueci Senha + MoldeInputs | ✅ |
+| **Fase 5** | Tela Home + MoldeCardHome + CardPartida | ⬜ (HomeScreen atual é um hub funcional, não a versão definitiva do grafo) |
 | **Global** | CardFigurinha, MolduraIndividualPaís, BotãoHomeMolde, CardColeção, PalpiteBtn | ✅ |
 | **Global** | NavBar, MenuBar | ✅ |
 
@@ -145,8 +148,9 @@ npx expo start
 - **Mocks simulam latência** de 300–500ms para forçar correto tratamento de `loading`.
 - **Estado em memória**: dados resetam a cada reload — aceito nesta fase.
 - **Palpite vs Aposta**: "Aposta" é a feature/tela. "Palpite" (`Prediction`) é a entidade — previsão de resultado do usuário.
-- **Tela Times** exibe apenas times favoritados (`GetFavoriteTeams`), não a lista global de seleções.
+- **Tela Times** exibe a lista global de seleções em grid; favoritos (`GetFavoriteTeams`) aparecem em seção própria quando o usuário está logado.
 - **Use case antes da tela**: conforme o grafo, o use case de cada tela é construído antes da interface visual.
+- **Sem emojis em UI**: todo ícone visual usa `Ionicons` (`@expo/vector-icons`), nunca caractere emoji cru em `<Text>`.
 
 ---
 
