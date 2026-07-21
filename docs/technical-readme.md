@@ -539,3 +539,11 @@ Foi identificado um comportamento atípico do Firebase Web SDK (v12) em projetos
 - **Causa:** O banco de dados no Google Cloud estava nomeado literalmente como `default` e não `(default)` (com parênteses), que é a norma tradicional.
 - **Solução:** No arquivo `src/shared/infra/firebase/firebaseConfig.ts`, o `databaseId` foi especificado **explicitamente** como o terceiro parâmetro: `initializeFirestore(app, {...}, 'default')` e no fallback `getFirestore(app, 'default')`.
 Isso solucionou definitivamente os falsos erros de `404 Not Found` na comunicação interna do Firebase.
+
+### Implementação Híbrida do SQLite Local
+
+Toda a carga estática (48 seleções, mais de 300 jogadores, 2 álbuns, 150 figurinhas de catálogo e 72 partidas com placares calculados e standings finais da fase de grupos) foi migrada para o **SQLite** no aparelho:
+1. **Migrations e Versionamento**: A inicialização é feita no Root Layout (`app/_layout.tsx`) sob o `<SQLiteProvider>` com a migration `001_initial.ts`. A persistência física evita recriações usando `PRAGMA user_version = 1;` e comandos `IF NOT EXISTS` / `INSERT OR IGNORE`.
+2. **Conexão Isolada**: Um utilitário de persistência (`src/shared/infra/sqlite/database.ts`) encapsula a conexão SQLite assincronamente como singleton fora do ciclo do React, respeitando o desacoplamento de infra na Clean Architecture.
+3. **Resolução de Tipagem**: Os repositórios da camada de Infra realizam a tradução exata do schema relacional do banco local para as interfaces tipadas de domínio do app.
+

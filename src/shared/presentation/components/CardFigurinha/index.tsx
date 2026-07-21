@@ -20,7 +20,7 @@ export const CardFigurinha: React.FC<CardFigurinhaProps> = ({
 }) => {
   const isFull = size === 'full';
   
-  let rarityGradient = ['#3A3A40', '#24242B'];
+  let rarityGradient: [string, string, ...string[]] = ['#3A3A40', '#24242B'];
   let rarityBorder = '#555';
 
   if (sticker.rarity === 'rara') {
