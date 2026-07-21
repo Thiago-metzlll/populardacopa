@@ -1,3 +1,4 @@
+import { FirebaseUser } from '../../domain/entities/FirebaseUser';
 import { authRepositoryInstance } from './repositoryInstance';
 
 /**
@@ -5,6 +6,6 @@ import { authRepositoryInstance } from './repositoryInstance';
  * Retorna um unsubscribe quando chamado — o chamador deve invocar no cleanup.
  */
 export const makeOnAuthStateChanged = () => ({
-  execute: (callback: (user: import('../../domain/entities/FirebaseUser').FirebaseUser | null) => void) =>
+  execute: (callback: (user: FirebaseUser | null) => void) =>
     authRepositoryInstance.onAuthStateChanged(callback),
 });

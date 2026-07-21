@@ -19,11 +19,6 @@ const UserContext = createContext<UserContextData>({} as UserContextData);
  */
 const PUBLIC_SEGMENTS = ['(tabs)', 'index', 'times', 'grupos', 'players', 'entrar', 'cadastro', 'esqueci-senha'];
 
-function isProtectedRoute(segments: string[]): boolean {
-  // Rotas protegidas por segmento
-  const PROTECTED = ['perfil', 'mercado', 'abrir-pacote', 'figurinhas', 'figurinha'];
-  return segments.some((seg) => PROTECTED.includes(seg));
-}
 
 /**
  * Converte FirebaseUser (auth) → User (domínio shared), buscando o saldo
@@ -49,7 +44,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (loading) return;
-    if (!user && isProtectedRoute(segments)) {
+    if (!user && !segments.some((seg) => PUBLIC_SEGMENTS.includes(seg))) {
       router.replace('/entrar');
     }
   }, [user, loading, segments]);
