@@ -7,7 +7,47 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
   const userVersionResult = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version;');
   const currentVersion = userVersionResult?.user_version ?? 0;
 
-  if (currentVersion >= 1) {
+  if (currentVersion >= 2) {
+    return;
+  }
+
+  // Migração v1 → v2: Recria a tabela stickers com imagens reais dos jogadores
+  if (currentVersion === 1) {
+    await db.withTransactionAsync(async () => {
+      // Apaga e recria a tabela stickers
+      await db.execAsync('DROP TABLE IF EXISTS stickers;');
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS stickers (
+          id TEXT PRIMARY KEY,
+          album_id TEXT NOT NULL,
+          player_id TEXT,
+          team_id TEXT,
+          player_name TEXT NOT NULL,
+          price INTEGER NOT NULL,
+          rarity TEXT NOT NULL,
+          image_url TEXT,
+          FOREIGN KEY (album_id) REFERENCES albums(id)
+        );
+      `);
+      // Re-popula com os dados novos
+      for (const sticker of mockStickers) {
+        await db.runAsync(
+          `INSERT OR IGNORE INTO stickers (id, album_id, player_id, team_id, player_name, price, rarity, image_url)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            sticker.id,
+            sticker.albumId,
+            sticker.playerId || null,
+            sticker.teamId || null,
+            sticker.playerName,
+            sticker.price,
+            sticker.rarity,
+            sticker.imageUrl,
+          ]
+        );
+      }
+      await db.execAsync('PRAGMA user_version = 2;');
+    });
     return;
   }
 
@@ -282,6 +322,6 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
     }
 
     // Atualiza a versão do banco
-    await db.execAsync('PRAGMA user_version = 1;');
+    await db.execAsync('PRAGMA user_version = 2;');
   });
 }
