@@ -94,7 +94,7 @@ export class MockAlbumRepository implements AlbumRepository {
     return granted;
   }
 
-  async getMarketAlbums(): Promise<Album[]> {
+  async getMarketAlbums(userId: string): Promise<Album[]> {
     await delay(300);
     return mockAlbums.map((a) => ({
       ...a,

@@ -19,7 +19,7 @@ export const useMarketAlbums = () => {
       const userCoinsUseCase = makeGetUserCoins();
 
       const [marketAlbums, userCoins] = await Promise.all([
-        marketAlbumsUseCase.execute(),
+        marketAlbumsUseCase.execute(user.id),
         userCoinsUseCase.execute(user.id),
       ]);
 

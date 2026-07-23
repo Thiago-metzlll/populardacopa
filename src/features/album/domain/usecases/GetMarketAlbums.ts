@@ -4,7 +4,7 @@ import { AlbumRepository } from '../repositories/AlbumRepository';
 export class GetMarketAlbums {
   constructor(private readonly albumRepository: AlbumRepository) {}
 
-  async execute(): Promise<Album[]> {
-    return this.albumRepository.getMarketAlbums();
+  async execute(userId: string): Promise<Album[]> {
+    return this.albumRepository.getMarketAlbums(userId);
   }
 }

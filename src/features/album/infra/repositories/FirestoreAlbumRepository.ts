@@ -142,8 +142,27 @@ export class FirestoreAlbumRepository implements AlbumRepository {
     return this.catalogRepository.getStickersByIds(ids);
   }
 
-  async getMarketAlbums(): Promise<Album[]> {
-    return this.catalogRepository.getMarketAlbums();
+  async getMarketAlbums(userId: string): Promise<Album[]> {
+    // O catálogo (SQLite) é estático e sempre devolve ownedStickersCount:0 —
+    // aqui cruzamos com a coleção real do usuário (Firestore) pra calcular
+    // a contagem por álbum exibida no Mercado.
+    const [albums, collection, allStickers] = await Promise.all([
+      this.catalogRepository.getMarketAlbums(),
+      this.getUserCollection(userId),
+      this.catalogRepository.getAllStickers(),
+    ]);
+
+    const albumIdByStickerId = new Map(allStickers.map((s) => [s.id, s.albumId]));
+    const ownedCountByAlbum = new Map<string, number>();
+    for (const stickerId of collection.stickerIds) {
+      const albumId = albumIdByStickerId.get(stickerId);
+      if (albumId) ownedCountByAlbum.set(albumId, (ownedCountByAlbum.get(albumId) ?? 0) + 1);
+    }
+
+    return albums.map((album) => ({
+      ...album,
+      ownedStickersCount: ownedCountByAlbum.get(album.id) ?? 0,
+    }));
   }
 
   async getStickersByAlbumId(albumId: string): Promise<Sticker[]> {
