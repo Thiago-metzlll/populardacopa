@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useMarketAlbums } from '../hooks/useMarketAlbums';
 import { useBuyStickerPack } from '../hooks/useBuyStickerPack';
 import { colors, spacing, typography, radius } from '../../../../shared/presentation/theme';
@@ -9,7 +9,14 @@ import { Ionicons } from '@expo/vector-icons';
 export const TelaMercado: React.FC = () => {
   const router = useRouter();
   const { albums, coins, loading: loadingMarket, error: marketError, refetch } = useMarketAlbums();
-  
+
+  // Recarrega progresso/moedas ao voltar de outra tela (ex.: após abrir um pacote)
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
+
   const { buyPack, loading: buying, error: buyError } = useBuyStickerPack((result) => {
     refetch();
     Alert.alert(

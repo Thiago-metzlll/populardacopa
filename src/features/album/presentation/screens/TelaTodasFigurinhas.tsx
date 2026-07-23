@@ -1,13 +1,20 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, FlatList, ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useAllStickers } from '../hooks/useAllStickers';
 import { StickerCard } from '../components/StickerCard';
 import { colors, spacing, typography, rarityColors } from '../../../../shared/presentation/theme';
 
 export const TelaTodasFigurinhas: React.FC = () => {
   const router = useRouter();
-  const { sections, ownedIds, loading, error } = useAllStickers();
+  const { sections, ownedIds, loading, error, refetch } = useAllStickers();
+
+  // Recarrega ao voltar de outra tela (ex.: após abrir um pacote)
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   if (loading) {
     return (

@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  ScrollView,
   Dimensions,
 } from 'react-native';
 import Animated, {
@@ -15,7 +16,6 @@ import Animated, {
   withTiming,
   withRepeat,
   withDelay,
-  runOnJS,
   interpolate,
   Extrapolation,
   Easing,
@@ -26,9 +26,12 @@ import { Sticker } from '../../domain/entities/Sticker';
 import { CompartilhBtn } from './CompartilhBtn';
 import { colors, spacing, typography, radius } from '../../../../shared/presentation/theme';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.75;
-const CARD_HEIGHT = CARD_WIDTH * 1.4;
+// Limitado a 48% da altura da tela para sempre sobrar espaço pro botão de ação
+// abaixo — em telas pequenas, CARD_WIDTH * 1.4 sozinho já empurrava o botão
+// pra fora da viewport, deixando a tela sem nenhuma ação alcançável.
+const CARD_HEIGHT = Math.min(CARD_WIDTH * 1.4, SCREEN_HEIGHT * 0.48);
 
 interface AnimacaoAbrirPacoteProps {
   stickers: Sticker[];
@@ -302,10 +305,13 @@ const IdlePackCard: React.FC<{ onStartReveal: () => void }> = ({ onStartReveal }
     );
     burstOpacity.value = withDelay(
       300,
-      withTiming(0, { duration: 300 }, (finished) => {
-        if (finished) runOnJS(onStartReveal)();
-      }),
+      withTiming(0, { duration: 300 }),
     );
+    // Dispara via timer do JS thread em vez do callback do worklet: o callback
+    // de withTiming depende da ponte UI->JS e, se não disparar (animação
+    // interrompida, hiccup do bridge), o botão ficava travado em "bursting"
+    // para sempre, sem nenhuma ação possível na tela.
+    setTimeout(onStartReveal, 600);
   };
 
   const packStyle = useAnimatedStyle(() => ({
@@ -383,7 +389,11 @@ export const AnimacaoAbrirPacote: React.FC<AnimacaoAbrirPacoteProps> = ({
   if (!currentSticker) return null;
 
   return (
-    <View style={styles.revealContainer}>
+    <ScrollView
+      style={styles.revealContainer}
+      contentContainerStyle={styles.revealContent}
+      showsVerticalScrollIndicator={false}
+    >
       {/* Header */}
       <View style={styles.revealHeader}>
         <Text style={styles.revealTitle}>FIGURINHA REVELADA</Text>
@@ -413,7 +423,7 @@ export const AnimacaoAbrirPacote: React.FC<AnimacaoAbrirPacoteProps> = ({
         isLast={currentIndex === stickers.length - 1}
         onDone={onDone}
       />
-    </View>
+    </ScrollView>
   );
 };
 
@@ -489,8 +499,12 @@ const styles = StyleSheet.create({
   revealContainer: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  revealContent: {
+    flexGrow: 1,
     alignItems: 'center',
     paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
   },
   revealHeader: {
     alignItems: 'center',

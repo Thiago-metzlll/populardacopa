@@ -24,7 +24,10 @@ export const HomeScreen = () => {
             <ActivityIndicator color={colors.primary} size="large" />
           </View>
         ) : matches.length > 0 ? (
-          <ContainerAposta match={matches[0]} />
+          <ContainerAposta
+            match={matches[0]}
+            onPress={() => router.push(`/palpite/${matches[0].id}` as any)}
+          />
         ) : (
           <Text style={styles.placeholderText}>Nenhuma partida no momento</Text>
         )}
