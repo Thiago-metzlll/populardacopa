@@ -249,7 +249,7 @@ Definidos no grafo como componentes reutilizáveis em nível de aplicação:
 
 - **Domain**: `Sticker { id, albumId, playerId, teamId, playerName, price, rarity, imageUrl, obtainedAt }` · `UserCollection { stickerIds[] }` · `Package { stickers[] }` · `DailyClaimStatus { available, nextAvailableAt }` / `DailyCoinsStatus extends DailyClaimStatus { amount }` (`domain/constants/rewards.ts`)
 - **Use Cases**: `GetUserProfile`, `OpenPackage`, `GetMarketAlbums`, `BuyStickerPack`, `GetUserCoins` · `GetAlbumById`, `GetAlbumStickers`, `GetAllStickers`, `GetStickersByIds`, `GetUserCollection`, `BuyIndividualSticker` · (novos, seção 9.6) `AddUserCoins`, `GetDailyCoinsStatus`, `ClaimDailyCoins`, `GetFreePackStatus`, `ClaimFreePackage`, `GrantStickers`
-- **Infra**: `MockAlbumRepository` + `FirestoreAlbumRepository` (ativo) — 150 figurinhas no seed (100 no álbum `a1`, 50 no `a2`), preço por raridade (comum=20, rara=60, lendária=150) · `openPackage`/`buyStickerPack` sorteiam 3 stickers não duplicados (lógica de sorteio extraída para `drawAndGrantStickers`, reusada por `claimFreePackage`) · `buyIndividualSticker` compra 1 sticker específico calculando progresso contra o álbum correto · `grantStickers` concede stickers específicos sem custo (usado pelo settlement de apostas)
+- **Infra**: `FirestoreAlbumRepository` (único repositório da feature — `MockAlbumRepository` removido por dead code, ver seção 9.7) — 150 figurinhas no seed (100 no álbum `a1`, 50 no `a2`), preço por raridade (comum=20, rara=60, lendária=150) · `openPackage`/`buyStickerPack` sorteiam 3 stickers não duplicados (lógica de sorteio extraída para `drawAndGrantStickers`, reusada por `claimFreePackage`) · `buyIndividualSticker` compra 1 sticker específico, com progresso sempre calculado contra o álbum `a1` — mesma simplificação consciente de `buyStickerPack`/`drawAndGrantStickers`/`getUserCollection` (ver seção 9.5 e 9.7) · `grantStickers` concede stickers específicos sem custo (usado pelo settlement de apostas)
 - **Presentation (✅)**: `ProfileScreen` via `useUserProfile` · `CardColeção` (shared) reutilizado na `HomeScreen`
 - **Presentation (✅) (Fase 2)**: `Tela Mercado de Figurinhas` → `CompartilhBtn`
 - **Presentation (✅) (Fase 3)**: `Animação Abrir Pacote` (react-native-reanimated) — ver evolução "estilo gacha" na seção 9.6
@@ -381,6 +381,7 @@ interface UserCollection {
   userId: string;
   albumId: string;
   stickerIds: string[];
+  stickerObtainedAt?: Record<string, string>;  // data ISO de obtenção por stickerId — catálogo SQLite não guarda isso (é estático); ver seção 9.7
   progress: number;
 }
 
@@ -493,7 +494,7 @@ A comparação identificou 3 telas presentes no Figma sem equivalente no código
 Essas 3 telas foram implementadas dentro do feature `album` existente (não como feature nova), pois pertencem ao mesmo domínio de figurinhas/álbuns:
 
 - `Sticker` ganhou `albumId`, `playerName` e `price` — necessários porque a tela de Coleção precisa saber quais figurinhas pertencem a qual álbum, e a compra individual precisa de um preço de catálogo por figurinha (antes só existia `Album.price`, o preço do pacote aleatório).
-- O repositório ativo em produção é o `FirestoreAlbumRepository` (não o `MockAlbumRepository`) — qualquer novo método da interface `AlbumRepository` precisou de implementação nos dois.
+- O repositório ativo em produção era o `FirestoreAlbumRepository` (não o `MockAlbumRepository`, então mantido) — qualquer novo método da interface `AlbumRepository` precisou de implementação nos dois à época; o `MockAlbumRepository` foi removido depois por estar sem nenhum consumidor (ver seção 9.7).
 - Novo token de tema `rarityColors` (seção 3) traz a linguagem visual de raridade do Figma (cores por `comum`/`rara`/`lendaria`) para um lugar único e reutilizável, em vez de replicar o visual do Figma tela por tela — o "meio termo" entre o visual mais limpo do código atual e o Figma.
 - Fora de escopo, por decisão consciente: refatorar os cards já existentes na `ProfileScreen`/`TelaMercado` para usar o novo `StickerCard`; corrigir o cálculo de progresso hardcoded em `openPackage`/`buyStickerPack` (que sempre usa `mockAlbums[0]`); adicionar uma 4ª aba "Mercado" na bottom nav (o Figma tem 4 abas — Home/Mercado/Perfil/Times — mas o código tem 3, com Mercado como modal).
 
@@ -518,6 +519,30 @@ Essas 3 telas foram implementadas dentro do feature `album` existente (não como
 **Animação de abrir pacote "estilo gacha"**: ainda 100% `react-native-reanimated` (sem novas dependências — `animejs` não é compatível com React Native). Pacote idle ganhou animação de "respiração" (pulso de escala em loop) e, ao tocar, uma sequência de tremor + expansão antes de revelar; cada figurinha tem uma fase de "carga" (anel pulsante, duração proporcional à raridade — 100ms comum / 500ms rara / 900ms lendária) antes do flip de revelação, seguida de partículas explodindo para fora em raras/lendárias.
 
 **Nota — não era bug**: o problema relatado de "esqueci senha não envia email" foi investigado a fundo (toda a cadeia `TelaEsqueciSenha → useForgotPassword → FirebaseAuthRepository.resetPassword → sendPasswordResetEmail`) e o código estava correto; o email estava caindo na caixa de spam. Nenhuma mudança de código foi necessária.
+
+### 9.7 Correções de persistência de figurinhas, robustez de UI e navegação
+
+> Registrado em 07/2026, após bateria de bugs reportados em teste manual do fluxo de abertura de pacote.
+
+**Bug crítico — `ensureUserDoc` resetava o documento do usuário a cada leitura**: `ensureUserDoc` é chamado antes de toda leitura em `FirestoreAlbumRepository` (`getUserCollection`, `getUserCoins`, `getDailyCoinsStatus`, `getFreePackStatus`) e usava `setDoc(ref, {coins: 200, stickerIds: [], progress: 0, ...}, {merge: true})`. `merge: true` só preserva campos **ausentes** do payload — campos presentes são substituídos integralmente pelo valor passado, não mesclados. Como todo campo do usuário aparecia com um valor "zerado" fixo, **toda leitura desfazia silenciosamente qualquer compra ou figurinha ganha anteriormente** (moedas voltavam a 200, `stickerIds` voltava a `[]`). Corrigido: `ensureUserDoc` agora faz `getDoc` primeiro e só grava os valores padrão se o documento ainda não existir.
+
+**Bug — double-draw na abertura de pacote**: `pendingPackStore` (`infra/stores/pendingPackStore.ts`) foi criado para `buyStickerPack` gravar o sorteio já persistido e `useAbrirPacote` reaproveitar, evitando um segundo sorteio. A escrita (`useBuyStickerPack`) estava conectada, mas `useAbrirPacote` nunca lia o store — chamava `openPackage` de novo incondicionalmente, que ignora `packageId` e sorteia+persiste **outras** 3 figurinhas independentes. Resultado: cada compra gravava 6 figurinhas em vez de 3, e a animação revelava figurinhas diferentes das realmente compradas. Corrigido: `useAbrirPacote` agora lê do `pendingPackStore` quando disponível (com fallback pra `openPackage` se o pacote for aberto sem passar por uma compra, ex. deep link).
+
+**Novo campo Firestore `stickerObtainedAt`**: o catálogo SQLite é estático (sem noção de usuário), então `obtainedAt` sempre vinha `''` ao recarregar uma figurinha já possuída — quebrando a ordenação de "Recentes" (`NaN` na comparação de datas) e mostrando "N/A" no card. Adicionado `stickerObtainedAt: Record<stickerId, ISOString>` no documento do usuário (gravado via update com dot-notation em todo ponto que concede figurinha); `GetUserProfile` sobrepõe essa data por cima do `obtainedAt` vazio do catálogo antes de ordenar.
+
+**Bug — progresso do Mercado sempre `0/100`**: `getMarketAlbums()` nunca recebeu `userId`, e o catálogo SQLite sempre devolve `ownedStickersCount: 0` (dado estático). A interface `AlbumRepository.getMarketAlbums` ganhou o parâmetro `userId`; `FirestoreAlbumRepository` agora cruza `collection.stickerIds` com o `albumId` de cada figurinha do catálogo pra calcular a contagem real por álbum.
+
+**Robustez da UI — tela de abertura de pacote travando sem nenhuma ação possível**: dois problemas distintos, mesmo sintoma.
+1. `IdlePackCard.handlePress` (`AnimacaoAbrirPacote.tsx`) desabilitava o botão (`bursting=true`, sem reset) e dependia do callback de conclusão de uma animação Reanimated (`withTiming(..., (finished) => runOnJS(onStartReveal)())`) pra disparar a transição de negócio pro reveal. Se esse callback não disparasse (interrupção da animação, hiccup da ponte UI↔JS thread), a tela ficava travada permanentemente. Trocado por `setTimeout` no JS thread, desacoplando a lógica de negócio da animação decorativa.
+2. O card de revelação usava altura fixa (`CARD_WIDTH * 1.4`, ≈105% da largura da tela) que, somada ao cabeçalho/contador/dots/gap, ultrapassava a altura de telas menores — empurrando o botão "PRÓXIMA"/"CONCLUIR" pra fora da viewport, sem `ScrollView` pra alcançá-lo. Corrigido com altura máxima relativa à tela (`SCREEN_HEIGHT * 0.48`) + `ScrollView` como rede de segurança.
+
+**`ProfileScreen` — cards de figurinha sem estilo visual**: as seções "Recentes"/"Raras" renderizavam texto cru (`Sticker {id}` + badge de raridade) em vez do componente `CardFigurinha` (imagem, nome, raridade, data) já usado no resto do app. Corrigido.
+
+**`HomeScreen` — botão "Dar Palpite" sem ação**: o `ContainerAposta` renderizado no card de partida em destaque da Home não recebia a prop `onPress`, caindo no fallback de `console.log` em vez de navegar para `/palpite/[matchId]` (comportamento já correto em `ApostasScreen`). Corrigido.
+
+**Gotcha de compatibilidade — Expo Router SDK 56 vs `@react-navigation/native`**: a partir do SDK 56, `expo-router` não é mais compatível com importações diretas de `@react-navigation/native` — mesmo sendo uma dependência transitiva já presente no projeto (`react-native-screens`/navegação interna), importar `useFocusEffect` de lá quebra o bundler Android com `As of SDK 56, expo-router is no longer compatible with react-navigation`. `expo-router` re-exporta os hooks equivalentes (`useFocusEffect`, `useIsFocused`) — **sempre importar de `expo-router`, nunca de `@react-navigation/native` diretamente**, mesmo que o pacote esteja instalado.
+
+**Limpeza — `MockAlbumRepository` removido**: confirmado sem nenhum import fora do próprio arquivo (`repositoryInstance.ts` já injetava só `FirestoreAlbumRepository` + `SQLiteAlbumCatalogRepository`) — dead code desde a migração pro Firestore. Removido junto com `mockUserCollection` (export de `AlbumSeed.ts` usado só pelo Mock). `mockAlbums`/`mockStickers` do mesmo arquivo **permanecem** — apesar do nome, são a fonte real de seed do catálogo SQLite (`shared/infra/sqlite/migrations/001_initial.ts`), não dado de um repositório mock.
 
 ---
 

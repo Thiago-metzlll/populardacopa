@@ -13,9 +13,8 @@ export interface DailyCoinsStatus extends DailyClaimStatus {
 
 /**
  * Pura: calcula se uma recompensa diária está disponível a partir do último resgate
- * e do cooldown aplicável. Compartilhada entre MockAlbumRepository e
- * FirestoreAlbumRepository para manter a regra de cooldown em um único lugar,
- * e reutilizada tanto por moedas diárias quanto pelo pacote grátis diário.
+ * e do cooldown aplicável. Mantém a regra de cooldown em um único lugar,
+ * reutilizada tanto por moedas diárias quanto pelo pacote grátis diário.
  */
 export function computeDailyClaimStatus(
   lastClaimedAtIso: string | null,

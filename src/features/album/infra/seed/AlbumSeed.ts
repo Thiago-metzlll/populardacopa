@@ -1,6 +1,5 @@
 ﻿import { Album } from '../../domain/entities/Album';
 import { Sticker } from '../../domain/entities/Sticker';
-import { UserCollection } from '../../domain/entities/UserCollection';
 import { AVAILABLE_PLAYERS } from '../../../../../database';
 
 export const mockAlbums: Album[] = [
@@ -82,10 +81,3 @@ export const mockStickers: Sticker[] = [
   ...generateStickersFromPlayers('a1', realPlayers, 100, 0),
   ...generateStickersFromPlayers('a2', specialPlayers.concat(realPlayers), 50, 100),
 ];
-
-export const mockUserCollection: UserCollection = {
-  userId: 'u1',
-  albumId: 'a1',
-  stickerIds: mockStickers.slice(0, 78).map((s) => s.id),
-  progress: 78,
-};
