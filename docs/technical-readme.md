@@ -73,7 +73,7 @@ app/
     _layout.tsx     → TabsLayout: header={() => <CustomHeader />}
                         tabBarStyle: background #1E1E24, sem borda
                         activeTintColor: colors.primary (#B4FF00)
-    index.tsx       → HomeScreen (stub atual; substituída pela Tela Home da Fase 5)
+    index.tsx       → HomeScreen (definitiva — Fase 5 original obsoleta, ver seção 9.8)
     times.tsx       → TimesScreen
     perfil.tsx      → ProfileScreen
 ```
@@ -91,7 +91,7 @@ App
 │   ├── Tela Entrar       ← Login com MoldeInputs
 │   └── Tela Cadastro     ← Cadastro com MoldeInputs
 │
-├── Tela Home (Fase 5)    ← MoldeCardHome + CardPartida
+├── Tela Home             ← HomeScreen definitiva (Fase 5 original obsoleta, ver seção 9.8)
 │
 └── Telas principais (Fases 1–3)
     ├── Tela Grupos
@@ -134,7 +134,7 @@ app/
 │       esqueci-senha.tsx → TelaEsqueciSenha
 │   (tabs)/               ← Rotas Principais (públicas e privadas controladas)
 │       _layout.tsx       ← Tabs + CustomHeader
-│       index.tsx         → HomeScreen (atual, stub da Fase 5)
+│       index.tsx         → HomeScreen (definitiva, ver seção 9.8)
 │       times.tsx         → TimesScreen
 │       perfil.tsx        → ProfileScreen
 
@@ -149,8 +149,7 @@ src/
                                      MolduraIndividualPaís, BotãoHomeMolde,
                                      PalpiteBtn
       contexts/           → UserContext (usuário logado global)
-      screens/            → HomeScreen
-                            [pendente] Tela Home com MoldeCardHome + CardPartida
+      screens/            → HomeScreen (definitiva, ver seção 9.8)
       theme/              → colors, typography, spacing, radius
 
   features/
@@ -277,11 +276,11 @@ Definidos no grafo como componentes reutilizáveis em nível de aplicação:
 - **Rotas**: `app/(auth)/{entrar,cadastro,esqueci-senha}.tsx`, stack modal público
 - **`UserContext`** (`shared/presentation/contexts/UserContext.tsx`) assina `onAuthStateChanged` e monta o `User` de domínio a partir do `FirebaseUser` + saldo de moedas real (via `album`'s `GetUserCoins`) — ver seção 9.6. `AuthGuard` redireciona rotas protegidas (`perfil`, `mercado`, `abrir-pacote`, `figurinhas`, `figurinha`) para `/entrar` quando deslogado.
 
-### `home` — ⬜ Fase 5 (stub existente)
+### `home` — ✅ Completo (implementada antecipadamente; Fase 5 original obsoleta)
 
-- A `HomeScreen` atual é um hub provisório
-- **Fase 5 planeja**: `Tela Home` com `MoldeCardHome` (card template para partidas em destaque) + `CardPartida` (card individual de uma partida)
-- Use cases específicos da Home a definir (provavelmente composição de outros existentes)
+- A `HomeScreen` é a versão definitiva do hub de navegação — reutiliza `ContainerAposta` (apostas) e `CardColecao` (shared)
+- **Fase 5 (obsoleta, ver seção 9.8)**: planejava `MoldeCardHome` + `CardPartida`; descartada por redundância com a implementação atual
+- Sem use cases dedicados — a Home compõe hooks já existentes de outras features (`useUpcomingMatches`, `useUserProfile`)
 
 ---
 
@@ -323,11 +322,13 @@ Definidos no grafo como componentes reutilizáveis em nível de aplicação:
 - `Tela Cadastro`: nome + e-mail + senha + confirmação → chama use case `Register`
 - Ao autenticar, navega para as tabs (Root Layout atualizado com gate de auth)
 
-### Fase 5 — Tela Home definitiva
+### Fase 5 — Tela Home definitiva (❌ obsoleta, ver seção 9.8)
 
-- `MoldeCardHome`: template de card maior para partida em destaque (com times, odds, data)
-- `CardPartida`: card compacto de partida para lista de próximas partidas
-- Substitui o stub atual da `HomeScreen` com uma composição mais rica
+~~`MoldeCardHome`: template de card maior para partida em destaque (com times, odds, data)~~
+~~`CardPartida`: card compacto de partida para lista de próximas partidas~~
+~~Substitui o stub atual da `HomeScreen` com uma composição mais rica~~
+
+Descartada: a `HomeScreen` atual já cumpre esse papel (ver seções 9.1 e 9.8).
 
 ---
 
@@ -447,12 +448,12 @@ O grafo original posiciona a **Tela Home como Fase 5** — última a ser constru
 
 **Isso não quebra nenhuma dependência do grafo.** A `HomeScreen` atual:
 - Reutiliza `ContainerAposta` (apostas) e `CardColecao` (shared) — componentes já implementados na Fase 1
-- Serve como ponto de entrada visual enquanto Auth (Fase 4) e a Home definitiva (Fase 5) não existem
-- **Será substituída** pela Tela Home definitiva com `MoldeCardHome` + `CardPartida` quando a Fase 5 for executada
+- Serviu como ponto de entrada visual enquanto Auth (Fase 4) e a Home definitiva (Fase 5) não existiam
+- **Tornou-se a versão definitiva**: a Fase 5 original (`MoldeCardHome` + `CardPartida`) foi marcada como obsoleta e não será executada — ver seção 9.8
 
 ### 9.2 Componentes do Grafo — Aderência confirmada
 
-Todos os nomes de componentes definidos no grafo foram **preservados no código** tal como especificados:
+Os nomes de componentes definidos no grafo foram **preservados no código** tal como especificados, com exceção de `MoldeCardHome`/`CardPartida` (Fase 5), cuja implementação foi descartada — ver seção 9.8:
 
 | Grafo | Nome no código | Fase | Status |
 |---|---|---|---|
@@ -464,9 +465,11 @@ Todos os nomes de componentes definidos no grafo foram **preservados no código*
 | `CardConquistas` | `CardConquistas.tsx` | 2 | ✅ |
 | `MoldeJogadores` | `MoldeJogadores.tsx` | 2 | ✅ |
 | `CardCaracterísticas` | `CardCaracteristicas.tsx` | 3 | ✅ |
-| `MoldeInputs` | — | 4 | ⬜ pendente |
-| `MoldeCardHome` | — | 5 | ⬜ pendente |
-| `CardPartida` | — | 5 | ⬜ pendente |
+| `MoldeInputs` | `MoldeInputs/index.tsx` (shared) | 4 | ✅ |
+| `MoldeCardHome` | — | 5 | ❌ obsoleto (ver 9.8) |
+| `CardPartida` | — | 5 | ❌ obsoleto (ver 9.8) |
+
+> Componentes criados depois do grafo original, fora dessa lista (ex.: `StickerCard`, `CardRecompensaDiaria`, `CardPacoteGratis`, `CardHistoricoMundial`, `CardResumoApostas`, `CardVitoria`, `CardDerrota`), estão documentados nas seções 9.5 e 9.6 como evoluções — não fazem parte da aderência ao grafo original.
 
 ### 9.3 Contratos de Domínio que Evoluíram
 
@@ -543,6 +546,18 @@ Essas 3 telas foram implementadas dentro do feature `album` existente (não como
 **Gotcha de compatibilidade — Expo Router SDK 56 vs `@react-navigation/native`**: a partir do SDK 56, `expo-router` não é mais compatível com importações diretas de `@react-navigation/native` — mesmo sendo uma dependência transitiva já presente no projeto (`react-native-screens`/navegação interna), importar `useFocusEffect` de lá quebra o bundler Android com `As of SDK 56, expo-router is no longer compatible with react-navigation`. `expo-router` re-exporta os hooks equivalentes (`useFocusEffect`, `useIsFocused`) — **sempre importar de `expo-router`, nunca de `@react-navigation/native` diretamente**, mesmo que o pacote esteja instalado.
 
 **Limpeza — `MockAlbumRepository` removido**: confirmado sem nenhum import fora do próprio arquivo (`repositoryInstance.ts` já injetava só `FirestoreAlbumRepository` + `SQLiteAlbumCatalogRepository`) — dead code desde a migração pro Firestore. Removido junto com `mockUserCollection` (export de `AlbumSeed.ts` usado só pelo Mock). `mockAlbums`/`mockStickers` do mesmo arquivo **permanecem** — apesar do nome, são a fonte real de seed do catálogo SQLite (`shared/infra/sqlite/migrations/001_initial.ts`), não dado de um repositório mock.
+
+### 9.8 Fase 5 (Tela Home definitiva) marcada como obsoleta
+
+> Registrado em 07/2026.
+
+A Fase 5 do grafo original planejava uma "Tela Home definitiva" com dois componentes novos — `MoldeCardHome` (card maior para partida em destaque) e `CardPartida` (card compacto de partida) — que substituiriam o hub provisório da `HomeScreen` (ver seção 9.1).
+
+Essa substituição foi avaliada e **descartada**: a `HomeScreen` atual (`src/shared/presentation/screens/HomeScreen.tsx`) já cumpre integralmente o papel da Home definitiva — exibe a partida em destaque reutilizando `ContainerAposta` (feature `apostas`), navegação para Times/Grupos e o card de coleção (`CardColecao`, feature `album`/shared) — sem necessidade de dois componentes exclusivos e redundantes com o que já existe.
+
+- Fase 5, como definida originalmente, está **obsoleta** — não será implementada.
+- `MoldeCardHome` e `CardPartida` não serão criados; a tabela da seção 9.2 reflete esse status.
+- A `HomeScreen` é considerada a versão definitiva da Home a partir deste registro.
 
 ---
 
