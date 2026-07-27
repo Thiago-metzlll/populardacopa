@@ -539,3 +539,5 @@ Foi identificado um comportamento atípico do Firebase Web SDK (v12) em projetos
 - **Causa:** O banco de dados no Google Cloud estava nomeado literalmente como `default` e não `(default)` (com parênteses), que é a norma tradicional.
 - **Solução:** No arquivo `src/shared/infra/firebase/firebaseConfig.ts`, o `databaseId` foi especificado **explicitamente** como o terceiro parâmetro: `initializeFirestore(app, {...}, 'default')` e no fallback `getFirestore(app, 'default')`.
 Isso solucionou definitivamente os falsos erros de `404 Not Found` na comunicação interna do Firebase.
+
+Link do html de estudo: https://claude.ai/code/artifact/364a9d6e-e82f-4dfc-a725-e56c41765e48

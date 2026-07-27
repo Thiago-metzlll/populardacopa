@@ -1,0 +1,919 @@
+<title>Popular da Copa — Guia de Estudo</title>
+<style>
+  /* Tema único e escuro, deliberadamente igual à identidade visual real do
+     app (fundo #1A1A1E, verde-limão #B4FF00, laranja #FF6B35) — este guia
+     usa a própria paleta do produto que descreve, em vez de inventar uma. */
+  :root{
+    --bg: #131318;
+    --bg-soft: #1b1b22;
+    --surface: #1f1f27;
+    --surface-raised: #292933;
+    --line: #34343f;
+    --line-soft: #2a2a33;
+    --text: #f1f0ea;
+    --text-dim: #a3a2ad;
+    --text-faint: #6f6e7a;
+
+    --lime: #b4ff00;
+    --lime-dim: #8fd400;
+    --orange: #ff6b35;
+    --purple: #8432e5;
+    --purple-soft: #c79bff;
+    --danger: #ff4b4b;
+
+    --serif: Iowan Old Style, "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    --display: "Segoe UI", ui-sans-serif, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+    color-scheme: dark;
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection{ background: var(--lime); color: #101014; }
+
+  a{ color: var(--lime); }
+  a:focus-visible, button:focus-visible, .toc__link:focus-visible{
+    outline: 2px solid var(--lime);
+    outline-offset: 3px;
+  }
+
+  h1,h2,h3{
+    font-family: var(--display);
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    text-wrap: balance;
+    color: var(--text);
+  }
+
+  code, pre{ font-family: var(--mono); }
+
+  /* ---------- shell layout ---------- */
+  .page-shell{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+    display: grid;
+    grid-template-columns: 230px minmax(0,1fr);
+    gap: 56px;
+  }
+
+  /* ---------- masthead ---------- */
+  .masthead{
+    grid-column: 1 / -1;
+    padding: 56px 0 36px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .kicker{
+    font-family: var(--display);
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--lime);
+  }
+  .masthead h1{
+    font-size: clamp(30px, 4.4vw, 46px);
+    line-height: 1.08;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.005em;
+  }
+  .masthead h1 em{
+    font-style: normal;
+    color: var(--orange);
+  }
+  .masthead p{
+    max-width: 640px;
+    color: var(--text-dim);
+    font-size: 16.5px;
+    margin: 0;
+  }
+  .stack-chips{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .chip{
+    font-family: var(--display);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 5px 11px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    background: var(--surface);
+  }
+
+  /* ---------- toc ---------- */
+  .toc{
+    align-self: start;
+    position: sticky;
+    top: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-top: 40px;
+  }
+  .toc__eyebrow{
+    font-family: var(--display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+  }
+  .toc__link{
+    font-family: var(--display);
+    font-size: 13.5px;
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 7px 0 7px 14px;
+    border-left: 2px solid var(--line-soft);
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .toc__link:hover{ color: var(--text); border-left-color: var(--text-dim); }
+  .toc__num{ color: var(--text-faint); margin-right: 8px; font-variant-numeric: tabular-nums; }
+
+  /* ---------- main content ---------- */
+  .content{ padding-top: 40px; min-width: 0; }
+  .section{ padding-bottom: 64px; margin-bottom: 64px; border-bottom: 1px solid var(--line-soft); }
+  .section:last-child{ border-bottom: none; }
+  .section__eyebrow{
+    font-family: var(--display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 8px;
+  }
+  .section h2{
+    font-size: clamp(22px, 3vw, 28px);
+    margin: 0 0 20px;
+  }
+  .section h3{
+    font-size: 17px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--lime);
+    margin: 36px 0 12px;
+  }
+  .section p{ margin: 0 0 16px; max-width: 68ch; color: #dedcd3; }
+  .section p:last-child{ margin-bottom: 0; }
+  .section ul, .section ol.prose-list{ max-width: 68ch; color: #dedcd3; padding-left: 22px; margin: 0 0 16px; }
+  .section li{ margin-bottom: 6px; }
+  strong{ color: var(--text); }
+
+  /* ---------- callouts ---------- */
+  .note{
+    border-left: 3px solid var(--line);
+    background: var(--surface);
+    border-radius: 4px;
+    padding: 14px 18px;
+    margin: 22px 0;
+    max-width: 68ch;
+  }
+  .note p{ margin: 0; color: #dedcd3; font-size: 15.5px; }
+  .note__tag{
+    display: block;
+    font-family: var(--display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .note--core{ border-left-color: var(--purple); }
+  .note--core .note__tag{ color: var(--purple-soft); }
+  .note--practice{ border-left-color: var(--lime); }
+  .note--practice .note__tag{ color: var(--lime); }
+  .note--warn{ border-left-color: var(--danger); }
+  .note--warn .note__tag{ color: var(--danger); }
+
+  /* ---------- code blocks ---------- */
+  .code-block{
+    background: #0f0f13;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 20px 0;
+    max-width: 100%;
+  }
+  .code-block__bar{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: var(--surface-raised);
+    border-bottom: 1px solid var(--line);
+    font-family: var(--display);
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+  }
+  .code-block__bar span{ color: var(--text-dim); }
+  .code-block pre{
+    margin: 0;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #d6f5a0;
+  }
+  .code-block pre .tok-kw{ color: var(--orange); }
+  .code-block pre .tok-str{ color: var(--purple-soft); }
+  .code-block pre .tok-com{ color: var(--text-faint); font-style: italic; }
+  .code-block pre .tok-fn{ color: var(--lime); }
+
+  /* ---------- onion / layer diagram ---------- */
+  .onion{
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    max-width: 560px;
+    margin: 28px auto;
+  }
+  .layer-card{
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 16px 20px;
+    border-left-width: 4px;
+    border-left-style: solid;
+  }
+  .layer-card__head{
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .layer-card h4{
+    font-family: var(--display);
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0;
+    color: var(--text);
+  }
+  .layer-card__sub{ font-family: var(--display); font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.06em; }
+  .layer-card p{ margin: 8px 0 0; font-size: 14.5px; color: var(--text-dim); max-width: none; }
+  .layer-card--presentation{ border-left-color: var(--orange); }
+  .layer-card--main{ border-left-color: #d8d8dd; }
+  .layer-card--domain{ border-left-color: var(--lime); background: linear-gradient(180deg, rgba(180,255,0,0.06), var(--surface)); }
+  .layer-card--infra{ border-left-color: var(--purple); }
+
+  .onion__arrow{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0 6px 24px;
+    font-family: var(--display);
+    font-size: 11.5px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .onion__arrow-glyph{ font-size: 15px; line-height: 1; }
+  .onion__arrow--down .onion__arrow-glyph{ color: var(--text-dim); }
+  .onion__arrow--up .onion__arrow-glyph{ color: var(--purple-soft); }
+
+  /* ---------- compare grid (SQL vs NoSQL) ---------- */
+  .compare-grid{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin: 24px 0;
+  }
+  .compare-card{
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 18px;
+    background: var(--surface);
+  }
+  .compare-card__title{
+    font-family: var(--display);
+    font-size: 12.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+  }
+  .compare-card--sql .compare-card__title{ color: var(--text-dim); }
+  .compare-card--nosql .compare-card__title{ color: var(--lime); }
+
+  .sql-table{ width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12.5px; }
+  .sql-table th, .sql-table td{ border: 1px solid var(--line); padding: 6px 8px; text-align: left; }
+  .sql-table th{ background: var(--surface-raised); color: var(--text-dim); font-weight: 600; }
+  .sql-table td{ color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
+  .doc-tree{ font-family: var(--mono); font-size: 12.5px; color: var(--text-dim); }
+  .doc-tree .k{ color: var(--lime); }
+  .doc-tree .v-str{ color: var(--purple-soft); }
+  .doc-tree .v-num{ color: var(--orange); }
+  .doc-tree .indent{ padding-left: 18px; border-left: 1px dashed var(--line); margin-left: 4px; }
+  .doc-tree .row{ padding: 2px 0; }
+
+  /* ---------- golden rule table ---------- */
+  .golden-table{ width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 14.5px; }
+  .golden-table th{
+    font-family: var(--display);
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-align: left;
+    color: var(--text-faint);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .golden-table td{
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line-soft);
+    color: #dedcd3;
+    vertical-align: top;
+  }
+  .golden-table td.tag-sqlite{ color: var(--orange); font-family: var(--display); font-weight: 700; font-size: 12.5px; text-transform: uppercase; white-space: nowrap; }
+  .golden-table td.tag-firestore{ color: var(--lime); font-family: var(--display); font-weight: 700; font-size: 12.5px; text-transform: uppercase; white-space: nowrap; }
+
+  /* ---------- flow timeline ---------- */
+  .flow{ list-style: none; margin: 24px 0; padding: 0; max-width: 68ch; }
+  .flow li{
+    position: relative;
+    padding: 0 0 28px 44px;
+    border-left: 1px solid var(--line);
+    margin-left: 15px;
+  }
+  .flow li:last-child{ border-left-color: transparent; padding-bottom: 0; }
+  .flow__num{
+    position: absolute;
+    left: -16px;
+    top: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 13px;
+    background: var(--bg);
+    border: 2px solid var(--line);
+    color: var(--text-dim);
+  }
+  .flow li[data-layer="presentation"] .flow__num{ border-color: var(--orange); color: var(--orange); }
+  .flow li[data-layer="main"] .flow__num{ border-color: #d8d8dd; color: #d8d8dd; }
+  .flow li[data-layer="domain"] .flow__num{ border-color: var(--lime); color: var(--lime); }
+  .flow li[data-layer="infra"] .flow__num{ border-color: var(--purple); color: var(--purple-soft); }
+  .flow__layer-label{
+    font-family: var(--display);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .flow strong{ font-family: var(--display); font-size: 15px; display: block; margin-bottom: 3px; }
+  .flow p{ margin: 0; font-size: 14.5px; color: var(--text-dim); max-width: none; }
+
+  /* ---------- glossary ---------- */
+  .glossary{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 28px;
+    margin: 8px 0 0;
+  }
+  .gloss-item dt{
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+  .gloss-item dd{ margin: 0; font-size: 14px; color: var(--text-dim); }
+
+  footer.colophon{
+    grid-column: 1 / -1;
+    padding-top: 28px;
+    border-top: 1px solid var(--line);
+    font-family: var(--display);
+    font-size: 12px;
+    color: var(--text-faint);
+    letter-spacing: 0.03em;
+  }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 860px){
+    .page-shell{ grid-template-columns: 1fr; gap: 0; padding: 0 18px 72px; }
+    .toc{
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: rgba(19,19,24,0.92);
+      backdrop-filter: blur(6px);
+      flex-direction: row;
+      overflow-x: auto;
+      padding: 12px 0;
+      gap: 4px;
+      border-bottom: 1px solid var(--line);
+    }
+    .toc__eyebrow{ display: none; }
+    .toc__link{ border-left: none; border-bottom: 2px solid transparent; padding: 6px 10px; white-space: nowrap; }
+    .toc__link:hover{ border-bottom-color: var(--text-dim); }
+    .content{ padding-top: 30px; }
+    .compare-grid{ grid-template-columns: 1fr; }
+    .glossary{ grid-template-columns: 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ scroll-behavior: auto !important; }
+  }
+
+  html{ scroll-behavior: smooth; }
+</style>
+
+<div class="page-shell">
+
+  <header class="masthead">
+    <span class="kicker">Guia de estudo · uso acadêmico</span>
+    <h1>Popular da Copa <em>— por dentro do código</em></h1>
+    <p>
+      Um resumo pensado para estudar o projeto do zero: como as camadas se organizam,
+      como as telas conversam com os dados, e como o app guarda informação num banco
+      não-relacional (Firestore) em vez de tabelas tradicionais. Termos técnicos são
+      explicados em linguagem simples na primeira vez que aparecem.
+    </p>
+    <div class="stack-chips">
+      <span class="chip">React Native</span>
+      <span class="chip">Expo Router</span>
+      <span class="chip">TypeScript</span>
+      <span class="chip">Clean Architecture</span>
+      <span class="chip">Firestore (NoSQL)</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <span class="toc__eyebrow">Sumário</span>
+    <a class="toc__link" href="#intro"><span class="toc__num">00</span>O que é o app</a>
+    <a class="toc__link" href="#clean-architecture"><span class="toc__num">01</span>Clean Architecture</a>
+    <a class="toc__link" href="#camadas"><span class="toc__num">02</span>As 4 camadas</a>
+    <a class="toc__link" href="#pastas"><span class="toc__num">03</span>Pastas do projeto</a>
+    <a class="toc__link" href="#rotas"><span class="toc__num">04</span>Rotas (Expo Router)</a>
+    <a class="toc__link" href="#fluxo"><span class="toc__num">05</span>Fluxo ponta a ponta</a>
+    <a class="toc__link" href="#banco-dados"><span class="toc__num">06</span>Banco não-relacional</a>
+    <a class="toc__link" href="#regra-ouro"><span class="toc__num">07</span>Regra de ouro dos dados</a>
+    <a class="toc__link" href="#decisoes"><span class="toc__num">08</span>Decisões técnicas</a>
+    <a class="toc__link" href="#glossario"><span class="toc__num">09</span>Glossário</a>
+  </nav>
+
+  <main class="content">
+
+    <section class="section" id="intro">
+      <span class="section__eyebrow">00 — Contexto</span>
+      <h2>O que é o Popular da Copa</h2>
+      <p>
+        É um aplicativo mobile (feito com <strong>React Native</strong> — código que vira
+        app de verdade no Android/iOS — usando o framework <strong>Expo</strong>) sobre a
+        Copa do Mundo. Ele mistura três ideias num só produto:
+      </p>
+      <ul>
+        <li><strong>Álbum de figurinhas</strong> — o usuário compra pacotes, abre e coleciona figurinhas de jogadores e seleções, como um álbum físico de Copa.</li>
+        <li><strong>Apostas de palpite</strong> — o usuário arrisca um placar para partidas futuras e ganha recompensas (moedas ou figurinhas) se acertar.</li>
+        <li><strong>Times e seleções</strong> — catálogo de seleções, elencos e estatísticas de jogadores.</li>
+      </ul>
+      <p>
+        Tudo isso gira em torno de uma <strong>moeda virtual</strong>: o usuário ganha
+        moedas (apostas, recompensa diária) e gasta moedas (comprar pacotes/figurinhas).
+        Esse saldo, junto com o progresso do álbum, é o dado "vivo" do app — e é
+        justamente esse tipo de dado que faz sentido guardar num banco não-relacional
+        na nuvem, como veremos na seção 06.
+      </p>
+    </section>
+
+    <section class="section" id="clean-architecture">
+      <span class="section__eyebrow">01 — Arquitetura</span>
+      <h2>Clean Architecture, explicada sem jargão</h2>
+      <p>
+        Clean Architecture é só uma forma de organizar o código em <strong>camadas</strong>,
+        de modo que a parte mais importante do sistema — as regras de negócio — não
+        dependa de detalhes técnicos como "qual banco de dados eu uso" ou "como a tela é
+        desenhada". Pense em cascas de cebola: no centro fica a regra do jogo; nas camadas
+        de fora ficam os detalhes que podem mudar sem afetar o centro.
+      </p>
+      <div class="note note--core">
+        <span class="note__tag">Conceito fundamental</span>
+        <p>
+          <strong>Regra de dependência:</strong> uma camada só pode "conhecer" as camadas
+          mais internas, nunca o contrário. A tela (Presentation) pode chamar a regra de
+          negócio (Domain), mas a regra de negócio nunca sabe que existe uma tela, um
+          botão ou um banco de dados específico.
+        </p>
+      </div>
+      <p>
+        Na prática, isso traz um benefício concreto para este projeto: dá para trocar
+        "onde os dados são guardados" (de um repositório fake em memória para o Firestore
+        de verdade) <strong>sem tocar em uma linha sequer</strong> das telas ou das regras
+        de negócio. Foi exatamente isso que aconteceu com a feature de álbum — ela nasceu
+        com um <code>MockAlbumRepository</code> e migrou para um
+        <code>FirestoreAlbumRepository</code> real depois.
+      </p>
+    </section>
+
+    <section class="section" id="camadas">
+      <span class="section__eyebrow">02 — Estrutura</span>
+      <h2>As 4 camadas do projeto</h2>
+      <p>
+        O projeto segue exatamente este fluxo (a mesma seta que aparece na documentação
+        técnica do repositório):
+      </p>
+
+      <div class="onion">
+        <div class="layer-card layer-card--presentation">
+          <div class="layer-card__head">
+            <h4>Presentation</h4>
+            <span class="layer-card__sub">a vitrine</span>
+          </div>
+          <p>Telas, componentes visuais e hooks (funções que guardam estado de tela, tipo "carregando / deu erro / aqui estão os dados"). É a única camada que sabe desenhar algo na tela.</p>
+        </div>
+
+        <div class="onion__arrow onion__arrow--down">
+          <span class="onion__arrow-glyph">↓</span> chama
+        </div>
+
+        <div class="layer-card layer-card--main">
+          <div class="layer-card__head">
+            <h4>Main <span style="color:var(--text-faint); font-weight:400;">(Composition Root)</span></h4>
+            <span class="layer-card__sub">o maestro</span>
+          </div>
+          <p>Funções chamadas <em>factories</em> (fábricas) que montam a peça final: pegam uma implementação concreta (Infra) e entregam pronta para a regra de negócio (Domain) usar. É o único lugar do projeto que conhece Domain e Infra ao mesmo tempo.</p>
+        </div>
+
+        <div class="onion__arrow onion__arrow--down">
+          <span class="onion__arrow-glyph">↓</span> injeta e chama
+        </div>
+
+        <div class="layer-card layer-card--domain">
+          <div class="layer-card__head">
+            <h4>Domain</h4>
+            <span class="layer-card__sub">o núcleo — a regra do jogo</span>
+          </div>
+          <p>Os tipos de dado (ex: o que é uma "Figurinha", uma "Partida") e os <em>use cases</em> — casos de uso: uma classe por regra de negócio, com um único método <code>execute()</code>. Zero dependência de banco de dados, de React ou de qualquer biblioteca externa.</p>
+        </div>
+
+        <div class="onion__arrow onion__arrow--up">
+          <span class="onion__arrow-glyph">↑</span> implementa os contratos do Domain
+        </div>
+
+        <div class="layer-card layer-card--infra">
+          <div class="layer-card__head">
+            <h4>Infra</h4>
+            <span class="layer-card__sub">o fornecedor</span>
+          </div>
+          <p>Onde a regra "como buscar dados" é implementada de verdade — hoje, principalmente o <code>FirestoreAlbumRepository</code> conversando com o Firestore. O Domain define <em>o que</em> precisa existir (uma interface); a Infra decide <em>como</em> fazer.</p>
+        </div>
+      </div>
+
+      <div class="note note--practice">
+        <span class="note__tag">Boa prática do projeto</span>
+        <p>
+          A Presentation nunca importa a Infra diretamente — sempre passa pela Main.
+          Isso significa que um componente de tela nunca faz <code>import { FirestoreAlbumRepository }</code>
+          diretamente; ele chama uma <em>factory</em> como <code>makeGetUserProfile()</code>,
+          que devolve o use case já pronto para uso.
+        </p>
+      </div>
+
+      <h3>Exemplo real: uma factory</h3>
+      <div class="code-block">
+        <div class="code-block__bar"><span>main/factories/makeGetUpcomingMatches.ts</span></div>
+        <pre><span class="tok-com">// Função pura: monta o use case injetando o repositório concreto</span>
+<span class="tok-kw">export const</span> <span class="tok-fn">makeGetUpcomingMatches</span> = () =>
+  <span class="tok-kw">new</span> GetUpcomingMatches(matchRepositoryInstance);</pre>
+      </div>
+    </section>
+
+    <section class="section" id="pastas">
+      <span class="section__eyebrow">03 — Organização</span>
+      <h2>Como isso vira pastas de verdade</h2>
+      <p>
+        O código é dividido por <strong>feature</strong> (funcionalidade) — <code>album</code>,
+        <code>apostas</code>, <code>times</code>, <code>grupos</code>, <code>auth</code> — e cada
+        feature repete internamente as mesmas 4 camadas. Isso deixa fácil achar qualquer coisa:
+        se você quer entender apostas, tudo sobre apostas mora dentro de uma única pasta.
+      </p>
+      <div class="code-block">
+        <div class="code-block__bar"><span>estrutura simplificada</span></div>
+        <pre>src/features/apostas/
+  domain/
+    entities/        <span class="tok-com">Match, Prediction — os "tipos" de dado</span>
+    usecases/        <span class="tok-com">GetUpcomingMatches, CreatePrediction...</span>
+  infra/
+    repositories/    <span class="tok-com">implementações concretas (mock ou Firestore)</span>
+  main/
+    factories/       <span class="tok-com">makeCreatePrediction, makeGetUpcomingMatches...</span>
+  presentation/
+    hooks/           <span class="tok-com">useCreatePrediction, useUpcomingMatches...</span>
+    components/      <span class="tok-com">ContainerAposta, BotaoHistorico...</span></pre>
+      </div>
+      <p>
+        Fora das features, existe <code>src/shared/</code> para tudo que é reaproveitado por
+        vários lugares — tema visual, o usuário logado, componentes genéricos como a barra
+        de navegação.
+      </p>
+    </section>
+
+    <section class="section" id="rotas">
+      <span class="section__eyebrow">04 — Navegação</span>
+      <h2>Rotas com Expo Router</h2>
+      <p>
+        O Expo Router usa <strong>roteamento baseado em arquivos</strong>: o nome e o
+        local do arquivo dentro da pasta <code>app/</code> definem automaticamente qual é
+        a URL/rota daquela tela — não existe um arquivo central listando "rota X vai para
+        componente Y", como em React puro.
+      </p>
+      <ul>
+        <li><code>app/(tabs)/times.tsx</code> → vira a aba "Times" na barra inferior.</li>
+        <li><code>app/mercado/[albumId].tsx</code> → rota dinâmica; o <code>[albumId]</code> vira um parâmetro que a tela recebe (qual álbum abrir).</li>
+        <li><code>app/apostas.tsx</code> → configurado no layout raiz para abrir como um modal (uma tela que sobe por cima da atual).</li>
+      </ul>
+      <div class="note note--practice">
+        <span class="note__tag">Convenção do projeto</span>
+        <p>
+          Os arquivos dentro de <code>app/</code> são só "casquinhas" (shells) que importam
+          a tela de verdade de dentro da feature (ex: <code>TimesScreen</code> em
+          <code>src/features/times/presentation/screens/</code>). Nenhuma lógica de negócio
+          fica dentro da pasta <code>app/</code>.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="fluxo">
+      <span class="section__eyebrow">05 — Na prática</span>
+      <h2>Fluxo ponta a ponta: abrir um pacote de figurinhas</h2>
+      <p>
+        Para amarrar tudo, veja o caminho completo de uma ação real do usuário — do toque
+        na tela até o banco de dados na nuvem e de volta:
+      </p>
+      <ol class="flow">
+        <li data-layer="presentation">
+          <span class="flow__num">1</span>
+          <span class="flow__layer-label">Presentation</span>
+          <strong>Usuário toca em "Abrir Pacote"</strong>
+          <p>O componente da tela chama uma função exposta pelo hook <code>useBuyStickerPack</code>.</p>
+        </li>
+        <li data-layer="presentation">
+          <span class="flow__num">2</span>
+          <span class="flow__layer-label">Presentation</span>
+          <strong>O hook assume o estado de "carregando"</strong>
+          <p>Ele marca <code>loading: true</code> e, por baixo dos panos, pede o use case pronto à Main.</p>
+        </li>
+        <li data-layer="main">
+          <span class="flow__num">3</span>
+          <span class="flow__layer-label">Main</span>
+          <strong>A factory monta a peça</strong>
+          <p><code>makeBuyStickerPack()</code> cria o use case já injetado com o repositório singleton do Firestore.</p>
+        </li>
+        <li data-layer="domain">
+          <span class="flow__num">4</span>
+          <span class="flow__layer-label">Domain</span>
+          <strong>O use case roda a regra de negócio</strong>
+          <p><code>BuyStickerPack.execute()</code> não sabe se os dados vêm da nuvem ou de um mock — só chama o método <code>buyStickerPack()</code> da interface <code>AlbumRepository</code>.</p>
+        </li>
+        <li data-layer="infra">
+          <span class="flow__num">5</span>
+          <span class="flow__layer-label">Infra</span>
+          <strong>O Firestore é consultado e atualizado</strong>
+          <p><code>FirestoreAlbumRepository</code> confere o saldo de moedas, sorteia 3 figurinhas e grava tudo no documento do usuário na nuvem (mais detalhes na seção 06).</p>
+        </li>
+        <li data-layer="presentation">
+          <span class="flow__num">6</span>
+          <span class="flow__layer-label">Presentation</span>
+          <strong>O resultado sobe de volta e a tela reage</strong>
+          <p>O hook recebe as figurinhas sorteadas, atualiza o estado, e dispara a animação de abertura do pacote (efeito "gacha" feito com <code>react-native-reanimated</code>).</p>
+        </li>
+      </ol>
+      <p>
+        Repare que cada seta do diagrama da seção 02 aparece aqui como um passo concreto —
+        essa é a utilidade real da arquitetura: qualquer pessoa consegue prever por onde o
+        código passa antes mesmo de abrir o arquivo.
+      </p>
+    </section>
+
+    <section class="section" id="banco-dados">
+      <span class="section__eyebrow">06 — Persistência</span>
+      <h2>Banco de dados não-relacional (Firestore)</h2>
+      <p>
+        Um banco <strong>relacional</strong> (SQL, como PostgreSQL ou SQLite) guarda dados
+        em <strong>tabelas</strong> com colunas fixas e obrigatórias — todo registro de uma
+        tabela tem exatamente o mesmo formato. Um banco <strong>não-relacional</strong>
+        (NoSQL) como o <strong>Firestore</strong> guarda dados em <strong>documentos</strong>:
+        blocos de informação parecidos com um objeto JSON, agrupados em
+        <strong>coleções</strong>, sem exigir que todo documento tenha os mesmos campos.
+      </p>
+
+      <div class="compare-grid">
+        <div class="compare-card compare-card--sql">
+          <div class="compare-card__title">SQL — tabela</div>
+          <table class="sql-table">
+            <thead><tr><th>id</th><th>coins</th><th>progress</th></tr></thead>
+            <tbody>
+              <tr><td>user_1</td><td>200</td><td>12.5</td></tr>
+              <tr><td>user_2</td><td>340</td><td>8.0</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="compare-card compare-card--nosql">
+          <div class="compare-card__title">Firestore — documento</div>
+          <div class="doc-tree">
+            <div class="row"><span class="k">users/</span></div>
+            <div class="indent">
+              <div class="row"><span class="k">user_1</span> {</div>
+              <div class="indent">
+                <div class="row"><span class="k">coins:</span> <span class="v-num">200</span>,</div>
+                <div class="row"><span class="k">stickerIds:</span> [<span class="v-str">"s12"</span>, <span class="v-str">"s47"</span>],</div>
+                <div class="row"><span class="k">progress:</span> <span class="v-num">12.5</span></div>
+              </div>
+              <div class="row">}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p>
+        No Popular da Copa, cada usuário é <strong>um documento</strong> dentro da coleção
+        <code>users</code>, identificado pelo próprio id do usuário. Os campos desse
+        documento (moedas, figurinhas possuídas, progresso do álbum) ficam soltos ali
+        dentro — sem precisar de uma tabela separada para cada tipo de dado.
+      </p>
+
+      <h3>Como o código conversa com o Firestore</h3>
+      <p>
+        Três operações do SDK do Firebase aparecem bastante no repositório e valem a pena
+        entender:
+      </p>
+      <ul>
+        <li><code>increment(n)</code> — soma <code>n</code> a um campo numérico direto no servidor, evitando o problema de "ler o valor antigo, somar e escrever" com informação desatualizada.</li>
+        <li><code>arrayUnion(...ids)</code> — adiciona itens a uma lista dentro do documento sem duplicar os que já existem.</li>
+        <li><code>serverTimestamp()</code> — grava a hora oficial do servidor do Firebase, em vez de confiar no relógio do celular do usuário (importante para o cálculo do cooldown de 24h da recompensa diária).</li>
+      </ul>
+
+      <div class="code-block">
+        <div class="code-block__bar"><span>infra/repositories/FirestoreAlbumRepository.ts</span></div>
+        <pre><span class="tok-kw">async</span> <span class="tok-fn">claimDailyCoins</span>(userId: <span class="tok-kw">string</span>) {
+  <span class="tok-kw">const</span> status = <span class="tok-kw">await</span> <span class="tok-fn">this</span>.getDailyCoinsStatus(userId);
+  <span class="tok-kw">if</span> (!status.available) <span class="tok-kw">throw new</span> Error(<span class="tok-str">'Ainda não disponível.'</span>);
+
+  <span class="tok-kw">await</span> <span class="tok-fn">updateDoc</span>(<span class="tok-fn">this</span>.userRef(userId), {
+    coins: <span class="tok-fn">increment</span>(status.amount),          <span class="tok-com">// soma no servidor</span>
+    lastDailyCoinsClaimAt: <span class="tok-fn">serverTimestamp</span>(), <span class="tok-com">// hora oficial</span>
+  });
+}</pre>
+      </div>
+
+      <div class="note note--warn">
+        <span class="note__tag">Um detalhe curioso da implementação</span>
+        <p>
+          O projeto teve um bug de configuração real: o banco no Google Cloud estava
+          nomeado literalmente <code>default</code> em vez do padrão <code>(default)</code>
+          com parênteses, e isso fazia o SDK devolver "banco não encontrado". A correção
+          foi passar o nome do banco explicitamente ao inicializar o Firestore — um bom
+          lembrete de que erros de infraestrutura às vezes não têm nada a ver com a lógica
+          do código.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="regra-ouro">
+      <span class="section__eyebrow">07 — Critério de decisão</span>
+      <h2>Regra de ouro: o que vai onde</h2>
+      <p>
+        O projeto usa <strong>dois</strong> tipos de armazenamento por um motivo de
+        performance e custo: bancos na nuvem cobram (e demoram um pouco) por cada leitura
+        e escrita, então só o que <em>realmente</em> muda ou é pessoal do usuário vai para
+        lá. Tudo o que é fixo fica salvo localmente no próprio app.
+      </p>
+      <table class="golden-table">
+        <thead>
+          <tr><th>Tipo de dado</th><th>Onde fica</th><th>Exemplos no projeto</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Estático — igual para todo mundo, não muda durante o uso do app</td>
+            <td class="tag-sqlite">SQLite local</td>
+            <td>Lista de seleções/países, regras fixas do jogo, estrutura dos pacotes de figurinha</td>
+          </tr>
+          <tr>
+            <td>Mutável ou pessoal — pertence a um usuário específico, muda com frequência</td>
+            <td class="tag-firestore">Firestore (nuvem)</td>
+            <td>Saldo de moedas, figurinhas possuídas, progresso do álbum, histórico de palpites, dados da conta</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        Vale notar que, hoje, os dados "estáticos" de figurinhas e álbuns (seção 9.5 da
+        documentação técnica) ainda vivem em arquivos de <em>seed</em> (dados fixos de
+        exemplo) dentro do próprio Infra — o SQLite local para esse propósito é um passo
+        planejado, não implementado por completo ainda.
+      </p>
+    </section>
+
+    <section class="section" id="decisoes">
+      <span class="section__eyebrow">08 — Padrões</span>
+      <h2>Decisões técnicas que vale a pena entender</h2>
+      <table class="golden-table">
+        <tbody>
+          <tr>
+            <td style="width: 34%"><strong>Sem Redux/Zustand</strong></td>
+            <td>Estado local em cada hook já resolve; o usuário logado global usa só Context API (um jeito nativo do React de compartilhar dado sem precisar passar por props em cada componente).</td>
+          </tr>
+          <tr>
+            <td><strong>Singleton de repositório</strong></td>
+            <td>Cada feature mantém uma única instância do repositório (<em>singleton</em> = "só existe um"), assim o estado não se perde ao navegar entre telas.</td>
+          </tr>
+          <tr>
+            <td><strong>Um <code>execute()</code> por use case</strong></td>
+            <td>Toda regra de negócio segue a mesma "forma": uma classe, um método <code>execute()</code>. Fica previsível e fácil de testar isoladamente.</td>
+          </tr>
+          <tr>
+            <td><strong>Datas como texto (ISO)</strong></td>
+            <td>Datas circulam como string no formato ISO (ex: <code>"2026-07-27T10:00:00Z"</code>) em vez de objeto <code>Date</code>, evitando bugs de serialização ao transformar em JSON. Só vira <code>Date</code> de fato na tela, na hora de formatar.</td>
+          </tr>
+          <tr>
+            <td><strong>Ionicons, nunca emoji</strong></td>
+            <td>Todo ícone da interface usa a biblioteca <code>@expo/vector-icons</code> (Ionicons) em vez de caracteres de emoji cru — garante aparência consistente entre Android e iOS.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section" id="glossario">
+      <span class="section__eyebrow">09 — Referência rápida</span>
+      <h2>Glossário</h2>
+      <dl class="glossary">
+        <div class="gloss-item">
+          <dt>Composition Root</dt>
+          <dd>O único ponto do programa onde as peças concretas (banco de dados, etc.) são montadas e entregues prontas para o resto do código usar. Aqui é a camada Main.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>Repository Pattern</dt>
+          <dd>Um "contrato" (interface) que descreve as operações de dados disponíveis (buscar, salvar...), sem dizer de onde os dados vêm de fato.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>Injeção de dependência</dt>
+          <dd>Em vez de uma classe criar suas próprias dependências, elas chegam prontas "de fora" (por parâmetro do construtor, por exemplo) — facilita trocar uma peça por outra.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>Hook (React)</dt>
+          <dd>Uma função especial que guarda estado e lógica reutilizável dentro de componentes React — aqui, cada tela usa hooks próprios para buscar e guardar seus dados.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>Singleton</dt>
+          <dd>Padrão de projeto em que só existe uma única instância de algo durante a vida do programa.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>NoSQL / documento</dt>
+          <dd>Banco de dados que guarda informação em blocos flexíveis (documentos), em vez de tabelas com colunas fixas.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>Coleção (Firestore)</dt>
+          <dd>Um agrupamento de documentos do mesmo tipo — equivalente, de forma solta, a uma "tabela" no mundo SQL.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>Seed</dt>
+          <dd>Dado fixo de exemplo, escrito à mão no código, usado para popular o app durante o desenvolvimento (times, figurinhas, partidas).</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>Roteamento baseado em arquivo</dt>
+          <dd>Técnica do Expo Router em que a estrutura de pastas/arquivos define automaticamente as rotas do app.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>Debounce</dt>
+          <dd>Técnica para "esperar o usuário parar de digitar" antes de disparar uma ação (usado na busca de times, com 500ms de espera).</dd>
+        </div>
+      </dl>
+    </section>
+
+  </main>
+
+  <footer class="colophon">
+    Guia gerado a partir do código-fonte e da documentação técnica do repositório (docs/technical-readme.md) — para fins de estudo.
+  </footer>
+
+</div>
