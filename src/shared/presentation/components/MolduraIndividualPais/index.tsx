@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { flagMap } from '../../utils/flagMap';
 import { colors } from '../../theme';
 
@@ -9,7 +10,8 @@ interface MolduraIndividualPaisProps {
   showBorder?: boolean;
 }
 
-const teamToCountryMap: Record<string, string> = {
+const countryCodeMap: Record<string, string> = {
+  // Mocks antigos
   t1: 'br',
   t2: 'ar',
   t3: 'fr',
@@ -19,6 +21,57 @@ const teamToCountryMap: Record<string, string> = {
   t7: 'pt',
   t8: 'it',
   t9: 'uy',
+  t10: 'us',
+  
+  // Mapeamentos ISO-3 para ISO-2 das 48 seleções reais
+  mex: 'mx',
+  rsa: 'za',
+  kor: 'kr',
+  cze: 'cz',
+  can: 'ca',
+  sui: 'ch',
+  qat: 'qa',
+  bih: 'ba',
+  bra: 'br',
+  mar: 'ma',
+  sco: 'gb-sct',
+  hai: 'ht',
+  usa: 'us',
+  par: 'py',
+  aus: 'au',
+  tur: 'tr',
+  ger: 'de',
+  ecu: 'ec',
+  civ: 'ci',
+  cuw: 'cw',
+  ned: 'nl',
+  jpn: 'jp',
+  tun: 'tn',
+  swe: 'se',
+  bel: 'be',
+  irn: 'ir',
+  egy: 'eg',
+  nzl: 'nz',
+  esp: 'es',
+  uru: 'uy',
+  ksa: 'sa',
+  cpv: 'cv',
+  fra: 'fr',
+  sen: 'sn',
+  nor: 'no',
+  irq: 'iq',
+  arg: 'ar',
+  aut: 'at',
+  alg: 'dz',
+  jor: 'jo',
+  por: 'pt',
+  col: 'co',
+  uzb: 'uz',
+  cod: 'cd',
+  eng: 'gb-eng',
+  cro: 'hr',
+  pan: 'pa',
+  gha: 'gh',
 };
 
 export const MolduraIndividualPais: React.FC<MolduraIndividualPaisProps> = ({
@@ -27,7 +80,7 @@ export const MolduraIndividualPais: React.FC<MolduraIndividualPaisProps> = ({
   showBorder = false,
 }) => {
   const normalizedId = teamId.toLowerCase();
-  const countryId = teamToCountryMap[normalizedId] || normalizedId;
+  const countryId = countryCodeMap[normalizedId] || normalizedId;
   const FlagComponent = flagMap[countryId];
 
   const dimensions = {
@@ -50,6 +103,12 @@ export const MolduraIndividualPais: React.FC<MolduraIndividualPaisProps> = ({
     >
       {FlagComponent ? (
         <FlagComponent width="100%" height="100%" />
+      ) : countryId ? (
+        <Image
+          source={{ uri: `https://flagcdn.com/w160/${countryId}.png` }}
+          style={[styles.flagImage, { borderRadius: dimensions / 2 }]}
+          contentFit="cover"
+        />
       ) : (
         <View style={[styles.placeholder, { borderRadius: dimensions / 2 }]} />
       )}
@@ -66,6 +125,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#555',
   },
+  flagImage: {
+    width: '100%',
+    height: '100%',
+  },
   activeBorder: {
     borderWidth: 2,
     borderColor: colors.primary,
@@ -76,3 +139,4 @@ const styles = StyleSheet.create({
     backgroundColor: '#444',
   },
 });
+

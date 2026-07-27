@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, StyleSheet, Alert, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { CompartilhBtn } from '../components/CompartilhBtn';
+import { CardFigurinha } from '../../../../shared/presentation/components/CardFigurinha';
 import { CardColecao } from '../../../../shared/presentation/components/CardColecao';
 import { CardRecompensaDiaria } from '../components/CardRecompensaDiaria';
 import { CardPacoteGratis } from '../components/CardPacoteGratis';
@@ -15,6 +16,13 @@ export const ProfileScreen = () => {
   const router = useRouter();
   const user = useCurrentUser();
   const { profile, loading, error, refetch } = useUserProfile();
+
+  // Recarrega a coleção sempre que a tela ganha foco (ex.: ao voltar da abertura de pacote)
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   const handleLogout = async () => {
     try {
@@ -76,8 +84,7 @@ export const ProfileScreen = () => {
         contentContainerStyle={styles.stickersList}
         renderItem={({ item }) => (
           <View style={styles.stickerCard}>
-            <Text style={styles.stickerText}>Sticker {item.id}</Text>
-            <View style={styles.badge}><Text style={styles.badgeText}>{item.rarity}</Text></View>
+            <CardFigurinha sticker={item} onPress={() => router.push(`/figurinha/${item.id}`)} />
             <CompartilhBtn stickerImageUrl={item.imageUrl} stickerId={item.id} />
           </View>
         )}
@@ -91,9 +98,8 @@ export const ProfileScreen = () => {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.stickersList}
         renderItem={({ item }) => (
-          <View style={[styles.stickerCard, styles.stickerCardRare]}>
-            <Text style={styles.stickerText}>Sticker {item.id}</Text>
-            <View style={styles.badge}><Text style={styles.badgeText}>{item.rarity}</Text></View>
+          <View style={styles.stickerCard}>
+            <CardFigurinha sticker={item} onPress={() => router.push(`/figurinha/${item.id}`)} />
             <CompartilhBtn stickerImageUrl={item.imageUrl} stickerId={item.id} />
           </View>
         )}
@@ -143,11 +149,7 @@ const styles = StyleSheet.create({
   viewAllLink: { alignItems: 'center', marginTop: spacing.lg },
   viewAllLinkText: { ...typography.subheading, color: colors.primary, fontWeight: 'bold' },
   stickersList: { paddingBottom: spacing.sm },
-  stickerCard: { padding: spacing.md, backgroundColor: colors.surface, borderRadius: radius.md, marginRight: spacing.sm, minWidth: 120, alignItems: 'center', justifyContent: 'space-between' },
-  stickerCardRare: { borderColor: colors.secondary, borderWidth: 1 },
-  stickerText: { ...typography.body, color: colors.textPrimary, marginBottom: spacing.xs },
-  badge: { backgroundColor: colors.secondary, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.sm },
-  badgeText: { ...typography.caption, color: colors.textPrimary },
+  stickerCard: { marginRight: spacing.sm, alignItems: 'center', gap: spacing.xs },
   noUserText: {
     ...typography.body,
     color: colors.textSecondary,

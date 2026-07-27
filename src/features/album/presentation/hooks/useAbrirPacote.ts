@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { Sticker } from '../../domain/entities/Sticker';
 import { makeOpenPackage } from '../../main/factories/makeOpenPackage';
 import { useCurrentUser } from '../../../../shared/presentation/contexts/UserContext';
+import { pendingPackStore } from '../../infra/stores/pendingPackStore';
 
 export const useAbrirPacote = (packId: string) => {
   const user = useCurrentUser();
@@ -16,8 +17,15 @@ export const useAbrirPacote = (packId: string) => {
     if (!user || revealed) return;
     try {
       setLoading(true);
-      const useCase = makeOpenPackage();
-      const result = await useCase.execute(packId, user.id);
+      let result: Sticker[];
+      if (pendingPackStore.has(packId)) {
+        // Figurinhas já sorteadas e persistidas por buyStickerPack; evita double-draw.
+        result = pendingPackStore.get(packId);
+        pendingPackStore.clear(packId);
+      } else {
+        const useCase = makeOpenPackage();
+        result = await useCase.execute(packId, user.id);
+      }
       setStickers(result);
       setRevealed(true);
     } catch (err: any) {

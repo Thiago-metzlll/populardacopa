@@ -1,14 +1,9 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { initializeFirestore, getFirestore } from 'firebase/firestore';
-import { initializeAuth, getReactNativePersistence, getAuth } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getApp, getApps, initializeApp } from 'firebase/app';
+// @ts-ignore
+import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
 
-/**
- * Credenciais Firebase via variáveis de ambiente.
- * Crie um arquivo .env na raiz do projeto com as chaves abaixo
- * (veja .env.example para o template).
- * Prefixo EXPO_PUBLIC_ é obrigatório para o Expo expor vars ao bundle.
- */
 
 // Valida variáveis obrigatórias antes de inicializar o Firebase
 const requiredEnvVars = {

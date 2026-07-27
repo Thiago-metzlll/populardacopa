@@ -1,3 +1,4 @@
-import { MockGroupRepository } from '../../infra/repositories/MockGroupRepository';
+import { SQLiteGroupRepository } from '../../infra/repositories/SQLiteGroupRepository';
 
-export const groupRepositoryInstance = new MockGroupRepository();
+export const groupRepositoryInstance = new SQLiteGroupRepository();
+

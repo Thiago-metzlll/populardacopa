@@ -21,7 +21,6 @@ const AWARD_COLORS: Record<string, string> = {
   'MELHOR JOGADOR': '#FFD700',
   'MELHOR GOLEIRO': '#4FC3F7',
   'MELHOR JOVEM': '#CE93D8',
-  'MELHOR JOVEM': '#CE93D8',
 };
 
 export const TelaJogador: React.FC = () => {

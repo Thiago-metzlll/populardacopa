@@ -1,4 +1,6 @@
 import { FirestoreAlbumRepository } from '../../infra/repositories/FirestoreAlbumRepository';
+import { SQLiteAlbumCatalogRepository } from '../../infra/repositories/SQLiteAlbumCatalogRepository';
 
-// Para voltar ao mock: substituir FirestoreAlbumRepository por MockAlbumRepository
-export const albumRepositoryInstance = new FirestoreAlbumRepository();
+const catalogRepository = new SQLiteAlbumCatalogRepository();
+export const albumRepositoryInstance = new FirestoreAlbumRepository(catalogRepository);
+

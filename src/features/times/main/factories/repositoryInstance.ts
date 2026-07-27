@@ -1,2 +1,3 @@
-import { MockTeamRepository } from '../../infra/repositories/MockTeamRepository';
-export const teamRepositoryInstance = new MockTeamRepository();
+import { SQLiteTeamRepository } from '../../infra/repositories/SQLiteTeamRepository';
+export const teamRepositoryInstance = new SQLiteTeamRepository();
+

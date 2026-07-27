@@ -1,6 +1,6 @@
-import { Album } from '../../domain/entities/Album';
+﻿import { Album } from '../../domain/entities/Album';
 import { Sticker } from '../../domain/entities/Sticker';
-import { UserCollection } from '../../domain/entities/UserCollection';
+import { AVAILABLE_PLAYERS } from '../../../../../database';
 
 export const mockAlbums: Album[] = [
   {
@@ -19,8 +19,15 @@ export const mockAlbums: Album[] = [
   },
 ];
 
-const LEGENDARY_NAMES = ['Pelé', 'Diego Maradona', 'Zinedine Zidane', 'Ronaldo Fenômeno', 'Zico'];
-const RARE_NAMES = ['Neymar Jr', 'Kylian Mbappé', 'Lionel Messi', 'Cristiano Ronaldo', 'Luka Modrić', 'Karim Benzema', 'Kevin De Bruyne', 'Vinícius Jr.'];
+// Raridade por posição do jogador
+const RARITY_BY_POSITION: Record<string, Sticker['rarity']> = {
+  SPECIAL: 'lendaria',
+  GOL: 'rara',
+  ATA: 'rara',
+  MEI: 'comum',
+  DEF: 'comum',
+  ESCUDO: 'comum',
+};
 
 const RARITY_PRICE: Record<Sticker['rarity'], number> = {
   comum: 20,
@@ -28,54 +35,49 @@ const RARITY_PRICE: Record<Sticker['rarity'], number> = {
   lendaria: 150,
 };
 
-const generateStickers = (albumId: string, count: number, idOffset: number): Sticker[] => {
+// Jogadores reais (campo, GOL, ATA, MEI, DEF)
+const realPlayers = AVAILABLE_PLAYERS.filter(
+  (p) => p.position !== 'SPECIAL' && p.position !== 'ESCUDO'
+);
+
+// Especiais e escudos para o álbum 2
+const specialPlayers = AVAILABLE_PLAYERS.filter(
+  (p) => p.position === 'SPECIAL' || p.position === 'ESCUDO'
+);
+
+const generateStickersFromPlayers = (
+  albumId: string,
+  players: typeof AVAILABLE_PLAYERS,
+  count: number,
+  idOffset: number
+): Sticker[] => {
   const stickers: Sticker[] = [];
   const baseDate = new Date('2026-06-01T10:00:00Z').getTime();
-  let legendaryIdx = 0;
-  let rareIdx = 0;
 
-  for (let i = 1; i <= count; i++) {
-    let rarity: Sticker['rarity'] = 'comum';
-    if (i % 20 === 0) rarity = 'lendaria';
-    else if (i % 5 === 0) rarity = 'rara';
-
-    const globalIndex = idOffset + i;
-    let playerName: string;
-    if (rarity === 'lendaria') {
-      playerName = LEGENDARY_NAMES[legendaryIdx % LEGENDARY_NAMES.length];
-      legendaryIdx++;
-    } else if (rarity === 'rara') {
-      playerName = RARE_NAMES[rareIdx % RARE_NAMES.length];
-      rareIdx++;
-    } else {
-      playerName = `Jogador ${globalIndex}`;
-    }
-
-    const obtainedAt = new Date(baseDate + globalIndex * 86400000).toISOString();
+  for (let i = 0; i < count; i++) {
+    const player = players[i % players.length];
+    const rarity: Sticker['rarity'] = RARITY_BY_POSITION[player.position] ?? 'comum';
+    const globalIndex = idOffset + i + 1;
 
     stickers.push({
       id: `s${globalIndex}`,
       albumId,
-      playerId: `p${globalIndex}`,
-      teamId: `t${(globalIndex % 10) + 1}`,
-      playerName,
+      playerId: player.id,
+      teamId: player.teamId,
+      playerName: player.name,
       price: RARITY_PRICE[rarity],
       rarity,
-      imageUrl: `https://fakeimg.pl/200x300/?text=${encodeURIComponent(playerName)}`,
-      obtainedAt,
+      imageUrl:
+        player.imageUrl ??
+        `https://fakeimg.pl/200x300/?text=${encodeURIComponent(player.name)}&font=bebas`,
+      obtainedAt: new Date(baseDate + globalIndex * 86400000).toISOString(),
     });
   }
+
   return stickers;
 };
 
 export const mockStickers: Sticker[] = [
-  ...generateStickers('a1', 100, 0),
-  ...generateStickers('a2', 50, 100),
+  ...generateStickersFromPlayers('a1', realPlayers, 100, 0),
+  ...generateStickersFromPlayers('a2', specialPlayers.concat(realPlayers), 50, 100),
 ];
-
-export const mockUserCollection: UserCollection = {
-  userId: 'u1',
-  albumId: 'a1',
-  stickerIds: mockStickers.slice(0, 78).map(s => s.id),
-  progress: 78,
-};

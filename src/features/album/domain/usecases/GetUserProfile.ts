@@ -14,7 +14,14 @@ export class GetUserProfile {
 
   async execute(userId: string): Promise<UserProfileResult> {
     const collection = await this.albumRepository.getUserCollection(userId);
-    const stickers = await this.albumRepository.getStickersByIds(collection.stickerIds);
+    const catalogStickers = await this.albumRepository.getStickersByIds(collection.stickerIds);
+
+    // O catálogo (SQLite) não guarda obtainedAt por ser dado estático;
+    // a data real de obtenção vive por-usuário em collection.stickerObtainedAt.
+    const stickers = catalogStickers.map((sticker) => ({
+      ...sticker,
+      obtainedAt: collection.stickerObtainedAt?.[sticker.id] ?? sticker.obtainedAt,
+    }));
 
     // Ordenando explicitamente por obtainedAt (mais recente primeiro)
     const sortedStickers = [...stickers].sort((a, b) => {

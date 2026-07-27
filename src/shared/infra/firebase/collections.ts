@@ -9,6 +9,7 @@ export const COLLECTIONS = {
 export const USER_FIELDS = {
   COINS: 'coins',
   STICKER_IDS: 'stickerIds',
+  STICKER_OBTAINED_AT: 'stickerObtainedAt',
   PROGRESS: 'progress',
   FAVORITE_TEAM_IDS: 'favoriteTeamIds',
   NAME: 'name',

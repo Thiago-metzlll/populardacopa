@@ -18,7 +18,7 @@ export interface AlbumRepository {
   getAlbumById(id: string): Promise<Album>;
   getStickersByIds(ids: string[]): Promise<Sticker[]>;
   openPackage(packageId: string, userId: string): Promise<Sticker[]>;
-  getMarketAlbums(): Promise<Album[]>;
+  getMarketAlbums(userId: string): Promise<Album[]>;
   buyStickerPack(userId: string, albumId: string, cost: number): Promise<BuyStickerPackResult>;
   getUserCoins(userId: string): Promise<number>;
   deductUserCoins(userId: string, amount: number): Promise<number>;

@@ -48,7 +48,6 @@ export const StickerCard: React.FC<StickerCardProps> = ({ sticker, owned, onPres
 
 const styles = StyleSheet.create({
   card: {
-    flex: 1,
     backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 2,

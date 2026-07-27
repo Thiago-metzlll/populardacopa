@@ -73,7 +73,7 @@ app/
     _layout.tsx     → TabsLayout: header={() => <CustomHeader />}
                         tabBarStyle: background #1E1E24, sem borda
                         activeTintColor: colors.primary (#B4FF00)
-    index.tsx       → HomeScreen (stub atual; substituída pela Tela Home da Fase 5)
+    index.tsx       → HomeScreen (definitiva — Fase 5 original obsoleta, ver seção 9.8)
     times.tsx       → TimesScreen
     perfil.tsx      → ProfileScreen
 ```
@@ -91,7 +91,7 @@ App
 │   ├── Tela Entrar       ← Login com MoldeInputs
 │   └── Tela Cadastro     ← Cadastro com MoldeInputs
 │
-├── Tela Home (Fase 5)    ← MoldeCardHome + CardPartida
+├── Tela Home             ← HomeScreen definitiva (Fase 5 original obsoleta, ver seção 9.8)
 │
 └── Telas principais (Fases 1–3)
     ├── Tela Grupos
@@ -134,7 +134,7 @@ app/
 │       esqueci-senha.tsx → TelaEsqueciSenha
 │   (tabs)/               ← Rotas Principais (públicas e privadas controladas)
 │       _layout.tsx       ← Tabs + CustomHeader
-│       index.tsx         → HomeScreen (atual, stub da Fase 5)
+│       index.tsx         → HomeScreen (definitiva, ver seção 9.8)
 │       times.tsx         → TimesScreen
 │       perfil.tsx        → ProfileScreen
 
@@ -149,8 +149,7 @@ src/
                                      MolduraIndividualPaís, BotãoHomeMolde,
                                      PalpiteBtn
       contexts/           → UserContext (usuário logado global)
-      screens/            → HomeScreen
-                            [pendente] Tela Home com MoldeCardHome + CardPartida
+      screens/            → HomeScreen (definitiva, ver seção 9.8)
       theme/              → colors, typography, spacing, radius
 
   features/
@@ -249,7 +248,7 @@ Definidos no grafo como componentes reutilizáveis em nível de aplicação:
 
 - **Domain**: `Sticker { id, albumId, playerId, teamId, playerName, price, rarity, imageUrl, obtainedAt }` · `UserCollection { stickerIds[] }` · `Package { stickers[] }` · `DailyClaimStatus { available, nextAvailableAt }` / `DailyCoinsStatus extends DailyClaimStatus { amount }` (`domain/constants/rewards.ts`)
 - **Use Cases**: `GetUserProfile`, `OpenPackage`, `GetMarketAlbums`, `BuyStickerPack`, `GetUserCoins` · `GetAlbumById`, `GetAlbumStickers`, `GetAllStickers`, `GetStickersByIds`, `GetUserCollection`, `BuyIndividualSticker` · (novos, seção 9.6) `AddUserCoins`, `GetDailyCoinsStatus`, `ClaimDailyCoins`, `GetFreePackStatus`, `ClaimFreePackage`, `GrantStickers`
-- **Infra**: `MockAlbumRepository` + `FirestoreAlbumRepository` (ativo) — 150 figurinhas no seed (100 no álbum `a1`, 50 no `a2`), preço por raridade (comum=20, rara=60, lendária=150) · `openPackage`/`buyStickerPack` sorteiam 3 stickers não duplicados (lógica de sorteio extraída para `drawAndGrantStickers`, reusada por `claimFreePackage`) · `buyIndividualSticker` compra 1 sticker específico calculando progresso contra o álbum correto · `grantStickers` concede stickers específicos sem custo (usado pelo settlement de apostas)
+- **Infra**: `FirestoreAlbumRepository` (único repositório da feature — `MockAlbumRepository` removido por dead code, ver seção 9.7) — 150 figurinhas no seed (100 no álbum `a1`, 50 no `a2`), preço por raridade (comum=20, rara=60, lendária=150) · `openPackage`/`buyStickerPack` sorteiam 3 stickers não duplicados (lógica de sorteio extraída para `drawAndGrantStickers`, reusada por `claimFreePackage`) · `buyIndividualSticker` compra 1 sticker específico, com progresso sempre calculado contra o álbum `a1` — mesma simplificação consciente de `buyStickerPack`/`drawAndGrantStickers`/`getUserCollection` (ver seção 9.5 e 9.7) · `grantStickers` concede stickers específicos sem custo (usado pelo settlement de apostas)
 - **Presentation (✅)**: `ProfileScreen` via `useUserProfile` · `CardColeção` (shared) reutilizado na `HomeScreen`
 - **Presentation (✅) (Fase 2)**: `Tela Mercado de Figurinhas` → `CompartilhBtn`
 - **Presentation (✅) (Fase 3)**: `Animação Abrir Pacote` (react-native-reanimated) — ver evolução "estilo gacha" na seção 9.6
@@ -277,11 +276,11 @@ Definidos no grafo como componentes reutilizáveis em nível de aplicação:
 - **Rotas**: `app/(auth)/{entrar,cadastro,esqueci-senha}.tsx`, stack modal público
 - **`UserContext`** (`shared/presentation/contexts/UserContext.tsx`) assina `onAuthStateChanged` e monta o `User` de domínio a partir do `FirebaseUser` + saldo de moedas real (via `album`'s `GetUserCoins`) — ver seção 9.6. `AuthGuard` redireciona rotas protegidas (`perfil`, `mercado`, `abrir-pacote`, `figurinhas`, `figurinha`) para `/entrar` quando deslogado.
 
-### `home` — ⬜ Fase 5 (stub existente)
+### `home` — ✅ Completo (implementada antecipadamente; Fase 5 original obsoleta)
 
-- A `HomeScreen` atual é um hub provisório
-- **Fase 5 planeja**: `Tela Home` com `MoldeCardHome` (card template para partidas em destaque) + `CardPartida` (card individual de uma partida)
-- Use cases específicos da Home a definir (provavelmente composição de outros existentes)
+- A `HomeScreen` é a versão definitiva do hub de navegação — reutiliza `ContainerAposta` (apostas) e `CardColecao` (shared)
+- **Fase 5 (obsoleta, ver seção 9.8)**: planejava `MoldeCardHome` + `CardPartida`; descartada por redundância com a implementação atual
+- Sem use cases dedicados — a Home compõe hooks já existentes de outras features (`useUpcomingMatches`, `useUserProfile`)
 
 ---
 
@@ -323,11 +322,13 @@ Definidos no grafo como componentes reutilizáveis em nível de aplicação:
 - `Tela Cadastro`: nome + e-mail + senha + confirmação → chama use case `Register`
 - Ao autenticar, navega para as tabs (Root Layout atualizado com gate de auth)
 
-### Fase 5 — Tela Home definitiva
+### Fase 5 — Tela Home definitiva (❌ obsoleta, ver seção 9.8)
 
-- `MoldeCardHome`: template de card maior para partida em destaque (com times, odds, data)
-- `CardPartida`: card compacto de partida para lista de próximas partidas
-- Substitui o stub atual da `HomeScreen` com uma composição mais rica
+~~`MoldeCardHome`: template de card maior para partida em destaque (com times, odds, data)~~
+~~`CardPartida`: card compacto de partida para lista de próximas partidas~~
+~~Substitui o stub atual da `HomeScreen` com uma composição mais rica~~
+
+Descartada: a `HomeScreen` atual já cumpre esse papel (ver seções 9.1 e 9.8).
 
 ---
 
@@ -381,6 +382,7 @@ interface UserCollection {
   userId: string;
   albumId: string;
   stickerIds: string[];
+  stickerObtainedAt?: Record<string, string>;  // data ISO de obtenção por stickerId — catálogo SQLite não guarda isso (é estático); ver seção 9.7
   progress: number;
 }
 
@@ -446,12 +448,12 @@ O grafo original posiciona a **Tela Home como Fase 5** — última a ser constru
 
 **Isso não quebra nenhuma dependência do grafo.** A `HomeScreen` atual:
 - Reutiliza `ContainerAposta` (apostas) e `CardColecao` (shared) — componentes já implementados na Fase 1
-- Serve como ponto de entrada visual enquanto Auth (Fase 4) e a Home definitiva (Fase 5) não existem
-- **Será substituída** pela Tela Home definitiva com `MoldeCardHome` + `CardPartida` quando a Fase 5 for executada
+- Serviu como ponto de entrada visual enquanto Auth (Fase 4) e a Home definitiva (Fase 5) não existiam
+- **Tornou-se a versão definitiva**: a Fase 5 original (`MoldeCardHome` + `CardPartida`) foi marcada como obsoleta e não será executada — ver seção 9.8
 
 ### 9.2 Componentes do Grafo — Aderência confirmada
 
-Todos os nomes de componentes definidos no grafo foram **preservados no código** tal como especificados:
+Os nomes de componentes definidos no grafo foram **preservados no código** tal como especificados, com exceção de `MoldeCardHome`/`CardPartida` (Fase 5), cuja implementação foi descartada — ver seção 9.8:
 
 | Grafo | Nome no código | Fase | Status |
 |---|---|---|---|
@@ -463,9 +465,11 @@ Todos os nomes de componentes definidos no grafo foram **preservados no código*
 | `CardConquistas` | `CardConquistas.tsx` | 2 | ✅ |
 | `MoldeJogadores` | `MoldeJogadores.tsx` | 2 | ✅ |
 | `CardCaracterísticas` | `CardCaracteristicas.tsx` | 3 | ✅ |
-| `MoldeInputs` | — | 4 | ⬜ pendente |
-| `MoldeCardHome` | — | 5 | ⬜ pendente |
-| `CardPartida` | — | 5 | ⬜ pendente |
+| `MoldeInputs` | `MoldeInputs/index.tsx` (shared) | 4 | ✅ |
+| `MoldeCardHome` | — | 5 | ❌ obsoleto (ver 9.8) |
+| `CardPartida` | — | 5 | ❌ obsoleto (ver 9.8) |
+
+> Componentes criados depois do grafo original, fora dessa lista (ex.: `StickerCard`, `CardRecompensaDiaria`, `CardPacoteGratis`, `CardHistoricoMundial`, `CardResumoApostas`, `CardVitoria`, `CardDerrota`), estão documentados nas seções 9.5 e 9.6 como evoluções — não fazem parte da aderência ao grafo original.
 
 ### 9.3 Contratos de Domínio que Evoluíram
 
@@ -493,7 +497,7 @@ A comparação identificou 3 telas presentes no Figma sem equivalente no código
 Essas 3 telas foram implementadas dentro do feature `album` existente (não como feature nova), pois pertencem ao mesmo domínio de figurinhas/álbuns:
 
 - `Sticker` ganhou `albumId`, `playerName` e `price` — necessários porque a tela de Coleção precisa saber quais figurinhas pertencem a qual álbum, e a compra individual precisa de um preço de catálogo por figurinha (antes só existia `Album.price`, o preço do pacote aleatório).
-- O repositório ativo em produção é o `FirestoreAlbumRepository` (não o `MockAlbumRepository`) — qualquer novo método da interface `AlbumRepository` precisou de implementação nos dois.
+- O repositório ativo em produção era o `FirestoreAlbumRepository` (não o `MockAlbumRepository`, então mantido) — qualquer novo método da interface `AlbumRepository` precisou de implementação nos dois à época; o `MockAlbumRepository` foi removido depois por estar sem nenhum consumidor (ver seção 9.7).
 - Novo token de tema `rarityColors` (seção 3) traz a linguagem visual de raridade do Figma (cores por `comum`/`rara`/`lendaria`) para um lugar único e reutilizável, em vez de replicar o visual do Figma tela por tela — o "meio termo" entre o visual mais limpo do código atual e o Figma.
 - Fora de escopo, por decisão consciente: refatorar os cards já existentes na `ProfileScreen`/`TelaMercado` para usar o novo `StickerCard`; corrigir o cálculo de progresso hardcoded em `openPackage`/`buyStickerPack` (que sempre usa `mockAlbums[0]`); adicionar uma 4ª aba "Mercado" na bottom nav (o Figma tem 4 abas — Home/Mercado/Perfil/Times — mas o código tem 3, com Mercado como modal).
 
@@ -519,6 +523,42 @@ Essas 3 telas foram implementadas dentro do feature `album` existente (não como
 
 **Nota — não era bug**: o problema relatado de "esqueci senha não envia email" foi investigado a fundo (toda a cadeia `TelaEsqueciSenha → useForgotPassword → FirebaseAuthRepository.resetPassword → sendPasswordResetEmail`) e o código estava correto; o email estava caindo na caixa de spam. Nenhuma mudança de código foi necessária.
 
+### 9.7 Correções de persistência de figurinhas, robustez de UI e navegação
+
+> Registrado em 07/2026, após bateria de bugs reportados em teste manual do fluxo de abertura de pacote.
+
+**Bug crítico — `ensureUserDoc` resetava o documento do usuário a cada leitura**: `ensureUserDoc` é chamado antes de toda leitura em `FirestoreAlbumRepository` (`getUserCollection`, `getUserCoins`, `getDailyCoinsStatus`, `getFreePackStatus`) e usava `setDoc(ref, {coins: 200, stickerIds: [], progress: 0, ...}, {merge: true})`. `merge: true` só preserva campos **ausentes** do payload — campos presentes são substituídos integralmente pelo valor passado, não mesclados. Como todo campo do usuário aparecia com um valor "zerado" fixo, **toda leitura desfazia silenciosamente qualquer compra ou figurinha ganha anteriormente** (moedas voltavam a 200, `stickerIds` voltava a `[]`). Corrigido: `ensureUserDoc` agora faz `getDoc` primeiro e só grava os valores padrão se o documento ainda não existir.
+
+**Bug — double-draw na abertura de pacote**: `pendingPackStore` (`infra/stores/pendingPackStore.ts`) foi criado para `buyStickerPack` gravar o sorteio já persistido e `useAbrirPacote` reaproveitar, evitando um segundo sorteio. A escrita (`useBuyStickerPack`) estava conectada, mas `useAbrirPacote` nunca lia o store — chamava `openPackage` de novo incondicionalmente, que ignora `packageId` e sorteia+persiste **outras** 3 figurinhas independentes. Resultado: cada compra gravava 6 figurinhas em vez de 3, e a animação revelava figurinhas diferentes das realmente compradas. Corrigido: `useAbrirPacote` agora lê do `pendingPackStore` quando disponível (com fallback pra `openPackage` se o pacote for aberto sem passar por uma compra, ex. deep link).
+
+**Novo campo Firestore `stickerObtainedAt`**: o catálogo SQLite é estático (sem noção de usuário), então `obtainedAt` sempre vinha `''` ao recarregar uma figurinha já possuída — quebrando a ordenação de "Recentes" (`NaN` na comparação de datas) e mostrando "N/A" no card. Adicionado `stickerObtainedAt: Record<stickerId, ISOString>` no documento do usuário (gravado via update com dot-notation em todo ponto que concede figurinha); `GetUserProfile` sobrepõe essa data por cima do `obtainedAt` vazio do catálogo antes de ordenar.
+
+**Bug — progresso do Mercado sempre `0/100`**: `getMarketAlbums()` nunca recebeu `userId`, e o catálogo SQLite sempre devolve `ownedStickersCount: 0` (dado estático). A interface `AlbumRepository.getMarketAlbums` ganhou o parâmetro `userId`; `FirestoreAlbumRepository` agora cruza `collection.stickerIds` com o `albumId` de cada figurinha do catálogo pra calcular a contagem real por álbum.
+
+**Robustez da UI — tela de abertura de pacote travando sem nenhuma ação possível**: dois problemas distintos, mesmo sintoma.
+1. `IdlePackCard.handlePress` (`AnimacaoAbrirPacote.tsx`) desabilitava o botão (`bursting=true`, sem reset) e dependia do callback de conclusão de uma animação Reanimated (`withTiming(..., (finished) => runOnJS(onStartReveal)())`) pra disparar a transição de negócio pro reveal. Se esse callback não disparasse (interrupção da animação, hiccup da ponte UI↔JS thread), a tela ficava travada permanentemente. Trocado por `setTimeout` no JS thread, desacoplando a lógica de negócio da animação decorativa.
+2. O card de revelação usava altura fixa (`CARD_WIDTH * 1.4`, ≈105% da largura da tela) que, somada ao cabeçalho/contador/dots/gap, ultrapassava a altura de telas menores — empurrando o botão "PRÓXIMA"/"CONCLUIR" pra fora da viewport, sem `ScrollView` pra alcançá-lo. Corrigido com altura máxima relativa à tela (`SCREEN_HEIGHT * 0.48`) + `ScrollView` como rede de segurança.
+
+**`ProfileScreen` — cards de figurinha sem estilo visual**: as seções "Recentes"/"Raras" renderizavam texto cru (`Sticker {id}` + badge de raridade) em vez do componente `CardFigurinha` (imagem, nome, raridade, data) já usado no resto do app. Corrigido.
+
+**`HomeScreen` — botão "Dar Palpite" sem ação**: o `ContainerAposta` renderizado no card de partida em destaque da Home não recebia a prop `onPress`, caindo no fallback de `console.log` em vez de navegar para `/palpite/[matchId]` (comportamento já correto em `ApostasScreen`). Corrigido.
+
+**Gotcha de compatibilidade — Expo Router SDK 56 vs `@react-navigation/native`**: a partir do SDK 56, `expo-router` não é mais compatível com importações diretas de `@react-navigation/native` — mesmo sendo uma dependência transitiva já presente no projeto (`react-native-screens`/navegação interna), importar `useFocusEffect` de lá quebra o bundler Android com `As of SDK 56, expo-router is no longer compatible with react-navigation`. `expo-router` re-exporta os hooks equivalentes (`useFocusEffect`, `useIsFocused`) — **sempre importar de `expo-router`, nunca de `@react-navigation/native` diretamente**, mesmo que o pacote esteja instalado.
+
+**Limpeza — `MockAlbumRepository` removido**: confirmado sem nenhum import fora do próprio arquivo (`repositoryInstance.ts` já injetava só `FirestoreAlbumRepository` + `SQLiteAlbumCatalogRepository`) — dead code desde a migração pro Firestore. Removido junto com `mockUserCollection` (export de `AlbumSeed.ts` usado só pelo Mock). `mockAlbums`/`mockStickers` do mesmo arquivo **permanecem** — apesar do nome, são a fonte real de seed do catálogo SQLite (`shared/infra/sqlite/migrations/001_initial.ts`), não dado de um repositório mock.
+
+### 9.8 Fase 5 (Tela Home definitiva) marcada como obsoleta
+
+> Registrado em 07/2026.
+
+A Fase 5 do grafo original planejava uma "Tela Home definitiva" com dois componentes novos — `MoldeCardHome` (card maior para partida em destaque) e `CardPartida` (card compacto de partida) — que substituiriam o hub provisório da `HomeScreen` (ver seção 9.1).
+
+Essa substituição foi avaliada e **descartada**: a `HomeScreen` atual (`src/shared/presentation/screens/HomeScreen.tsx`) já cumpre integralmente o papel da Home definitiva — exibe a partida em destaque reutilizando `ContainerAposta` (feature `apostas`), navegação para Times/Grupos e o card de coleção (`CardColecao`, feature `album`/shared) — sem necessidade de dois componentes exclusivos e redundantes com o que já existe.
+
+- Fase 5, como definida originalmente, está **obsoleta** — não será implementada.
+- `MoldeCardHome` e `CardPartida` não serão criados; a tabela da seção 9.2 reflete esse status.
+- A `HomeScreen` é considerada a versão definitiva da Home a partir deste registro.
+
 ---
 
 ## 10. Arquitetura de Dados (Nuvem vs Local)
@@ -540,4 +580,9 @@ Foi identificado um comportamento atípico do Firebase Web SDK (v12) em projetos
 - **Solução:** No arquivo `src/shared/infra/firebase/firebaseConfig.ts`, o `databaseId` foi especificado **explicitamente** como o terceiro parâmetro: `initializeFirestore(app, {...}, 'default')` e no fallback `getFirestore(app, 'default')`.
 Isso solucionou definitivamente os falsos erros de `404 Not Found` na comunicação interna do Firebase.
 
-Link do html de estudo: https://claude.ai/code/artifact/364a9d6e-e82f-4dfc-a725-e56c41765e48
+### Implementação Híbrida do SQLite Local
+
+Toda a carga estática (48 seleções, mais de 300 jogadores, 2 álbuns, 150 figurinhas de catálogo e 72 partidas com placares calculados e standings finais da fase de grupos) foi migrada para o **SQLite** no aparelho:
+1. **Migrations e Versionamento**: A inicialização é feita no Root Layout (`app/_layout.tsx`) sob o `<SQLiteProvider>` com a migration `001_initial.ts`. A persistência física evita recriações usando `PRAGMA user_version = 1;` e comandos `IF NOT EXISTS` / `INSERT OR IGNORE`.
+2. **Conexão Isolada**: Um utilitário de persistência (`src/shared/infra/sqlite/database.ts`) encapsula a conexão SQLite assincronamente como singleton fora do ciclo do React, respeitando o desacoplamento de infra na Clean Architecture.
+3. **Resolução de Tipagem**: Os repositórios da camada de Infra realizam a tradução exata do schema relacional do banco local para as interfaces tipadas de domínio do app.

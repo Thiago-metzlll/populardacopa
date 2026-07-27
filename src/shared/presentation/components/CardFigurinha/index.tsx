@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Sticker } from '../../../../features/album/domain/entities/Sticker';
-import { MolduraIndividualPais } from '../MolduraIndividualPais';
 import { colors, spacing, typography, radius } from '../../theme';
 
 interface CardFigurinhaProps {
@@ -20,15 +20,15 @@ export const CardFigurinha: React.FC<CardFigurinhaProps> = ({
 }) => {
   const isFull = size === 'full';
   
-  let rarityGradient = ['#3A3A40', '#24242B'];
+  let rarityGradient: [string, string, ...string[]] = ['#3A3A40', '#24242B'];
   let rarityBorder = '#555';
 
   if (sticker.rarity === 'rara') {
-    rarityGradient = ['#B55A1A', '#C67A1A'];
-    rarityBorder = '#FFB84D';
+    rarityGradient = ['#1a1a4e', '#24242B'];
+    rarityBorder = '#4488FF';
   } else if (sticker.rarity === 'lendaria') {
-    rarityGradient = ['#3A1C71', '#D76D77', '#FFAF7B'];
-    rarityBorder = colors.primary;
+    rarityGradient = ['#3d2000', '#24242B'];
+    rarityBorder = '#FFD700';
   }
 
   const cardContent = (
@@ -46,7 +46,7 @@ export const CardFigurinha: React.FC<CardFigurinhaProps> = ({
       <View style={styles.header}>
         <View style={[styles.rarityBadge, { backgroundColor: rarityBorder }]}>
           <Text style={[styles.rarityText, { color: sticker.rarity === 'lendaria' ? '#1A1A1E' : '#FFF' }]}>
-            {sticker.rarity.toUpperCase()}
+            {sticker.rarity === 'lendaria' ? '★' : sticker.rarity === 'rara' ? '●' : '○'}
           </Text>
         </View>
         <Text style={styles.idText}>#{sticker.id.replace('s', '')}</Text>
@@ -54,19 +54,30 @@ export const CardFigurinha: React.FC<CardFigurinhaProps> = ({
 
       {isFull ? (
         <View style={styles.bodyFull}>
-          {sticker.teamId && (
-            <MolduraIndividualPais teamId={sticker.teamId} size="md" showBorder={sticker.rarity === 'lendaria'} />
-          )}
-          <Text style={styles.stickerTitle}>Figurinha Especial</Text>
+          <View style={[styles.imageContainer, { borderColor: rarityBorder }]}>
+            <Image
+              source={{ uri: sticker.imageUrl }}
+              style={styles.playerImage}
+              contentFit="cover"
+              transition={200}
+            />
+          </View>
+          <Text style={styles.stickerTitle} numberOfLines={2}>{sticker.playerName}</Text>
           <Text style={styles.dateText}>
             {sticker.obtainedAt ? new Date(sticker.obtainedAt).toLocaleDateString('pt-BR') : 'N/A'}
           </Text>
         </View>
       ) : (
         <View style={styles.bodyCompact}>
-          {sticker.teamId && (
-            <MolduraIndividualPais teamId={sticker.teamId} size="sm" />
-          )}
+          <View style={styles.imageContainerCompact}>
+            <Image
+              source={{ uri: sticker.imageUrl }}
+              style={styles.playerImage}
+              contentFit="cover"
+              transition={200}
+            />
+          </View>
+          <Text style={styles.stickerTitleCompact} numberOfLines={1}>{sticker.playerName}</Text>
         </View>
       )}
     </LinearGradient>
@@ -91,13 +102,13 @@ const styles = StyleSheet.create({
   },
   cardFull: {
     width: 120,
-    height: 160,
+    height: 170,
     padding: spacing.sm,
     justifyContent: 'space-between',
   },
   cardCompact: {
     width: 80,
-    height: 110,
+    height: 115,
     padding: spacing.xs,
     justifyContent: 'space-between',
   },
@@ -116,7 +127,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   rarityText: {
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: 'bold',
   },
   idText: {
@@ -130,23 +141,49 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flex: 1,
     marginTop: spacing.xs,
+    gap: 4,
   },
   bodyCompact: {
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
+    gap: 2,
+  },
+  imageContainer: {
+    width: 70,
+    height: 80,
+    borderRadius: radius.sm,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    backgroundColor: '#1A1A1E',
+  },
+  imageContainerCompact: {
+    width: 46,
+    height: 52,
+    borderRadius: radius.sm,
+    overflow: 'hidden',
+    backgroundColor: '#1A1A1E',
+  },
+  playerImage: {
+    width: '100%',
+    height: '100%',
   },
   stickerTitle: {
     ...typography.caption,
     color: '#FFF',
     fontWeight: 'bold',
-    fontSize: 11,
-    marginTop: spacing.xs,
+    fontSize: 9,
+    textAlign: 'center',
+    lineHeight: 12,
+  },
+  stickerTitleCompact: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 7,
     textAlign: 'center',
   },
   dateText: {
-    fontSize: 9,
+    fontSize: 8,
     color: '#A0A0A0',
-    marginTop: 2,
   },
 });
