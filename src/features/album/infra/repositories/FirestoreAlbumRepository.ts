@@ -1,19 +1,19 @@
 import {
+  arrayUnion,
   doc,
   getDoc,
-  updateDoc,
-  arrayUnion,
   increment,
   serverTimestamp,
   setDoc,
+  updateDoc,
 } from 'firebase/firestore';
-import { db } from '../../../../shared/infra/firebase/firebaseConfig';
 import { COLLECTIONS, USER_FIELDS } from '../../../../shared/infra/firebase/collections';
+import { db } from '../../../../shared/infra/firebase/firebaseConfig';
+import { computeDailyCoinsStatus, computeFreePackStatus, DailyClaimStatus, DailyCoinsStatus } from '../../domain/constants/rewards';
 import { Album } from '../../domain/entities/Album';
 import { Sticker } from '../../domain/entities/Sticker';
 import { UserCollection } from '../../domain/entities/UserCollection';
 import { AlbumRepository, BuyStickerPackResult, ClaimDailyCoinsResult } from '../../domain/repositories/AlbumRepository';
-import { computeDailyCoinsStatus, computeFreePackStatus, DailyCoinsStatus, DailyClaimStatus } from '../../domain/constants/rewards';
 import { SQLiteAlbumCatalogRepository } from './SQLiteAlbumCatalogRepository';
 
 /**
@@ -26,7 +26,7 @@ import { SQLiteAlbumCatalogRepository } from './SQLiteAlbumCatalogRepository';
  * Presentation não sabem qual implementação está sendo usada.
  */
 export class FirestoreAlbumRepository implements AlbumRepository {
-  constructor(private readonly catalogRepository: SQLiteAlbumCatalogRepository) {}
+  constructor(private readonly catalogRepository: SQLiteAlbumCatalogRepository) { }
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -174,6 +174,9 @@ export class FirestoreAlbumRepository implements AlbumRepository {
   }
 
   // ─── Lógica de negócio (híbrida: sorteio local + persistência Firestore) ───
+  // TODO arquitetura: o sorteio (aqui e em buyStickerPack) é regra de negócio pura,
+  // independente de Firestore/SQLite — candidato a virar usecase/serviço de domínio
+  // testável sem infra, em vez de ficar duplicado dentro do repository concreto.
 
   /**
    * Sorteia até 3 figurinhas não possuídas e grava na coleção do usuário.
@@ -236,7 +239,7 @@ export class FirestoreAlbumRepository implements AlbumRepository {
     await this.ensureUserDoc(userId);
     const collection = await this.getUserCollection(userId);
     const newIds = stickerIds.filter((id) => !collection.stickerIds.includes(id));
-    
+
     const dbStickers = await this.catalogRepository.getStickersByIds(newIds);
     const now = new Date().toISOString();
     const granted = dbStickers.map((s) => ({ ...s, obtainedAt: now }));
