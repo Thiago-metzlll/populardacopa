@@ -2,6 +2,7 @@ import { Prediction } from '../../domain/entities/Prediction';
 import { PredictionHistory } from '../../domain/entities/PredictionHistory';
 import { PredictionRepository } from '../../domain/repositories/PredictionRepository';
 import { mockPredictionHistory } from '../seed/PredictionSeed';
+import { computePredictionStats } from '../../domain/constants/predictionStats';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -37,10 +38,9 @@ export class MockPredictionRepository implements PredictionRepository {
 
     prediction.status = status;
 
-    const settled = this.historyState.predictions.filter(p => p.status !== 'pending');
-    const won = this.historyState.predictions.filter(p => p.status === 'won');
-    this.historyState.successRate = settled.length > 0 ? Math.round((won.length / settled.length) * 100) : 0;
-    this.historyState.totalPoints = won.reduce((acc, p) => acc + (p.reward.coinAmount || 0), 0);
+    const { successRate, totalPoints } = computePredictionStats(this.historyState.predictions);
+    this.historyState.successRate = successRate;
+    this.historyState.totalPoints = totalPoints;
 
     return prediction;
   }

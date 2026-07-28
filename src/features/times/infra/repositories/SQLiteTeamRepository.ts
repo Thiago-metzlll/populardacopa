@@ -5,6 +5,8 @@ import { Team } from '../../domain/entities/Team';
 import { Player } from '../../domain/entities/Player';
 import { TeamRepository } from '../../domain/repositories/TeamRepository';
 import { getSQLiteDb } from '../../../../shared/infra/sqlite/database';
+import { computeWinRate } from '../../domain/constants/ranking';
+import { generatePlayerStats } from '../../domain/constants/playerStats';
 
 const getCountryIdFromFlagUrl = (flagUrl: string | null | undefined): string => {
   if (!flagUrl) return '';
@@ -48,7 +50,7 @@ export class SQLiteTeamRepository implements TeamRepository {
       countryId: getCountryIdFromFlagUrl(row.flag_url),
       groupId: row.group_key,
       ranking: row.ranking,
-      winRate: row.ranking > 0 ? Math.max(0.3, 1 - row.ranking / 100) : 0.5, // pseudo-calculado
+      winRate: computeWinRate(row.ranking),
       isFavorite: false, // preenchido sob demanda na presentation/usecase
       titles: JSON.parse(row.titles || '[]'),
       worldCupWins: row.world_cup_wins,
@@ -83,7 +85,7 @@ export class SQLiteTeamRepository implements TeamRepository {
       countryId: getCountryIdFromFlagUrl(row.flag_url),
       groupId: row.group_key,
       ranking: row.ranking,
-      winRate: row.ranking > 0 ? Math.max(0.3, 1 - row.ranking / 100) : 0.5,
+      winRate: computeWinRate(row.ranking),
       isFavorite: true,
       titles: JSON.parse(row.titles || '[]'),
       worldCupWins: row.world_cup_wins,
@@ -115,7 +117,7 @@ export class SQLiteTeamRepository implements TeamRepository {
       countryId: getCountryIdFromFlagUrl(row.flag_url),
       groupId: row.group_key,
       ranking: row.ranking,
-      winRate: row.ranking > 0 ? Math.max(0.3, 1 - row.ranking / 100) : 0.5,
+      winRate: computeWinRate(row.ranking),
       isFavorite: favoriteIds.includes(row.id),
       titles: JSON.parse(row.titles || '[]'),
       worldCupWins: row.world_cup_wins,
@@ -165,7 +167,7 @@ export class SQLiteTeamRepository implements TeamRepository {
       countryId: getCountryIdFromFlagUrl(row.flag_url),
       groupId: row.group_key,
       ranking: row.ranking,
-      winRate: row.ranking > 0 ? Math.max(0.3, 1 - row.ranking / 100) : 0.5,
+      winRate: computeWinRate(row.ranking),
       isFavorite: false, // Será atualizado se o contexto do usuário tiver logado
       titles: JSON.parse(row.titles || '[]'),
       worldCupWins: row.world_cup_wins,
@@ -217,22 +219,7 @@ export class SQLiteTeamRepository implements TeamRepository {
     number: string;
     image_url: string | null;
   }): Player {
-    // Calcula estatísticas fictícias de forma a parecerem ricas na interface
-    let goals = 0;
-    let assists = 0;
-    const matchesPlayed = Math.floor(Math.random() * 4) + 3; // 3 a 7 jogos na copa
-    const worldCupsPlayed = Math.floor(Math.random() * 2) + 1; // 1 ou 2 copas
-
-    if (row.position === 'ATA') {
-      goals = Math.floor(Math.random() * 3) + 1;
-      assists = Math.floor(Math.random() * 2);
-    } else if (row.position === 'MEI') {
-      goals = Math.floor(Math.random() * 2);
-      assists = Math.floor(Math.random() * 3) + 1;
-    } else if (row.position === 'DEF') {
-      goals = Math.random() > 0.8 ? 1 : 0;
-      assists = Math.floor(Math.random() * 2);
-    }
+    const stats = generatePlayerStats(row.position);
 
     return {
       id: row.id,
@@ -249,12 +236,7 @@ export class SQLiteTeamRepository implements TeamRepository {
           result: 'Fase de Grupos',
         },
       ],
-      stats: {
-        goals,
-        assists,
-        matchesPlayed,
-        worldCupsPlayed,
-      },
+      stats,
     };
   }
 }

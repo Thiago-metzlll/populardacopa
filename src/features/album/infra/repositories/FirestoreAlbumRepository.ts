@@ -10,6 +10,7 @@ import {
 import { COLLECTIONS, USER_FIELDS } from '../../../../shared/infra/firebase/collections';
 import { db } from '../../../../shared/infra/firebase/firebaseConfig';
 import { computeDailyCoinsStatus, computeFreePackStatus, DailyClaimStatus, DailyCoinsStatus } from '../../domain/constants/rewards';
+import { computeCollectionProgress, drawStickersWithRepetition, drawUnownedStickers } from '../../domain/constants/collection';
 import { Album } from '../../domain/entities/Album';
 import { Sticker } from '../../domain/entities/Sticker';
 import { UserCollection } from '../../domain/entities/UserCollection';
@@ -84,7 +85,7 @@ export class FirestoreAlbumRepository implements AlbumRepository {
       albumId: 'a1',
       stickerIds,
       stickerObtainedAt,
-      progress: (stickerIds.length / album.totalStickers) * 100,
+      progress: computeCollectionProgress(stickerIds.length, album.totalStickers),
     };
   }
 
@@ -185,12 +186,8 @@ export class FirestoreAlbumRepository implements AlbumRepository {
   private async drawAndGrantStickers(userId: string): Promise<Sticker[]> {
     const collection = await this.getUserCollection(userId);
     const allStickers = await this.catalogRepository.getAllStickers();
-    const notOwned = allStickers.filter((s) => !collection.stickerIds.includes(s.id));
-
-    const numToDraw = Math.min(3, notOwned.length);
-    const shuffled = [...notOwned].sort(() => 0.5 - Math.random());
     const now = new Date().toISOString();
-    const newStickers: Sticker[] = shuffled.slice(0, numToDraw).map((s) => ({
+    const newStickers: Sticker[] = drawUnownedStickers(allStickers, collection.stickerIds, 3).map((s) => ({
       ...s,
       obtainedAt: now,
     }));
@@ -199,7 +196,7 @@ export class FirestoreAlbumRepository implements AlbumRepository {
       const newIds = newStickers.map((s) => s.id);
       const updatedIds = [...collection.stickerIds, ...newIds];
       const album = await this.catalogRepository.getAlbumById('a1');
-      const newProgress = (updatedIds.length / album.totalStickers) * 100;
+      const newProgress = computeCollectionProgress(updatedIds.length, album.totalStickers);
 
       await updateDoc(this.userRef(userId), {
         [USER_FIELDS.STICKER_IDS]: arrayUnion(...newIds),
@@ -247,7 +244,7 @@ export class FirestoreAlbumRepository implements AlbumRepository {
     if (granted.length > 0) {
       const updatedIds = [...collection.stickerIds, ...newIds];
       const album = await this.catalogRepository.getAlbumById('a1');
-      const newProgress = (updatedIds.length / album.totalStickers) * 100;
+      const newProgress = computeCollectionProgress(updatedIds.length, album.totalStickers);
       await updateDoc(this.userRef(userId), {
         [USER_FIELDS.STICKER_IDS]: arrayUnion(...newIds),
         [USER_FIELDS.PROGRESS]: newProgress,
@@ -262,14 +259,9 @@ export class FirestoreAlbumRepository implements AlbumRepository {
     const coins = await this.getUserCoins(userId);
     if (coins < cost) throw new Error('Saldo de moedas insuficiente');
 
-    // Sorteia 3 figurinhas aleatórias do pool estático do SQLite
     const allStickers = await this.catalogRepository.getAllStickers();
     const now = new Date().toISOString();
-    const drawn: Sticker[] = [];
-    for (let i = 0; i < 3; i++) {
-      const idx = Math.floor(Math.random() * allStickers.length);
-      drawn.push({ ...allStickers[idx], obtainedAt: now });
-    }
+    const drawn: Sticker[] = drawStickersWithRepetition(allStickers, 3).map((s) => ({ ...s, obtainedAt: now }));
 
     // Novas figurinhas únicas para adicionar à coleção
     const newIds = drawn.map((s) => s.id);
@@ -278,7 +270,7 @@ export class FirestoreAlbumRepository implements AlbumRepository {
     const collection = await this.getUserCollection(userId);
     const updatedIds = [...new Set([...collection.stickerIds, ...newIds])];
     const album = await this.catalogRepository.getAlbumById('a1');
-    const newProgress = (updatedIds.length / album.totalStickers) * 100;
+    const newProgress = computeCollectionProgress(updatedIds.length, album.totalStickers);
 
     await updateDoc(this.userRef(userId), {
       [USER_FIELDS.COINS]: newBalance,
@@ -309,7 +301,7 @@ export class FirestoreAlbumRepository implements AlbumRepository {
     // Progress é sempre relativo ao álbum 'a1', igual em getUserCollection/buyStickerPack/
     // drawAndGrantStickers — evita que o valor persistido flutue conforme a última ação.
     const album = await this.catalogRepository.getAlbumById('a1');
-    const newProgress = (updatedIds.length / album.totalStickers) * 100;
+    const newProgress = computeCollectionProgress(updatedIds.length, album.totalStickers);
 
     await updateDoc(this.userRef(userId), {
       [USER_FIELDS.COINS]: newBalance,

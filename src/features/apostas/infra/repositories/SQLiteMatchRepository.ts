@@ -1,6 +1,7 @@
 import { Match, MatchOdds } from '../../domain/entities/Match';
 import { MatchRepository } from '../../domain/repositories/MatchRepository';
 import { getSQLiteDb } from '../../../../shared/infra/sqlite/database';
+import { computeMatchOdds } from '../../domain/constants/odds';
 
 export class SQLiteMatchRepository implements MatchRepository {
   async getUpcomingMatches(): Promise<Match[]> {
@@ -55,16 +56,7 @@ export class SQLiteMatchRepository implements MatchRepository {
   }): Match {
     const statusLower = row.status.toLowerCase() as 'scheduled' | 'live' | 'finished';
     
-    let odds: MatchOdds | undefined = undefined;
-    if (statusLower === 'scheduled') {
-      // Gera odds fictícias consistentes para testes
-      const hash = row.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      odds = {
-        homeWin: Number((1.5 + (hash % 10) * 0.2).toFixed(2)),
-        draw: Number((2.8 + (hash % 5) * 0.15).toFixed(2)),
-        awayWin: Number((2.0 + (hash % 8) * 0.25).toFixed(2)),
-      };
-    }
+    const odds: MatchOdds | undefined = statusLower === 'scheduled' ? computeMatchOdds(row.id) : undefined;
 
     return {
       id: row.id,
