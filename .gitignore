@@ -40,6 +40,9 @@ scripts/serviceAccountKey.json
 # typescript
 *.tsbuildinfo
 
+# testes
+coverage/
+
 example
 
 # generated native folders
