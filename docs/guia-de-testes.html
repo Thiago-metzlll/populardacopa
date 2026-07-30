@@ -1,0 +1,1524 @@
+<meta charset="utf-8">
+<title>Popular da Copa — Guia de Estudo: Testes Unitários</title>
+<style>
+  /* Mesma identidade visual do guia principal (docs/guia-de-estudo.html):
+     fundo #131318, verde-limão #B4FF00, laranja #FF6B35 — a paleta do próprio app. */
+  :root{
+    --bg: #131318;
+    --bg-soft: #1b1b22;
+    --surface: #1f1f27;
+    --surface-raised: #292933;
+    --line: #34343f;
+    --line-soft: #2a2a33;
+    --text: #f1f0ea;
+    --text-dim: #a3a2ad;
+    --text-faint: #6f6e7a;
+
+    --lime: #b4ff00;
+    --lime-dim: #8fd400;
+    --orange: #ff6b35;
+    --purple: #8432e5;
+    --purple-soft: #c79bff;
+    --blue: #4488ff;
+    --danger: #ff4b4b;
+
+    --serif: Iowan Old Style, "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    --display: "Segoe UI", ui-sans-serif, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+    color-scheme: dark;
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection{ background: var(--lime); color: #101014; }
+
+  a{ color: var(--lime); }
+  a:focus-visible, button:focus-visible, .toc__link:focus-visible{
+    outline: 2px solid var(--lime);
+    outline-offset: 3px;
+  }
+
+  h1,h2,h3{
+    font-family: var(--display);
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    text-wrap: balance;
+    color: var(--text);
+  }
+
+  code, pre{ font-family: var(--mono); }
+  p code, li code, td code{
+    font-size: 0.86em;
+    background: var(--surface);
+    border: 1px solid var(--line-soft);
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: #d6f5a0;
+  }
+
+  /* ---------- shell layout ---------- */
+  .page-shell{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+    display: grid;
+    grid-template-columns: 240px minmax(0,1fr);
+    gap: 56px;
+  }
+
+  /* ---------- masthead ---------- */
+  .masthead{
+    grid-column: 1 / -1;
+    padding: 56px 0 36px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .kicker{
+    font-family: var(--display);
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--lime);
+  }
+  .masthead h1{
+    font-size: clamp(30px, 4.4vw, 46px);
+    line-height: 1.08;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.005em;
+  }
+  .masthead h1 em{
+    font-style: normal;
+    color: var(--orange);
+  }
+  .masthead p{
+    max-width: 660px;
+    color: var(--text-dim);
+    font-size: 16.5px;
+    margin: 0;
+  }
+  .stack-chips{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .chip{
+    font-family: var(--display);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 5px 11px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    background: var(--surface);
+  }
+
+  /* ---------- scoreboard ---------- */
+  .scoreboard{
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0,1fr));
+    gap: 14px;
+    margin-top: 22px;
+  }
+  .stat{
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    padding: 14px 16px;
+  }
+  .stat__value{
+    font-family: var(--display);
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--lime);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat__label{
+    font-family: var(--display);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-top: 7px;
+    display: block;
+  }
+
+  /* ---------- toc ---------- */
+  .toc{
+    align-self: start;
+    position: sticky;
+    top: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-top: 40px;
+  }
+  .toc__eyebrow{
+    font-family: var(--display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+  }
+  .toc__link{
+    font-family: var(--display);
+    font-size: 13.5px;
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 7px 0 7px 14px;
+    border-left: 2px solid var(--line-soft);
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .toc__link:hover{ color: var(--text); border-left-color: var(--text-dim); }
+  .toc__num{ color: var(--text-faint); margin-right: 8px; font-variant-numeric: tabular-nums; }
+
+  /* ---------- main content ---------- */
+  .content{ padding-top: 40px; min-width: 0; }
+  .section{ padding-bottom: 64px; margin-bottom: 64px; border-bottom: 1px solid var(--line-soft); }
+  .section:last-child{ border-bottom: none; }
+  .section__eyebrow{
+    font-family: var(--display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 8px;
+  }
+  .section h2{
+    font-size: clamp(22px, 3vw, 28px);
+    margin: 0 0 20px;
+  }
+  .section h3{
+    font-size: 17px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--lime);
+    margin: 36px 0 12px;
+  }
+  .section h4{
+    font-family: var(--display);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin: 26px 0 10px;
+  }
+  .section p{ margin: 0 0 16px; max-width: 68ch; color: #dedcd3; }
+  .section p:last-child{ margin-bottom: 0; }
+  .section ul, .section ol.prose-list{ max-width: 68ch; color: #dedcd3; padding-left: 22px; margin: 0 0 16px; }
+  .section li{ margin-bottom: 6px; }
+  strong{ color: var(--text); }
+
+  /* ---------- callouts ---------- */
+  .note{
+    border-left: 3px solid var(--line);
+    background: var(--surface);
+    border-radius: 4px;
+    padding: 14px 18px;
+    margin: 22px 0;
+    max-width: 68ch;
+  }
+  .note p{ margin: 0 0 10px; color: #dedcd3; font-size: 15.5px; }
+  .note p:last-child{ margin-bottom: 0; }
+  .note__tag{
+    display: block;
+    font-family: var(--display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .note--core{ border-left-color: var(--purple); }
+  .note--core .note__tag{ color: var(--purple-soft); }
+  .note--practice{ border-left-color: var(--lime); }
+  .note--practice .note__tag{ color: var(--lime); }
+  .note--warn{ border-left-color: var(--danger); }
+  .note--warn .note__tag{ color: var(--danger); }
+
+  /* ---------- code blocks ---------- */
+  .code-block{
+    background: #0f0f13;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 20px 0;
+    max-width: 100%;
+  }
+  .code-block__bar{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 14px;
+    background: var(--surface-raised);
+    border-bottom: 1px solid var(--line);
+    font-family: var(--display);
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+  }
+  .code-block__bar span{ color: var(--text-dim); }
+  .code-block__bar em{ font-style: normal; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.08em; }
+  .code-block pre{
+    margin: 0;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #d6f5a0;
+  }
+  .code-block pre .tok-kw{ color: var(--orange); }
+  .code-block pre .tok-str{ color: var(--purple-soft); }
+  .code-block pre .tok-com{ color: var(--text-faint); font-style: italic; }
+  .code-block pre .tok-fn{ color: var(--lime); }
+  .code-block pre .tok-bad{ color: var(--danger); }
+
+  /* ---------- tables ---------- */
+  .grid-table{ width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 14.5px; }
+  .grid-table th{
+    font-family: var(--display);
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-align: left;
+    color: var(--text-faint);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: bottom;
+  }
+  .grid-table td{
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line-soft);
+    color: #dedcd3;
+    vertical-align: top;
+  }
+  .grid-table td.tag{
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .tag-domain{ color: var(--lime); }
+  .tag-infra{ color: var(--purple-soft); }
+  .tag-presentation{ color: var(--orange); }
+  .tag-sqlite{ color: var(--orange); }
+  .tag-firestore{ color: var(--lime); }
+  .tag-auth{ color: var(--blue); }
+  .tag-mem{ color: var(--text-faint); }
+  .table-scroll{ overflow-x: auto; }
+  .table-scroll .grid-table{ min-width: 620px; }
+
+  /* ---------- pyramid ---------- */
+  .pyramid{ display: flex; flex-direction: column; gap: 10px; margin: 26px 0; max-width: 700px; }
+  .pyr-row{
+    display: grid;
+    grid-template-columns: 132px minmax(0,1fr) 84px;
+    align-items: center;
+    gap: 16px;
+    border: 1px solid var(--line);
+    border-left-width: 4px;
+    border-left-style: solid;
+    border-radius: 8px;
+    background: var(--surface);
+    padding: 13px 16px;
+  }
+  .pyr-row h4{ margin: 0; font-family: var(--display); font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text); }
+  .pyr-row p{ margin: 0; font-size: 14px; color: var(--text-dim); max-width: none; }
+  .pyr-row__count{
+    font-family: var(--display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-align: right;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+  .pyr-row--domain{ border-left-color: var(--lime); }
+  .pyr-row--domain h4{ color: var(--lime); }
+  .pyr-row--infra{ border-left-color: var(--purple); }
+  .pyr-row--infra h4{ color: var(--purple-soft); }
+  .pyr-row--hooks{ border-left-color: var(--orange); }
+  .pyr-row--hooks h4{ color: var(--orange); }
+  .pyr-row--comp{ border-left-color: #d8d8dd; }
+  .pyr-row--comp h4{ color: #d8d8dd; }
+  .pyr-row--out{ border-left-color: var(--line); opacity: .72; }
+
+  /* ---------- diagram ---------- */
+  .diagram{
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: linear-gradient(180deg, #17171d, var(--bg-soft));
+    padding: 18px 8px 10px;
+    margin: 26px 0 14px;
+    overflow-x: auto;
+  }
+  .diagram svg{ display: block; width: 100%; min-width: 780px; height: auto; }
+
+  .n-box{ fill: var(--surface); stroke: var(--line); stroke-width: 1; }
+  .n-box--app{ fill: #22222b; stroke: var(--orange); }
+  .n-box--domain{ fill: #1e2418; stroke: var(--lime); }
+  .n-box--infra{ fill: #221c2c; stroke: var(--purple); }
+  .n-box--sqlite{ fill: #2a1d15; stroke: var(--orange); }
+  .n-box--fs{ fill: #1d2416; stroke: var(--lime); }
+  .n-box--auth{ fill: #16203a; stroke: var(--blue); }
+  .n-box--mem{ fill: #1e1e25; stroke: var(--line); stroke-dasharray: 4 3; }
+
+  .n-title{ font-family: var(--display); font-size: 12.5px; font-weight: 700; fill: var(--text); }
+  .n-sub{ font-family: var(--mono); font-size: 10.5px; fill: var(--text-faint); }
+  .n-mono{ font-family: var(--mono); font-size: 11px; fill: var(--text-dim); }
+  .e-label{ font-family: var(--display); font-size: 10px; letter-spacing: 0.04em; fill: var(--text-faint); text-transform: uppercase; }
+  .col-label{ font-family: var(--display); font-size: 10.5px; font-weight: 700; letter-spacing: 0.16em; fill: var(--text-faint); text-transform: uppercase; }
+
+  .edge{ fill: none; stroke: var(--line); stroke-width: 1.4; }
+  .edge--sqlite{ stroke: var(--orange); }
+  .edge--fs{ stroke: var(--lime); }
+  .edge--auth{ stroke: var(--blue); }
+  .edge--mem{ stroke: var(--text-faint); stroke-dasharray: 4 4; }
+  .edge--flow{ stroke: #6f6e7a; stroke-width: 1.6; }
+  .edge--dashed{ stroke: var(--purple-soft); stroke-dasharray: 5 4; }
+  .cut-line{ stroke: var(--danger); stroke-width: 1.3; stroke-dasharray: 7 6; opacity: .85; }
+  .cut-label{ font-family: var(--display); font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em; fill: var(--danger); text-transform: uppercase; }
+
+  .legend{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin: 0 0 26px;
+    font-family: var(--display);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .legend span{ display: inline-flex; align-items: center; gap: 7px; }
+  .legend i{ width: 22px; height: 0; border-top-width: 2px; border-top-style: solid; display: inline-block; }
+  .lg-sqlite{ border-color: var(--orange); }
+  .lg-fs{ border-color: var(--lime); }
+  .lg-auth{ border-color: var(--blue); }
+  .lg-mem{ border-color: var(--text-faint); border-top-style: dashed; }
+  .lg-cut{ border-color: var(--danger); border-top-style: dashed; }
+
+  .caption{
+    font-family: var(--display);
+    font-size: 12.5px;
+    color: var(--text-faint);
+    max-width: 68ch;
+    margin: 0 0 26px;
+  }
+
+  /* ---------- checklist ---------- */
+  .checklist{ list-style: none; padding: 0; margin: 22px 0; max-width: 68ch; }
+  .checklist li{
+    position: relative;
+    padding: 0 0 12px 30px;
+    color: #dedcd3;
+    font-size: 15px;
+  }
+  .checklist li::before{
+    content: "✓";
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-family: var(--display);
+    font-weight: 700;
+    color: var(--lime);
+  }
+
+  /* ---------- glossary ---------- */
+  .glossary{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 28px;
+    margin: 8px 0 0;
+  }
+  .gloss-item dt{
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+  .gloss-item dd{ margin: 0; font-size: 14px; color: var(--text-dim); }
+
+  footer.colophon{
+    grid-column: 1 / -1;
+    padding-top: 28px;
+    border-top: 1px solid var(--line);
+    font-family: var(--display);
+    font-size: 12px;
+    color: var(--text-faint);
+    letter-spacing: 0.03em;
+  }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 860px){
+    .page-shell{ grid-template-columns: 1fr; gap: 0; padding: 0 18px 72px; }
+    .toc{
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: rgba(19,19,24,0.92);
+      backdrop-filter: blur(6px);
+      flex-direction: row;
+      overflow-x: auto;
+      padding: 12px 0;
+      gap: 4px;
+      border-bottom: 1px solid var(--line);
+    }
+    .toc__eyebrow{ display: none; }
+    .toc__link{ border-left: none; border-bottom: 2px solid transparent; padding: 6px 10px; white-space: nowrap; }
+    .toc__link:hover{ border-bottom-color: var(--text-dim); }
+    .content{ padding-top: 30px; }
+    .glossary{ grid-template-columns: 1fr; }
+    .scoreboard{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .pyr-row{ grid-template-columns: 1fr; gap: 6px; }
+    .pyr-row__count{ text-align: left; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ scroll-behavior: auto !important; }
+  }
+
+  html{ scroll-behavior: smooth; }
+</style>
+
+<div class="page-shell">
+
+  <header class="masthead">
+    <span class="kicker">Guia de estudo · uso acadêmico</span>
+    <h1>Testes unitários <em>— Popular da Copa</em></h1>
+    <p>
+      Como a suíte de testes deste projeto foi pensada, camada por camada: o que é testado,
+      o que é deliberadamente deixado de fora, e — o ponto central — <strong>onde os testes
+      cortam a comunicação com o mundo externo</strong> (SQLite local, Firestore e a API de
+      autenticação do Firebase). Cada termo técnico é explicado na primeira vez que aparece.
+    </p>
+    <div class="stack-chips">
+      <span class="chip">Jest 29</span>
+      <span class="chip">jest-expo</span>
+      <span class="chip">Testing Library RN</span>
+      <span class="chip">TypeScript</span>
+      <span class="chip">Clean Architecture</span>
+    </div>
+    <div class="scoreboard">
+      <div class="stat"><span class="stat__value">521</span><span class="stat__label">testes passando</span></div>
+      <div class="stat"><span class="stat__value">61</span><span class="stat__label">suítes</span></div>
+      <div class="stat"><span class="stat__value">~25s</span><span class="stat__label">execução total</span></div>
+      <div class="stat"><span class="stat__value">0</span><span class="stat__label">acessos a banco real</span></div>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <span class="toc__eyebrow">Sumário</span>
+    <a class="toc__link" href="#o-que-e"><span class="toc__num">00</span>O que é teste unitário</a>
+    <a class="toc__link" href="#fluxo-dados"><span class="toc__num">01</span>Grafo de fluxo de dados</a>
+    <a class="toc__link" href="#fronteira"><span class="toc__num">02</span>A fronteira do mock</a>
+    <a class="toc__link" href="#setup"><span class="toc__num">03</span>Configuração (Jest)</a>
+    <a class="toc__link" href="#estrategia"><span class="toc__num">04</span>Estratégia por camada</a>
+    <a class="toc__link" href="#domain"><span class="toc__num">05</span>Domain</a>
+    <a class="toc__link" href="#infra"><span class="toc__num">06</span>Infra (repositórios)</a>
+    <a class="toc__link" href="#hooks"><span class="toc__num">07</span>Hooks</a>
+    <a class="toc__link" href="#componentes"><span class="toc__num">08</span>Componentes</a>
+    <a class="toc__link" href="#pegadinhas"><span class="toc__num">09</span>Pegadinhas reais</a>
+    <a class="toc__link" href="#rodar"><span class="toc__num">10</span>Como rodar</a>
+    <a class="toc__link" href="#glossario"><span class="toc__num">11</span>Glossário</a>
+  </nav>
+
+  <main class="content">
+
+    <!-- ================= 00 ================= -->
+    <section class="section" id="o-que-e">
+      <span class="section__eyebrow">00 — Fundamento</span>
+      <h2>O que é um teste unitário</h2>
+      <p>
+        Um <strong>teste unitário</strong> é um pedaço de código que executa uma única
+        "unidade" do sistema (uma função, uma classe, um hook, um componente) de forma
+        isolada, e verifica automaticamente se o resultado é o esperado. "Isolada" é a
+        palavra-chave: se o teste precisa de internet, de um celular ou de um banco de
+        dados de verdade para passar, ele não é mais unitário — vira teste de integração,
+        que é mais lento e falha por motivos que não têm nada a ver com o código.
+      </p>
+      <p>
+        A ferramenta usada aqui é o <strong>Jest</strong>, que executa os testes em
+        <strong>Node.js</strong> — ou seja, no computador, sem emulador e sem celular.
+        Isso é o que permite rodar as 521 verificações em cerca de 25 segundos.
+      </p>
+
+      <h3>A anatomia de um teste</h3>
+      <p>
+        Todo arquivo de teste usa três funções globais do Jest, e segue o padrão
+        <strong>AAA</strong> (<em>Arrange, Act, Assert</em> — prepare, execute, verifique):
+      </p>
+      <div class="code-block">
+        <div class="code-block__bar"><span>src/features/album/domain/constants/rewards.test.ts</span><em>exemplo real</em></div>
+<pre><span class="tok-fn">describe</span>(<span class="tok-str">'computeDailyClaimStatus'</span>, () =&gt; {   <span class="tok-com">// agrupa testes relacionados</span>
+  <span class="tok-fn">it</span>(<span class="tok-str">'bloqueia antes do fim do cooldown'</span>, () =&gt; {  <span class="tok-com">// um caso de teste</span>
+
+    <span class="tok-com">// ARRANGE — monta a situação</span>
+    <span class="tok-kw">const</span> now = <span class="tok-kw">new</span> Date(<span class="tok-str">'2026-07-28T12:00:00.000Z'</span>);
+    <span class="tok-kw">const</span> lastClaimedAt = <span class="tok-kw">new</span> Date(<span class="tok-str">'2026-07-28T00:00:00.000Z'</span>).toISOString();
+
+    <span class="tok-com">// ACT — executa a unidade sob teste</span>
+    <span class="tok-kw">const</span> status = <span class="tok-fn">computeDailyClaimStatus</span>(lastClaimedAt, DAILY_REWARD_COOLDOWN_MS, now);
+
+    <span class="tok-com">// ASSERT — afirma o que deveria ter acontecido</span>
+    <span class="tok-fn">expect</span>(status.available).<span class="tok-fn">toBe</span>(<span class="tok-kw">false</span>);
+    <span class="tok-fn">expect</span>(status.nextAvailableAt).<span class="tok-fn">toBe</span>(<span class="tok-str">'2026-07-29T00:00:00.000Z'</span>);
+  });
+});</pre>
+      </div>
+      <p>
+        Repare que <code>now</code> é <strong>passado por parâmetro</strong>, em vez de a
+        função chamar <code>new Date()</code> internamente. Esse detalhe é o que torna o
+        teste possível: uma função que lê o relógio do sistema sozinha daria um resultado
+        diferente a cada execução. Voltaremos a isso na seção 05.
+      </p>
+
+      <div class="note note--core">
+        <span class="note__tag">Conceito fundamental</span>
+        <p>
+          <strong>Mock</strong> (ou <em>dublê</em>) é uma peça falsa que ocupa o lugar de uma
+          dependência real durante o teste. Em vez de conversar com o Firestore de verdade,
+          o teste entrega ao código um objeto que <em>finge</em> ser o Firestore, devolve
+          respostas combinadas na hora, e ainda registra tudo o que foi chamado — o que
+          permite afirmar depois: "o código gravou exatamente estes dados".
+        </p>
+      </div>
+
+      <p>
+        Uma nota de nomenclatura que aparece em todo o projeto: a variável chamada
+        <code>sut</code> significa <em>System Under Test</em> — o objeto que está sendo
+        testado naquele arquivo, para distingui-lo dos mocks ao redor.
+      </p>
+    </section>
+
+    <!-- ================= 01 ================= -->
+    <section class="section" id="fluxo-dados">
+      <span class="section__eyebrow">01 — Arquitetura de dados</span>
+      <h2>Grafo de fluxo de informações</h2>
+      <p>
+        Antes de falar do que os testes fazem, é preciso enxergar por onde a informação
+        anda. O app tem <strong>três destinos de dados diferentes</strong>, escolhidos por
+        um critério simples (a "regra de ouro" da documentação técnica): dado
+        <strong>estático e igual para todos</strong> mora no <strong>SQLite local</strong>
+        (dentro do aparelho, sem internet, sem custo); dado <strong>pessoal e mutável</strong>
+        mora no <strong>Firestore</strong> (nuvem); e <strong>identidade</strong> (quem é o
+        usuário logado) é responsabilidade da <strong>API de autenticação do Firebase</strong>.
+      </p>
+
+      <div class="legend">
+        <span><i class="lg-sqlite"></i> SQLite local</span>
+        <span><i class="lg-fs"></i> Firestore (nuvem)</span>
+        <span><i class="lg-auth"></i> Firebase Auth (API)</span>
+        <span><i class="lg-mem"></i> memória (sem persistência)</span>
+        <span><i class="lg-cut"></i> fronteira mockada nos testes</span>
+      </div>
+
+      <div class="diagram">
+        <svg viewBox="0 0 1000 600" role="img" aria-labelledby="fluxo-title fluxo-desc">
+          <title id="fluxo-title">Fluxo de informação entre o app, o SQLite local, o Firestore e a API do Firebase Auth</title>
+          <desc id="fluxo-desc">
+            A camada de apresentação chama factories da camada Main, que injetam repositórios
+            nos use cases do Domain. Cada repositório da camada Infra conversa com uma fonte
+            de dados: SQLite local para catálogo estático, Firestore para dados pessoais,
+            Firebase Auth para identidade, e memória para predições. Os testes unitários
+            substituem tudo à direita da linha tracejada vermelha por mocks.
+          </desc>
+
+          <defs>
+            <marker id="ah" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+              <path d="M0,0 L9,4.5 L0,9 z" fill="#6f6e7a"/>
+            </marker>
+            <marker id="ah-sqlite" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+              <path d="M0,0 L9,4.5 L0,9 z" fill="#ff6b35"/>
+            </marker>
+            <marker id="ah-fs" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+              <path d="M0,0 L9,4.5 L0,9 z" fill="#b4ff00"/>
+            </marker>
+            <marker id="ah-auth" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+              <path d="M0,0 L9,4.5 L0,9 z" fill="#4488ff"/>
+            </marker>
+            <marker id="ah-mem" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+              <path d="M0,0 L9,4.5 L0,9 z" fill="#6f6e7a"/>
+            </marker>
+            <marker id="ah-dash" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+              <path d="M0,0 L9,4.5 L0,9 z" fill="#c79bff"/>
+            </marker>
+          </defs>
+
+          <!-- column labels -->
+          <text class="col-label" x="16" y="18">App (React Native)</text>
+          <text class="col-label" x="486" y="18">Infra — repositórios</text>
+          <text class="col-label" x="808" y="18">Fontes de dados</text>
+
+          <!-- ===== app pipeline ===== -->
+          <g>
+            <rect class="n-box n-box--app" x="16" y="228" width="140" height="62" rx="7"/>
+            <text class="n-title" x="30" y="252">Presentation</text>
+            <text class="n-sub" x="30" y="269">screens · hooks</text>
+            <text class="n-sub" x="30" y="283">contexts</text>
+
+            <path class="edge edge--flow" d="M156 259 L186 259" marker-end="url(#ah)"/>
+
+            <rect class="n-box" x="186" y="228" width="120" height="62" rx="7"/>
+            <text class="n-title" x="200" y="252">Main</text>
+            <text class="n-sub" x="200" y="269">factories</text>
+            <text class="n-sub" x="200" y="283">makeX()</text>
+
+            <path class="edge edge--flow" d="M306 259 L336 259" marker-end="url(#ah)"/>
+
+            <rect class="n-box n-box--domain" x="336" y="228" width="130" height="62" rx="7"/>
+            <text class="n-title" x="350" y="252">Domain</text>
+            <text class="n-sub" x="350" y="269">use cases</text>
+            <text class="n-sub" x="350" y="283">+ regras puras</text>
+          </g>
+
+          <!-- ===== fan-out trunk from domain to repos ===== -->
+          <path class="edge edge--flow" d="M466 259 L486 259" marker-end="url(#ah)"/>
+
+          <!-- ===== repositories ===== -->
+          <g>
+            <rect class="n-box n-box--infra" x="486" y="34" width="210" height="42" rx="6"/>
+            <text class="n-mono" x="498" y="52">SQLiteAlbumCatalogRepo</text>
+            <text class="n-sub" x="498" y="67">álbuns · figurinhas do catálogo</text>
+
+            <rect class="n-box n-box--infra" x="486" y="106" width="210" height="42" rx="6"/>
+            <text class="n-mono" x="498" y="124">FirestoreAlbumRepository</text>
+            <text class="n-sub" x="498" y="139">coleção · moedas · recompensas</text>
+
+            <rect class="n-box n-box--infra" x="486" y="178" width="210" height="42" rx="6"/>
+            <text class="n-mono" x="498" y="196">SQLiteTeamRepository</text>
+            <text class="n-sub" x="498" y="211">seleções · elencos · favoritos</text>
+
+            <rect class="n-box n-box--infra" x="486" y="250" width="210" height="42" rx="6"/>
+            <text class="n-mono" x="498" y="268">SQLiteMatchRepository</text>
+            <text class="n-sub" x="498" y="283">partidas · placares · odds</text>
+
+            <rect class="n-box n-box--infra" x="486" y="322" width="210" height="42" rx="6"/>
+            <text class="n-mono" x="498" y="340">SQLiteGroupRepository</text>
+            <text class="n-sub" x="498" y="355">grupos · classificação</text>
+
+            <rect class="n-box n-box--mem" x="486" y="394" width="210" height="42" rx="6"/>
+            <text class="n-mono" x="498" y="412">MockPredictionRepository</text>
+            <text class="n-sub" x="498" y="427">palpites (em produção hoje)</text>
+
+            <rect class="n-box n-box--infra" x="486" y="466" width="210" height="42" rx="6"/>
+            <text class="n-mono" x="498" y="484">FirebaseAuthRepository</text>
+            <text class="n-sub" x="498" y="499">login · registro · sessão</text>
+          </g>
+
+          <!-- trunk connecting domain arrow to each repo -->
+          <path class="edge edge--flow" d="M480 259 L480 55 L486 55" marker-end="url(#ah)"/>
+          <path class="edge edge--flow" d="M480 259 L480 127 L486 127" marker-end="url(#ah)"/>
+          <path class="edge edge--flow" d="M480 259 L480 199 L486 199" marker-end="url(#ah)"/>
+          <path class="edge edge--flow" d="M480 259 L480 271 L486 271" marker-end="url(#ah)"/>
+          <path class="edge edge--flow" d="M480 259 L480 343 L486 343" marker-end="url(#ah)"/>
+          <path class="edge edge--flow" d="M480 259 L480 415 L486 415" marker-end="url(#ah)"/>
+          <path class="edge edge--flow" d="M480 259 L480 487 L486 487" marker-end="url(#ah)"/>
+
+          <!-- FirestoreAlbumRepository delega ao catálogo SQLite -->
+          <path class="edge edge--dashed" d="M706 118 C 736 108, 736 62, 706 52" marker-end="url(#ah-dash)"/>
+          <text class="e-label" x="712" y="88">delega</text>
+          <text class="e-label" x="712" y="100">catálogo</text>
+
+          <!-- ===== cut line ===== -->
+          <line class="cut-line" x1="762" y1="26" x2="762" y2="560"/>
+          <text class="cut-label" x="762" y="580" text-anchor="middle">fronteira mockada nos testes unitários</text>
+
+          <!-- ===== data sources ===== -->
+          <g>
+            <rect class="n-box n-box--sqlite" x="808" y="86" width="176" height="66" rx="7"/>
+            <text class="n-title" x="822" y="110">SQLite local</text>
+            <text class="n-sub" x="822" y="127">populardacopa.db</text>
+            <text class="n-sub" x="822" y="141">expo-sqlite · no aparelho</text>
+
+            <rect class="n-box n-box--fs" x="808" y="226" width="176" height="66" rx="7"/>
+            <text class="n-title" x="822" y="250">Firestore</text>
+            <text class="n-sub" x="822" y="267">users/{uid}</text>
+            <text class="n-sub" x="822" y="281">NoSQL · nuvem</text>
+
+            <rect class="n-box n-box--mem" x="808" y="382" width="176" height="56" rx="7"/>
+            <text class="n-title" x="822" y="406">Memória (RAM)</text>
+            <text class="n-sub" x="822" y="423">array em runtime</text>
+
+            <rect class="n-box n-box--auth" x="808" y="466" width="176" height="66" rx="7"/>
+            <text class="n-title" x="822" y="490">Firebase Auth</text>
+            <text class="n-sub" x="822" y="507">API REST do Google</text>
+            <text class="n-sub" x="822" y="521">sessão em AsyncStorage</text>
+          </g>
+
+          <!-- ===== repo -> source edges ===== -->
+          <!-- catalog -> sqlite -->
+          <path class="edge edge--sqlite" d="M696 55 C 750 55, 754 100, 808 110" marker-end="url(#ah-sqlite)"/>
+          <!-- firestore album -> firestore -->
+          <path class="edge edge--fs" d="M696 127 C 750 127, 754 220, 808 244" marker-end="url(#ah-fs)"/>
+          <!-- team -> sqlite -->
+          <path class="edge edge--sqlite" d="M696 193 C 750 193, 754 140, 808 130" marker-end="url(#ah-sqlite)"/>
+          <!-- team -> firestore (favoritos) -->
+          <path class="edge edge--fs" d="M696 205 C 750 205, 754 250, 808 262" marker-end="url(#ah-fs)"/>
+          <text class="e-label" x="704" y="228">favoritos</text>
+          <!-- match -> sqlite -->
+          <path class="edge edge--sqlite" d="M696 271 C 748 271, 752 150, 808 140" marker-end="url(#ah-sqlite)"/>
+          <!-- group -> sqlite -->
+          <path class="edge edge--sqlite" d="M696 343 C 744 343, 750 160, 808 149" marker-end="url(#ah-sqlite)"/>
+          <!-- prediction -> memoria -->
+          <path class="edge edge--mem" d="M696 415 C 750 415, 754 405, 808 408" marker-end="url(#ah-mem)"/>
+          <!-- auth -> firebase auth -->
+          <path class="edge edge--auth" d="M696 481 C 750 481, 754 490, 808 492" marker-end="url(#ah-auth)"/>
+          <!-- auth -> firestore (perfil) -->
+          <path class="edge edge--fs" d="M696 495 C 756 495, 772 320, 808 286" marker-end="url(#ah-fs)"/>
+          <text class="e-label" x="700" y="516">cria doc do usuário</text>
+        </svg>
+      </div>
+      <p class="caption">
+        Setas cinzas: chamada de código dentro do app. Setas coloridas: acesso real a
+        dados. A linha vermelha é o limite que nenhum teste unitário atravessa.
+      </p>
+
+      <h3>Lendo o grafo em uma frase por fonte</h3>
+      <div class="table-scroll">
+        <table class="grid-table">
+          <thead>
+            <tr><th>Fonte</th><th>Quem escreve/lê</th><th>O que guarda</th><th>Por quê ali</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="tag tag-sqlite">SQLite local</td>
+              <td><code>SQLiteAlbumCatalogRepository</code>, <code>SQLiteTeamRepository</code>, <code>SQLiteMatchRepository</code>, <code>SQLiteGroupRepository</code></td>
+              <td>48 seleções, 300+ jogadores, 2 álbuns, 150 figurinhas de catálogo, 72 partidas, grupos e classificação</td>
+              <td>É idêntico para todos os usuários e nunca muda — não vale pagar leitura na nuvem nem esperar rede por isso</td>
+            </tr>
+            <tr>
+              <td class="tag tag-firestore">Firestore</td>
+              <td><code>FirestoreAlbumRepository</code>, <code>SQLiteTeamRepository</code> (só favoritos), <code>FirebaseAuthRepository</code> (doc do usuário)</td>
+              <td>Moedas, figurinhas possuídas com <code>obtainedAt</code>, times favoritos, timestamps de recompensa diária e pacote grátis</td>
+              <td>É pessoal e muda o tempo todo; precisa sobreviver a reinstalação do app e sincronizar entre dispositivos</td>
+            </tr>
+            <tr>
+              <td class="tag tag-auth">Firebase Auth</td>
+              <td><code>FirebaseAuthRepository</code></td>
+              <td>Credenciais, sessão persistida em <code>AsyncStorage</code>, e-mail de redefinição de senha</td>
+              <td>Identidade é um serviço à parte — o app nunca guarda senha, só recebe um <code>uid</code></td>
+            </tr>
+            <tr>
+              <td class="tag tag-mem">Memória</td>
+              <td><code>MockPredictionRepository</code></td>
+              <td>Palpites de apostas</td>
+              <td>Ainda não migrado para persistência real — apesar do nome "Mock", <strong>é o repositório de produção hoje</strong>, o que faz seus testes valerem tanto quanto os outros</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note note--practice">
+        <span class="note__tag">Detalhe que o grafo revela</span>
+        <p>
+          O <code>FirestoreAlbumRepository</code> é o único nó que <strong>cruza duas
+          fontes</strong>: para montar a tela de mercado, ele lê o progresso do usuário no
+          Firestore e o catálogo no SQLite (seta roxa tracejada). É por isso que o teste
+          dele é o mais complexo da suíte — precisa mockar os dois lados ao mesmo tempo.
+        </p>
+      </div>
+    </section>
+
+    <!-- ================= 02 ================= -->
+    <section class="section" id="fronteira">
+      <span class="section__eyebrow">02 — O princípio central</span>
+      <h2>A fronteira do mock: onde o teste corta</h2>
+      <p>
+        Toda a estratégia de testes deste projeto cabe em uma frase: <strong>o teste
+        substitui o vizinho mais próximo, nunca a fonte inteira</strong>. Em cada camada,
+        o dublê é colocado exatamente um passo adiante do que está sendo testado — nem
+        mais perto (o que testaria só o mock), nem mais longe (o que exigiria banco de
+        verdade).
+      </p>
+
+      <div class="table-scroll">
+        <table class="grid-table">
+          <thead>
+            <tr><th>Ao testar…</th><th>o que é substituído</th><th>como</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="tag tag-domain">Use case</td>
+              <td>O repositório inteiro</td>
+              <td>Objeto literal com <code>jest.fn()</code> por método, injetado no construtor — repositórios são interfaces TypeScript, então não há classe a instanciar</td>
+            </tr>
+            <tr>
+              <td class="tag tag-infra">Repositório SQLite</td>
+              <td>Só o acesso ao driver: <code>getSQLiteDb()</code></td>
+              <td><code>jest.mock('.../sqlite/database')</code> devolvendo um fake com <code>getFirstAsync</code>/<code>getAllAsync</code>. O SQL de verdade continua sendo verificado — como string, na asserção</td>
+            </tr>
+            <tr>
+              <td class="tag tag-infra">Repositório Firestore</td>
+              <td>Os módulos <code>firebase/firestore</code> <em>e</em> <code>firebaseConfig</code></td>
+              <td>Sem o segundo, o simples <code>import</code> dispara a validação de variáveis de ambiente e tenta inicializar o Firebase de verdade</td>
+            </tr>
+            <tr>
+              <td class="tag tag-presentation">Hook</td>
+              <td>A <em>factory</em> do use case (<code>makeX</code>) e o <code>UserContext</code></td>
+              <td><code>jest.mock</code> no módulo da factory, devolvendo <code>{ execute }</code>. O hook nunca sabe que o repositório existe</td>
+            </tr>
+            <tr>
+              <td class="tag tag-presentation">Componente</td>
+              <td>Ícones, SVGs e o que o Jest não sabe transformar</td>
+              <td>Infra reutilizável em <code>test/</code> (seção 08)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note note--core">
+        <span class="note__tag">Por que isso funciona tão bem aqui</span>
+        <p>
+          É um efeito direto da Clean Architecture. Como o Domain só conhece
+          <em>interfaces</em> de repositório, e a Presentation só conhece <em>factories</em>,
+          cada camada já tem um ponto de corte natural desenhado na arquitetura. Testar
+          ficou barato porque o código já era desacoplado — não o contrário.
+        </p>
+      </div>
+    </section>
+
+    <!-- ================= 03 ================= -->
+    <section class="section" id="setup">
+      <span class="section__eyebrow">03 — Infraestrutura</span>
+      <h2>Como o Jest foi configurado</h2>
+      <p>
+        Testar React Native fora do celular exige um <strong>preset</strong> — um pacote de
+        configuração pronta que ensina o Jest a entender JSX, TypeScript e os módulos
+        nativos do Expo. Aqui é o <code>jest-expo</code>.
+      </p>
+
+      <div class="code-block">
+        <div class="code-block__bar"><span>jest.config.js</span><em>raiz do projeto</em></div>
+<pre>module.exports = {
+  preset: <span class="tok-str">'jest-expo'</span>,                              <span class="tok-com">// entende Expo + RN + TS</span>
+  setupFilesAfterEnv: [<span class="tok-str">'&lt;rootDir&gt;/test/setup.tsx'</span>], <span class="tok-com">// mocks globais</span>
+  moduleNameMapper: {
+    <span class="tok-str">'\\.svg$'</span>: <span class="tok-str">'&lt;rootDir&gt;/test/svgMock.tsx'</span>,          <span class="tok-com">// SVG → View falsa</span>
+    <span class="tok-str">'^@/assets/(.*)$'</span>: <span class="tok-str">'&lt;rootDir&gt;/assets/$1'</span>,        <span class="tok-com">// espelha o tsconfig</span>
+    <span class="tok-str">'^@/(.*)$'</span>: <span class="tok-str">'&lt;rootDir&gt;/src/$1'</span>,
+  },
+  collectCoverageFrom: [
+    <span class="tok-str">'src/**/*.{ts,tsx}'</span>,
+    <span class="tok-str">'!src/**/presentation/screens/**'</span>,             <span class="tok-com">// telas ficam de fora</span>
+    <span class="tok-str">'!src/declarations.d.ts'</span>,
+  ],
+};</pre>
+      </div>
+
+      <ul>
+        <li><strong><code>moduleNameMapper</code></strong> — redireciona um <code>import</code> para outro arquivo. Serve para dois propósitos aqui: replicar os atalhos de caminho do <code>tsconfig.json</code> (<code>@/algo</code>) e trocar arquivos que o Jest não consegue processar (todo <code>.svg</code> vira um mock).</li>
+        <li><strong><code>setupFilesAfterEnv</code></strong> — código que roda antes de cada suíte, usado para os mocks globais (ícones).</li>
+        <li><strong><code>collectCoverageFrom</code></strong> — define o que entra no cálculo de cobertura. As <code>*Screen.tsx</code> são excluídas de propósito: são só composição de hooks e componentes já testados individualmente.</li>
+      </ul>
+
+      <h3>Convenção de arquivos</h3>
+      <p>
+        O teste mora <strong>ao lado</strong> do arquivo testado: <code>rewards.ts</code> →
+        <code>rewards.test.ts</code>. Sem pasta <code>__tests__</code> separada, sem
+        configuração extra (o <code>testMatch</code> padrão do Jest já reconhece o sufixo).
+        A vantagem prática: abrir o código e ver imediatamente se ele é testado.
+      </p>
+      <p>
+        A exceção é a pasta <code>test/</code> na raiz, fora de <code>src/</code>, que
+        guarda infraestrutura compartilhada — <code>fixtures.ts</code>,
+        <code>styleHelpers.ts</code>, <code>svgMock.tsx</code>, <code>setup.tsx</code>.
+      </p>
+    </section>
+
+    <!-- ================= 04 ================= -->
+    <section class="section" id="estrategia">
+      <span class="section__eyebrow">04 — Estratégia</span>
+      <h2>Quanto testar de cada camada</h2>
+      <p>
+        Nem toda camada merece o mesmo esforço. O critério usado foi
+        <strong>densidade de lógica por unidade de atrito</strong>: onde há regra de
+        negócio de verdade e nenhum mock difícil, cobertura total; onde há muito mock e
+        pouca lógica, cobertura seletiva.
+      </p>
+
+      <div class="pyramid">
+        <div class="pyr-row pyr-row--domain">
+          <h4>Domain</h4>
+          <p>Funções puras e use cases. Zero mock de módulo nativo, toda a regra do jogo. <strong>Cobertura completa de casos.</strong></p>
+          <div class="pyr-row__count">prioridade máxima</div>
+        </div>
+        <div class="pyr-row pyr-row--infra">
+          <h4>Infra</h4>
+          <p>Repositórios: mapeamento linha→entidade, montagem de query, guardas de erro. Mocka-se o driver, não o repositório.</p>
+          <div class="pyr-row__count">alta</div>
+        </div>
+        <div class="pyr-row pyr-row--hooks">
+          <h4>Hooks</h4>
+          <p>Estados <code>loading</code>/<code>error</code>/<code>data</code>, tradução de erro, efeitos e limpeza. Cobertura completa das 5 features.</p>
+          <div class="pyr-row__count">alta</div>
+        </div>
+        <div class="pyr-row pyr-row--comp">
+          <h4>Componentes</h4>
+          <p>Só o que ramifica: estilo condicional por raridade/estado, formatação, interação. Nada de snapshot.</p>
+          <div class="pyr-row__count">seletiva — 13 componentes</div>
+        </div>
+        <div class="pyr-row pyr-row--out">
+          <h4>Fora do escopo</h4>
+          <p><code>*Screen.tsx</code> (composição do que já é testado), animações puras (<code>AnimacaoAbrirPacote</code>, <code>ChargeGlow</code>, <code>Particle</code>) e as factories <code>make*.ts</code>.</p>
+          <div class="pyr-row__count">decisão consciente</div>
+        </div>
+      </div>
+
+      <h3>O padrão que definiu a estratégia</h3>
+      <p>
+        Ao mapear os use cases existentes, uma constatação mudou o plano: a
+        <strong>maioria é delegação pura de uma linha</strong> ao repositório.
+      </p>
+      <div class="code-block">
+        <div class="code-block__bar"><span>src/features/album/domain/usecases/BuyStickerPack.ts</span></div>
+<pre><span class="tok-kw">export class</span> BuyStickerPack {
+  <span class="tok-fn">constructor</span>(<span class="tok-kw">private readonly</span> albumRepository: AlbumRepository) {}
+
+  <span class="tok-kw">async</span> <span class="tok-fn">execute</span>(userId: string, albumId: string, cost: number) {
+    <span class="tok-kw">return this</span>.albumRepository.<span class="tok-fn">buyStickerPack</span>(userId, albumId, cost); <span class="tok-com">// e só</span>
+  }
+}</pre>
+      </div>
+      <p>
+        Não há o que quebrar aqui. Então esses casos recebem um <strong>teste de
+        contrato</strong> curto — "chama o método certo, com os argumentos certos, e
+        devolve o resultado sem transformar" — que funciona como rede de segurança se a
+        lógica crescer depois. A lógica de negócio real estava concentrada em poucos
+        arquivos, e é lá que a cobertura é exaustiva.
+      </p>
+    </section>
+
+    <!-- ================= 05 ================= -->
+    <section class="section" id="domain">
+      <span class="section__eyebrow">05 — Camada Domain</span>
+      <h2>Testando regra de negócio pura</h2>
+      <p>
+        Esta é a camada mais fácil e mais valiosa de testar: sem React, sem banco, sem
+        rede. Uma função entra com valores, sai com valores.
+      </p>
+
+      <h3>Injeção de determinismo: o truque central</h3>
+      <p>
+        <strong>Determinismo</strong> significa: mesma entrada, mesma saída, sempre. Duas
+        coisas quebram isso — o relógio (<code>new Date()</code>) e o acaso
+        (<code>Math.random()</code>). A solução adotada em todo o projeto é a mesma:
+        transformar essas fontes em <strong>parâmetros com valor padrão</strong>. O app em
+        produção não passa nada e usa o padrão; o teste passa um valor fixo e controla o
+        resultado.
+      </p>
+      <div class="code-block">
+        <div class="code-block__bar"><span>o padrão, em duas assinaturas reais</span></div>
+<pre><span class="tok-com">// relógio injetável</span>
+<span class="tok-kw">export function</span> <span class="tok-fn">computeDailyClaimStatus</span>(
+  lastClaimedAt: string | <span class="tok-kw">null</span>,
+  cooldownMs: number,
+  now: Date = <span class="tok-kw">new</span> Date(),          <span class="tok-com">// ← padrão em produção, fixo no teste</span>
+) { <span class="tok-com">/* ... */</span> }
+
+<span class="tok-com">// acaso injetável</span>
+<span class="tok-kw">export function</span> <span class="tok-fn">generatePlayerStats</span>(
+  position: string,
+  random: () =&gt; number = Math.random,  <span class="tok-com">// ← idem</span>
+) { <span class="tok-com">/* ... */</span> }</pre>
+      </div>
+      <p>
+        Com isso, um teste pode afirmar coisas impossíveis de outra forma: "defensor só
+        marca gol quando o sorteio passa de 0.8" vira uma asserção exata, não uma
+        estatística.
+      </p>
+
+      <h3>A refatoração que os testes provocaram</h3>
+      <p>
+        Ao tentar testar o <code>FirestoreAlbumRepository</code>, ficou claro que ele
+        misturava regra de negócio (sorteio de figurinhas, cálculo de progresso) com
+        chamadas ao Firestore no mesmo método — intestável sem mockar <code>Math.random</code>
+        no meio de uma cadeia de <code>getDoc</code>/<code>updateDoc</code>. O mesmo defeito
+        apareceu em outros repositórios. A resposta foi extrair essas regras para funções
+        puras em <code>domain/constants/</code>:
+      </p>
+      <div class="table-scroll">
+        <table class="grid-table">
+          <thead>
+            <tr><th>Função extraída</th><th>Vinha de</th><th>Problema original</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>computeWinRate</code></td><td><code>SQLiteTeamRepository</code></td><td>A mesma fórmula copiada 4 vezes no arquivo</td></tr>
+            <tr><td><code>generatePlayerStats</code></td><td><code>SQLiteTeamRepository</code></td><td><code>Math.random()</code> direto dentro de um mapeador de linha→entidade</td></tr>
+            <tr><td><code>computeMatchOdds</code></td><td><code>SQLiteMatchRepository</code></td><td>Já era determinístico (hash do id), só não estava isolado</td></tr>
+            <tr><td><code>computeCollectionProgress</code>, <code>drawUnownedStickers</code>, <code>drawStickersWithRepetition</code></td><td><code>FirestoreAlbumRepository</code></td><td>Cálculo de progresso duplicado <strong>5 vezes</strong>; dois algoritmos de sorteio presos entre chamadas de rede</td></tr>
+            <tr><td><code>computePredictionStats</code></td><td><code>MockPredictionRepository</code></td><td>Estatística de acerto misturada com armazenamento</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note note--practice">
+        <span class="note__tag">Lição de projeto</span>
+        <p>
+          Foi uma <strong>refatoração pura</strong>: nenhum comportamento observável do app
+          mudou, os repositórios apenas passaram a chamar as funções extraídas. Vale como
+          o argumento mais concreto a favor de testar — a dificuldade de escrever o teste
+          apontou um problema de design que já existia no código de produção.
+        </p>
+      </div>
+
+      <h3>Teste de contrato, na prática</h3>
+      <div class="code-block">
+        <div class="code-block__bar"><span>padrão dos use cases delegantes</span></div>
+<pre><span class="tok-kw">const</span> albumRepository = { <span class="tok-fn">buyStickerPack</span>: <span class="tok-fn">jest.fn</span>() } <span class="tok-kw">as unknown as</span> AlbumRepository;
+
+<span class="tok-fn">it</span>(<span class="tok-str">'delega a compra para o repositório com os argumentos recebidos'</span>, <span class="tok-kw">async</span> () =&gt; {
+  <span class="tok-kw">const</span> sut = <span class="tok-kw">new</span> <span class="tok-fn">BuyStickerPack</span>(albumRepository);
+
+  <span class="tok-kw">await</span> sut.<span class="tok-fn">execute</span>(<span class="tok-str">'u1'</span>, <span class="tok-str">'a1'</span>, 100);
+
+  <span class="tok-fn">expect</span>(albumRepository.buyStickerPack).<span class="tok-fn">toHaveBeenCalledWith</span>(<span class="tok-str">'u1'</span>, <span class="tok-str">'a1'</span>, 100);
+});</pre>
+      </div>
+      <p>
+        Como os repositórios são <em>interfaces</em> TypeScript (não classes), o mock é só
+        um objeto literal com <code>jest.fn()</code> nos métodos usados — nenhuma biblioteca
+        de mocking extra é necessária.
+      </p>
+    </section>
+
+    <!-- ================= 06 ================= -->
+    <section class="section" id="infra">
+      <span class="section__eyebrow">06 — Camada Infra</span>
+      <h2>Testando repositórios sem banco de dados</h2>
+      <p>
+        Aqui o teste chega na fronteira vermelha do grafo. Não existe SQLite nem Firestore
+        rodando em Node — e nem se quer que exista. A regra: <strong>mockar o ponto de
+        acesso ao driver, não o repositório inteiro</strong>. Mockar o repositório inteiro
+        não testaria nada; mockar só o driver deixa intactos o SQL, o mapeamento e as
+        guardas de erro — que é exatamente o que essa camada faz de errado quando erra.
+      </p>
+
+      <div class="code-block">
+        <div class="code-block__bar"><span>SQLiteAlbumCatalogRepository.test.ts</span><em>estrutura completa</em></div>
+<pre><span class="tok-com">// 1. o mock vem ANTES dos imports — ver a pegadinha do hoisting na seção 09</span>
+<span class="tok-fn">jest.mock</span>(<span class="tok-str">'../../../../shared/infra/sqlite/database'</span>, () =&gt; ({
+  <span class="tok-fn">getSQLiteDb</span>: <span class="tok-fn">jest.fn</span>(),
+}));
+
+<span class="tok-kw">import</span> { getSQLiteDb } <span class="tok-kw">from</span> <span class="tok-str">'../../../../shared/infra/sqlite/database'</span>;
+<span class="tok-kw">import</span> { SQLiteAlbumCatalogRepository } <span class="tok-kw">from</span> <span class="tok-str">'./SQLiteAlbumCatalogRepository'</span>;
+
+<span class="tok-com">// 2. o "banco" falso: só os dois métodos que o repositório usa</span>
+<span class="tok-kw">const</span> mockDb = { <span class="tok-fn">getFirstAsync</span>: <span class="tok-fn">jest.fn</span>(), <span class="tok-fn">getAllAsync</span>: <span class="tok-fn">jest.fn</span>() };
+
+<span class="tok-fn">beforeEach</span>(() =&gt; {
+  <span class="tok-fn">jest.clearAllMocks</span>();                       <span class="tok-com">// isola cada teste do anterior</span>
+  (getSQLiteDb <span class="tok-kw">as</span> jest.Mock).<span class="tok-fn">mockResolvedValue</span>(mockDb);
+});
+
+<span class="tok-fn">it</span>(<span class="tok-str">'mapeia a linha do banco para a entidade Album'</span>, <span class="tok-kw">async</span> () =&gt; {
+  <span class="tok-com">// 3. a "linha" que o banco devolveria — snake_case, como no schema</span>
+  mockDb.getFirstAsync.<span class="tok-fn">mockResolvedValue</span>({
+    id: <span class="tok-str">'a1'</span>, name: <span class="tok-str">'Copa 2026'</span>, total_stickers: 500, price: 10,
+  });
+
+  <span class="tok-kw">const</span> album = <span class="tok-kw">await</span> sut.<span class="tok-fn">getAlbumById</span>(<span class="tok-str">'a1'</span>);
+
+  <span class="tok-com">// 4. duas asserções: a query certa E a entidade certa (camelCase, tipada)</span>
+  <span class="tok-fn">expect</span>(mockDb.getFirstAsync).<span class="tok-fn">toHaveBeenCalledWith</span>(
+    <span class="tok-str">'SELECT * FROM albums WHERE id = ?;'</span>, [<span class="tok-str">'a1'</span>],
+  );
+  <span class="tok-fn">expect</span>(album).<span class="tok-fn">toEqual</span>({
+    id: <span class="tok-str">'a1'</span>, name: <span class="tok-str">'Copa 2026'</span>, totalStickers: 500, ownedStickersCount: 0, price: 10,
+  });
+});</pre>
+      </div>
+
+      <h3>O que esse tipo de teste realmente pega</h3>
+      <ul>
+        <li><strong>Tradução de nomes</strong> — o schema SQL usa <code>total_stickers</code>, o domínio usa <code>totalStickers</code>. Um erro de digitação aqui só apareceria na tela, em runtime.</li>
+        <li><strong>Guardas de erro</strong> — <code>getAlbumById</code> deve lançar <code>Album not found: x</code> quando a linha não existe, em vez de devolver <code>undefined</code> silenciosamente.</li>
+        <li><strong>Montagem dinâmica de query</strong> — <code>getStickersByIds</code> monta os <code>?</code> do <code>IN (?, ?, ?)</code> conforme a quantidade de ids, e faz <em>early return</em> sem tocar no banco quando a lista está vazia.</li>
+        <li><strong>Conversões</strong> — <code>null</code> do banco vira <code>undefined</code> no domínio; a coluna de raridade recebe <em>cast</em> para o tipo literal.</li>
+        <li><strong>Regras condicionais</strong> — em <code>SQLiteMatchRepository</code>, odds só aparecem em partida <code>scheduled</code>, placar só em <code>finished</code>.</li>
+        <li><strong>N+1 queries</strong> — <code>getAllGroups</code> faz uma consulta por grupo para a classificação; o teste encadeia <code>mockResolvedValueOnce</code> para simular cada chamada em sequência.</li>
+        <li><strong>Erro engolido</strong> — <code>getFavoriteTeams</code> tem um <code>try/catch</code> que devolve <code>[]</code> se o Firestore falhar, em vez de propagar; o teste documenta isso explicitamente.</li>
+      </ul>
+
+      <h3>Os dois casos mais difíceis</h3>
+      <p>
+        <strong><code>FirebaseAuthRepository</code></strong> exigiu três mocks:
+        <code>firebase/auth</code>, <code>firebase/firestore</code> <em>e</em> o módulo
+        <code>firebaseConfig</code>. O terceiro é o não-óbvio — sem ele, o simples
+        <code>import</code> executa a validação de variáveis de ambiente do arquivo e
+        <strong>lança erro antes de o primeiro teste rodar</strong>.
+      </p>
+      <p>
+        <strong><code>FirestoreAlbumRepository</code></strong> é o mais complexo da suíte
+        por dois motivos. Primeiro, ele depende de uma <em>classe concreta</em>
+        (<code>SQLiteAlbumCatalogRepository</code>), não de uma interface — o mock precisa
+        de <code>as unknown as jest.Mocked&lt;...&gt;</code> para contornar os campos
+        <code>private</code> da classe real, que quebrariam a checagem estrutural do
+        TypeScript. Segundo, como o mock do Firestore não simula estado real, não adianta
+        gravar e reler: os testes verificam <strong>a chamada a <code>updateDoc</code></strong>
+        — o que foi gravado — em vez de uma releitura pós-gravação.
+      </p>
+    </section>
+
+    <!-- ================= 07 ================= -->
+    <section class="section" id="hooks">
+      <span class="section__eyebrow">07 — Presentation</span>
+      <h2>Testando hooks</h2>
+      <p>
+        Um <strong>hook</strong> é uma função React que guarda estado e lógica reutilizável.
+        Neste projeto, cada tela tem hooks próprios que fazem o trabalho de "buscar dados,
+        marcar carregando, tratar erro". Testá-los exige renderizá-los fora de qualquer
+        componente — é o que o <code>renderHook</code> da Testing Library faz.
+      </p>
+
+      <div class="code-block">
+        <div class="code-block__bar"><span>useLogin.test.ts</span><em>o vocabulário completo</em></div>
+<pre><span class="tok-fn">jest.mock</span>(<span class="tok-str">'../../main/factories/makeAuth'</span>, () =&gt; ({ <span class="tok-fn">makeSignInWithEmail</span>: <span class="tok-fn">jest.fn</span>() }));
+
+<span class="tok-kw">const</span> execute = <span class="tok-fn">jest.fn</span>();
+<span class="tok-fn">beforeEach</span>(() =&gt; {
+  <span class="tok-fn">jest.clearAllMocks</span>();
+  (makeSignInWithEmail <span class="tok-kw">as</span> jest.Mock).<span class="tok-fn">mockReturnValue</span>({ execute });
+});
+
+<span class="tok-fn">it</span>(<span class="tok-str">'mantém loading true enquanto a requisição não resolve'</span>, <span class="tok-kw">async</span> () =&gt; {
+  <span class="tok-com">// promessa que só resolve quando o teste mandar — congela o "meio do caminho"</span>
+  <span class="tok-kw">let</span> resolveLogin: (v: unknown) =&gt; <span class="tok-kw">void</span> = () =&gt; {};
+  execute.<span class="tok-fn">mockReturnValue</span>(<span class="tok-kw">new</span> Promise((resolve) =&gt; { resolveLogin = resolve; }));
+
+  <span class="tok-kw">const</span> { result } = <span class="tok-fn">renderHook</span>(() =&gt; <span class="tok-fn">useLogin</span>());
+
+  <span class="tok-fn">act</span>(() =&gt; { <span class="tok-kw">void</span> result.current.<span class="tok-fn">execute</span>(<span class="tok-str">'a@a.com'</span>, <span class="tok-str">'senha123'</span>); });
+
+  <span class="tok-kw">await</span> <span class="tok-fn">waitFor</span>(() =&gt; <span class="tok-fn">expect</span>(result.current.loading).<span class="tok-fn">toBe</span>(<span class="tok-kw">true</span>));
+
+  <span class="tok-kw">await</span> <span class="tok-fn">act</span>(<span class="tok-kw">async</span> () =&gt; { <span class="tok-fn">resolveLogin</span>({ uid: <span class="tok-str">'u1'</span> }); });
+
+  <span class="tok-fn">expect</span>(result.current.loading).<span class="tok-fn">toBe</span>(<span class="tok-kw">false</span>);
+});</pre>
+      </div>
+
+      <ul>
+        <li><strong><code>renderHook</code></strong> — monta um componente invisível só para hospedar o hook; <code>result.current</code> é sempre o retorno mais recente.</li>
+        <li><strong><code>act</code></strong> — envolve qualquer coisa que cause atualização de estado, garantindo que o React processe o re-render antes da asserção. Sem isso, o teste lê um estado velho e o Jest imprime um aviso.</li>
+        <li><strong><code>waitFor</code></strong> — repete a asserção até ela passar (ou estourar o tempo). É o que permite testar estados assíncronos sem <code>sleep</code>.</li>
+        <li><strong>Promessa controlada manualmente</strong> — a técnica acima é a única forma de observar o estado <em>intermediário</em> (<code>loading: true</code>), que normalmente dura microssegundos.</li>
+      </ul>
+
+      <h3>O que foi coberto por feature</h3>
+      <div class="table-scroll">
+        <table class="grid-table">
+          <thead><tr><th>Feature</th><th>Foco dos testes</th></tr></thead>
+          <tbody>
+            <tr><td class="tag tag-presentation">auth</td><td>Tradução de <strong>cada código de erro do Firebase</strong> para mensagem em pt-BR, mais o fallback genérico (erro sem <code>code</code>, string solta, <code>null</code>, <code>undefined</code>), estado de <code>loading</code> pendente e limpeza do erro anterior</td></tr>
+            <tr><td class="tag tag-presentation">album</td><td>10 hooks: busca ao montar, compras, resgates, agrupamento por raridade, <code>ownedIds</code> como <code>Set</code>, e o <code>pendingPackStore</code></td></tr>
+            <tr><td class="tag tag-presentation">apostas</td><td>5 hooks, incluindo <code>useSettlePendingPredictions</code> — o mais delicado: usa <code>useRef</code> para o callback mais recente e uma flag <code>cancelled</code> na limpeza, testada desmontando o hook <em>antes</em> de a liquidação resolver</td></tr>
+            <tr><td class="tag tag-presentation">times</td><td>4 hooks, com destaque para <code>useTimesScreen</code> — duas listas coordenadas (<code>allTeams</code> e <code>favoriteTeams</code>) que precisam se re-sincronizar a cada busca ou favoritação</td></tr>
+            <tr><td class="tag tag-presentation">grupos</td><td><code>useGroups</code>: busca simples ao montar</td></tr>
+            <tr><td class="tag tag-presentation">UserContext</td><td>Mapeamento <code>FirebaseUser → User</code> (com fallback de nome: <code>displayName</code> → parte local do e-mail → <code>'Usuário'</code>), <code>refreshCoins</code>, cancelamento da inscrição ao desmontar, e o <code>AuthGuard</code> redirecionando rotas privadas</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note note--warn">
+        <span class="note__tag">Comportamento documentado, não corrigido</span>
+        <p>
+          <code>useCreatePrediction</code> nunca chama <code>setError(null)</code> — diferente
+          de <code>useLogin</code>. Na prática, um erro de tentativa anterior
+          <strong>continua visível</strong> mesmo depois de uma tentativa bem-sucedida. O
+          teste registra o comportamento atual em vez de presumir a correção: se um dia for
+          corrigido, o teste falha e força a decisão consciente.
+        </p>
+      </div>
+    </section>
+
+    <!-- ================= 08 ================= -->
+    <section class="section" id="componentes">
+      <span class="section__eyebrow">08 — Presentation</span>
+      <h2>Testando componentes visuais</h2>
+      <p>
+        É a camada de maior atrito: o Jest não sabe lidar com SVG, fontes de ícone,
+        gradientes nem animações nativas. Três peças reutilizáveis em <code>test/</code>
+        resolveram isso de uma vez para todos os testes.
+      </p>
+
+      <div class="table-scroll">
+        <table class="grid-table">
+          <thead><tr><th>Arquivo</th><th>Problema que resolve</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>test/svgMock.tsx</code></td>
+              <td>O <code>react-native-svg-transformer</code> não roda sob Jest, então todo <code>import Flag from '...svg'</code> quebraria. Mapeado via <code>moduleNameMapper</code>, cada SVG vira <code>&lt;View testID="svg-flag" /&gt;</code></td>
+            </tr>
+            <tr>
+              <td><code>test/setup.tsx</code></td>
+              <td>O <code>@expo/vector-icons</code> carrega a fonte de forma assíncrona e chama <code>setState</code> fora de <code>act()</code>, poluindo a saída de todo teste com avisos. O mock troca o ícone por <code>&lt;Text testID="icon-{name}"&gt;</code> — o que, de quebra, <strong>permite asserir qual ícone cada estado renderiza</strong></td>
+            </tr>
+            <tr>
+              <td><code>test/styleHelpers.ts</code></td>
+              <td><code>flattenStyle</code>, <code>collectStyles</code>, <code>hasStyle</code>, <code>collectProps</code>: percorrem a árvore renderizada para verificar estilo condicional <strong>sem espalhar <code>testID</code> de teste pelo código de produção</strong></td>
+            </tr>
+            <tr>
+              <td><code>test/fixtures.ts</code></td>
+              <td><code>makeUser</code>, <code>makeSticker</code>, <code>makeTeam</code>, <code>makePlayer</code>, <code>makeMatch</code>: entidades completas com <code>overrides</code> parciais, para o teste declarar só o campo que importa naquele caso</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Testar ramificação, não aparência</h3>
+      <p>
+        Nenhum teste aqui usa <em>snapshot</em> (foto da saída renderizada). Snapshots
+        quebram a cada ajuste de layout e não afirmam nada sobre comportamento. O foco é
+        no que <strong>ramifica</strong>: uma prop diferente deve produzir um resultado
+        visual diferente.
+      </p>
+      <div class="code-block">
+        <div class="code-block__bar"><span>CardFigurinha/index.test.tsx</span><em>uma tabela, três casos</em></div>
+<pre><span class="tok-fn">it.each</span>([
+  [<span class="tok-str">'comum'</span>,    [<span class="tok-str">'#3A3A40'</span>, <span class="tok-str">'#24242B'</span>], <span class="tok-str">'#555'</span>,    <span class="tok-str">'○'</span>],
+  [<span class="tok-str">'rara'</span>,     [<span class="tok-str">'#1a1a4e'</span>, <span class="tok-str">'#24242B'</span>], <span class="tok-str">'#4488FF'</span>, <span class="tok-str">'●'</span>],
+  [<span class="tok-str">'lendaria'</span>, [<span class="tok-str">'#3d2000'</span>, <span class="tok-str">'#24242B'</span>], <span class="tok-str">'#FFD700'</span>, <span class="tok-str">'★'</span>],
+] <span class="tok-kw">as const</span>)(<span class="tok-str">'%s usa gradiente, borda e símbolo próprios'</span>, (rarity, colors, border, symbol) =&gt; {
+  <span class="tok-fn">render</span>(&lt;CardFigurinha sticker={<span class="tok-fn">makeSticker</span>({ rarity })} /&gt;);
+
+  <span class="tok-fn">expect</span>(<span class="tok-fn">gradientProps</span>().colors).<span class="tok-fn">toEqual</span>(colors);
+  <span class="tok-fn">expect</span>(<span class="tok-fn">flattenStyle</span>(<span class="tok-fn">gradientProps</span>().style).borderColor).<span class="tok-fn">toBe</span>(border);
+  <span class="tok-fn">expect</span>(screen.<span class="tok-fn">getByText</span>(symbol)).<span class="tok-fn">toBeTruthy</span>();
+});</pre>
+      </div>
+      <p>
+        <code>it.each</code> gera um teste por linha da tabela — três casos com uma
+        implementação só, e a falha aponta exatamente qual raridade quebrou. Outros focos
+        cobertos: <code>MolduraIndividualPais</code> (mapeamento ISO-3 → ISO-2 das 48
+        seleções, sub-regiões como <code>sco</code> → <code>gb-sct</code>, SVG local vs.
+        fallback remoto) e os cards de recompensa, que usam <strong>fake timers</strong> —
+        um relógio falso do Jest — para adiantar o contador regressivo sem esperar de verdade.
+      </p>
+    </section>
+
+    <!-- ================= 09 ================= -->
+    <section class="section" id="pegadinhas">
+      <span class="section__eyebrow">09 — Aprendizados</span>
+      <h2>Pegadinhas reais encontradas</h2>
+      <p>
+        Esta seção é a mais útil para estudar: são erros que só aparecem escrevendo testes
+        de verdade, e cada um deles custou tempo neste projeto.
+      </p>
+
+      <h3>1. <code>jest.mock</code> sobe para o topo do arquivo</h3>
+      <p>
+        O Jest move (<em>hoisting</em>) todas as chamadas de <code>jest.mock</code> para
+        antes dos <code>import</code>, mesmo que você as escreva depois. Isso é necessário
+        — o mock precisa existir antes de o módulo ser carregado —, mas gera uma armadilha:
+        a função de fábrica do mock <strong>não pode referenciar variáveis declaradas fora
+        dela</strong>, porque elas ainda não existem no momento em que roda.
+      </p>
+      <div class="code-block">
+        <div class="code-block__bar"><span>a armadilha e a saída</span></div>
+<pre><span class="tok-com">// ✗ ReferenceError: Cannot access 'React' before initialization</span>
+<span class="tok-kw">import</span> React <span class="tok-kw">from</span> <span class="tok-str">'react'</span>;
+<span class="tok-fn">jest.mock</span>(<span class="tok-str">'@expo/vector-icons'</span>, () =&gt; ({ <span class="tok-fn">Ionicons</span>: () =&gt; React.<span class="tok-fn">createElement</span>(...) }));
+
+<span class="tok-com">// ✓ require() dentro da fábrica, resolvido só na hora da chamada</span>
+<span class="tok-fn">jest.mock</span>(<span class="tok-str">'@expo/vector-icons'</span>, () =&gt; {
+  <span class="tok-kw">const</span> React = <span class="tok-fn">require</span>(<span class="tok-str">'react'</span>);
+  <span class="tok-kw">const</span> { Text } = <span class="tok-fn">require</span>(<span class="tok-str">'react-native'</span>);
+  <span class="tok-kw">return</span> { <span class="tok-fn">Ionicons</span>: ({ name, ...props }) =&gt;
+    React.<span class="tok-fn">createElement</span>(Text, { testID: <span class="tok-str">`icon-${name}`</span>, ...props }, name) };
+});</pre>
+      </div>
+
+      <h3>2. <code>npm test</code> não verifica tipos</h3>
+      <p>
+        Descoberta desconfortável: <code>describe</code>, <code>it</code>,
+        <code>expect</code> e <code>jest</code> estavam com <strong>erro de tipo em todo
+        arquivo de teste desde o primeiro dia</strong> — e ninguém percebeu, porque o Jest
+        compila com Babel, que <em>apaga</em> os tipos sem checá-los. Só rodar
+        <code>tsc --noEmit</code> revelou. Duas causas:
+      </p>
+      <ol class="prose-list">
+        <li>Faltava <code>"types": ["jest"]</code> no <code>tsconfig.json</code> — sem isso o TypeScript não carrega o <code>@types/jest</code>, mesmo instalado.</li>
+        <li><code>@types/jest</code> declara <code>jest</code> como <em>namespace de tipos</em> (<code>jest.Mock</code>), não como valor — daí o erro "Cannot use namespace as a value" em <code>jest.fn()</code>. Resolvido instalando <code>@jest/globals</code> e mesclando o tipo no escopo global via <code>src/declarations.d.ts</code>.</li>
+      </ol>
+      <div class="note note--warn">
+        <span class="note__tag">Consequência prática</span>
+        <p>
+          Testes passando não são prova de código correto do ponto de vista de tipos. Por
+          isso o projeto ganhou um script dedicado <code>npm run typecheck</code>, que roda
+          separado de <code>npm test</code> — os dois precisam estar limpos.
+        </p>
+      </div>
+
+      <h3>3. O teste documenta o comportamento real, não o esperado</h3>
+      <p>
+        Três casos em que a suíte registra um comportamento que talvez seja um defeito, em
+        vez de fingir que o código faz o "certo":
+      </p>
+      <ul>
+        <li><strong><code>GetUserProfile</code></strong> — o campo <code>stickers</code> retornado <strong>não</strong> é ordenado; só <code>recentStickers</code> e <code>rareStickers</code> usam a lista ordenada internamente. Um teste ingênuo que assume ordenação falha.</li>
+        <li><strong><code>CardHistoricoMundial</code></strong> — <code>resultColor</code> testa <code>includes('campeão')</code> <em>antes</em> de <code>includes('vice')</code>, então <code>"Vice-campeão"</code> é pintado de <strong>dourado</strong> (cor de campeão), não prata. Se a ordem dos <code>if</code> for corrigida, o teste precisa mudar junto — e é justamente esse acoplamento que sinaliza a mudança.</li>
+        <li><strong><code>useCreatePrediction</code></strong> — o erro que não se limpa, descrito na seção 07.</li>
+      </ul>
+
+      <h3>4. Isolamento entre testes é responsabilidade sua</h3>
+      <p>
+        Mocks guardam histórico de chamadas entre um teste e outro. Sem
+        <code>jest.clearAllMocks()</code> no <code>beforeEach</code>, um
+        <code>toHaveBeenCalledTimes(1)</code> passa sozinho e falha na suíte inteira. O
+        mesmo vale para estado global: os testes de <code>useAbrirPacote</code> chamam
+        <code>pendingPackStore.clear()</code> tanto no <code>beforeEach</code> quanto no
+        <code>afterEach</code>, porque esse store vive fora do React e não é recriado a
+        cada render.
+      </p>
+
+      <h3>5. Um bug real que os testes fixaram</h3>
+      <p>
+        O hook <code>useAbrirPacote</code> tinha um bug de <em>double-draw</em>: ao reabrir
+        a tela de um pacote já sorteado, ele sorteava figurinhas de novo. A correção foi o
+        <code>pendingPackStore</code> — lê o pacote pendente antes de chamar o sorteio. O
+        teste que verifica isso é a garantia de que a regressão não volta.
+      </p>
+    </section>
+
+    <!-- ================= 10 ================= -->
+    <section class="section" id="rodar">
+      <span class="section__eyebrow">10 — Prática</span>
+      <h2>Como rodar e o que verificar</h2>
+      <div class="code-block">
+        <div class="code-block__bar"><span>terminal</span></div>
+<pre>npm test                 <span class="tok-com"># 521 testes, 61 suítes, ~25s</span>
+npm run test:watch       <span class="tok-com"># re-roda só o que mudou, enquanto você edita</span>
+npm run test:coverage    <span class="tok-com"># relatório de cobertura por camada</span>
+
+npm run typecheck        <span class="tok-com"># tsc --noEmit — precisa estar limpo também</span>
+npm run lint             <span class="tok-com"># expo lint</span>
+
+npx jest rewards         <span class="tok-com"># roda só os arquivos cujo caminho casa com "rewards"</span>
+npx jest -t <span class="tok-str">"cooldown"</span>     <span class="tok-com"># roda só os it(...) cujo nome contém "cooldown"</span></pre>
+      </div>
+
+      <div class="note note--warn">
+        <span class="note__tag">Atenção em checkout novo</span>
+        <p>
+          <code>npm run typecheck</code> depende de <code>.expo/types/router.d.ts</code>,
+          que é gerado pelo Expo Router e está no <code>.gitignore</code>. Num clone limpo,
+          rode <code>npx expo start</code> uma vez antes de confiar no resultado do
+          typecheck — sem isso aparecem erros falsos nas rotas.
+        </p>
+      </div>
+
+      <h3>Checklist para escrever um teste novo neste projeto</h3>
+      <ul class="checklist">
+        <li>O arquivo fica ao lado do original, com sufixo <code>.test.ts</code> / <code>.test.tsx</code>.</li>
+        <li>O nome do <code>it(...)</code> descreve <strong>comportamento em português</strong>, não implementação: "bloqueia antes do fim do cooldown", não "testa a função X".</li>
+        <li>Identifique a camada e use o ponto de corte dela (tabela da seção 02) — não mocke mais fundo que o necessário.</li>
+        <li><code>jest.clearAllMocks()</code> no <code>beforeEach</code>, sempre.</li>
+        <li>Se a unidade depende de relógio ou sorteio, injete-os por parâmetro em vez de mockar globais.</li>
+        <li>Reaproveite <code>test/fixtures.ts</code> e declare por <code>override</code> só o campo que o caso exige.</li>
+        <li>Rode <code>npm test</code> <strong>e</strong> <code>npm run typecheck</code> — um não substitui o outro.</li>
+        <li>Se o comportamento atual parecer errado, escreva o teste do que o código <em>faz</em> e registre a dúvida no teste ou na documentação; não "conserte" de lado.</li>
+      </ul>
+    </section>
+
+    <!-- ================= 11 ================= -->
+    <section class="section" id="glossario">
+      <span class="section__eyebrow">11 — Referência</span>
+      <h2>Glossário</h2>
+      <dl class="glossary">
+        <div class="gloss-item">
+          <dt>Jest</dt>
+          <dd>Executor de testes que roda em Node.js — encontra os arquivos <code>*.test.ts</code>, executa e reporta o que passou ou falhou.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>Suíte</dt>
+          <dd>Um arquivo de teste. "61 suítes" = 61 arquivos <code>.test.ts(x)</code> no projeto.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>Preset</dt>
+          <dd>Pacote de configuração pronta do Jest para um ambiente específico — aqui, <code>jest-expo</code>, que ensina o Jest a entender React Native e Expo.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>Mock / dublê</dt>
+          <dd>Objeto falso que substitui uma dependência real durante o teste, devolvendo respostas combinadas e registrando as chamadas recebidas.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>Fixture</dt>
+          <dd>Dado de exemplo pronto para testes (um usuário, uma figurinha), com valores padrão que cada teste sobrescreve parcialmente.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>SUT</dt>
+          <dd><em>System Under Test</em> — a unidade que está sendo testada naquele arquivo, por convenção nomeada <code>sut</code>.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>AAA</dt>
+          <dd><em>Arrange, Act, Assert</em> — prepare o cenário, execute a ação, verifique o resultado. A estrutura de todo teste.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>Determinismo</dt>
+          <dd>Mesma entrada, mesma saída, sempre. Quebrado por relógio e sorteio — resolvido injetando os dois por parâmetro.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>Hoisting</dt>
+          <dd>Movimentação automática de <code>jest.mock</code> para antes dos <code>import</code>, feita pelo Babel. Motivo de erros de "variável não inicializada" dentro de mocks.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>Fake timers</dt>
+          <dd>Relógio falso do Jest: permite "adiantar" segundos ou horas instantaneamente, para testar contadores e intervalos sem esperar.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt><code>act()</code></dt>
+          <dd>Função que garante que o React terminou de processar as atualizações de estado antes da asserção seguinte.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt><code>waitFor()</code></dt>
+          <dd>Repete uma asserção até ela passar ou o tempo acabar — usado para estados assíncronos.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>Teste de contrato</dt>
+          <dd>Verifica apenas que a unidade chama o colaborador certo com os argumentos certos — usado nos use cases de delegação pura.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>Cobertura</dt>
+          <dd>Percentual de linhas/ramos do código executados pelos testes. Indicador útil, não meta em si: 100% de cobertura sem asserção boa não prova nada.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>Snapshot</dt>
+          <dd>"Foto" da saída renderizada, comparada a cada execução. <strong>Não usado aqui</strong>: quebra a cada ajuste visual sem afirmar comportamento.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>N+1 query</dt>
+          <dd>Padrão em que uma consulta inicial dispara mais uma consulta por resultado — presente em <code>getAllGroups</code> e simulado no teste com <code>mockResolvedValueOnce</code> encadeado.</dd>
+        </div>
+      </dl>
+    </section>
+
+  </main>
+
+  <footer class="colophon">
+    Guia gerado a partir do código-fonte, de docs/testing-plan.md e de docs/technical-readme.md — para fins de estudo.
+    Números verificados com <code>npm test</code>: 521 testes em 61 suítes.
+  </footer>
+
+</div>
