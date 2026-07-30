@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -112,15 +112,31 @@ const Particle: React.FC<{ angle: number; distance: number; delay: number; color
 };
 
 const ParticleBurst: React.FC<{ count: number; color: string }> = ({ count, color }) => {
+  // O sorteio de distance/delay é memoizado para acontecer uma única vez por
+  // burst — sem isso, as partículas "pulariam" de posição caso o componente
+  // re-renderize antes da animação terminar. react-hooks/purity (regra
+  // experimental do React Compiler) ainda acusa Math.random aqui mesmo
+  // memoizado, pois teoricamente o React pode descartar e refazer o cálculo
+  // de um useMemo (Strict Mode / Suspense); para esta animação decorativa
+  // isso é aceitável — o pior caso é um novo sorteio visualmente equivalente.
+  const particles = useMemo(
+    () =>
+      Array.from({ length: count }, (_, i) => ({
+        angle: (i / count) * Math.PI * 2,
+        // eslint-disable-next-line react-hooks/purity
+        distance: 60 + Math.random() * 50,
+        // eslint-disable-next-line react-hooks/purity
+        delay: Math.random() * 120,
+      })),
+    [count],
+  );
+
   if (count === 0) return null;
   return (
     <View style={styles.particleContainer} pointerEvents="none">
-      {Array.from({ length: count }).map((_, i) => {
-        const angle = (i / count) * Math.PI * 2;
-        const distance = 60 + Math.random() * 50;
-        const delay = Math.random() * 120;
-        return <Particle key={i} angle={angle} distance={distance} delay={delay} color={color} />;
-      })}
+      {particles.map((p, i) => (
+        <Particle key={i} angle={p.angle} distance={p.distance} delay={p.delay} color={color} />
+      ))}
     </View>
   );
 };

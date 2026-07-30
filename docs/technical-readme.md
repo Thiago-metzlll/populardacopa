@@ -559,6 +559,18 @@ Essa substituição foi avaliada e **descartada**: a `HomeScreen` atual (`src/sh
 - `MoldeCardHome` e `CardPartida` não serão criados; a tabela da seção 9.2 reflete esse status.
 - A `HomeScreen` é considerada a versão definitiva da Home a partir deste registro.
 
+### 9.9 `tsc --noEmit` limpo pela primeira vez + cobertura de testes na camada Presentation
+
+> Registrado em 07/2026. Detalhes completos em [docs/testing-plan.md](testing-plan.md) (Fases 4–6).
+
+O typecheck do projeto nunca tinha passado limpo — 19 erros persistiam desde antes da Fase 3.5 (que já havia corrigido um problema de tipos de teste diferente, ver seção correspondente no testing-plan). Causas e correções:
+
+- **`firebase/firestore` sem `.d.ts` (7 erros)**: bug de empacotamento do `firebase@12.16.0` — o campo `types` do subpath export `./firestore` aponta para um arquivo que não existe no pacote publicado (`firebase/auth` não tem esse problema). Contornado com um `paths` no `tsconfig.json` redirecionando para os tipos reais de `@firebase/firestore` (dependência transitiva já presente).
+- **Tipos de rota do `expo-router` desatualizados (11 erros)**: `.expo/types/router.d.ts` — arquivo gerado e gitignored — não conhecia as rotas de `app/(auth)/`. Regenerado subindo o dev server. **Isso significa que um checkout novo do zero volta a ter esses 11 erros até rodar `npx expo start` uma vez** — não há como versionar a correção, é inerente a como o Expo Router gera tipos.
+- **`scripts/seedFirestoreUser.ts` importava a service account como módulo (1 erro)**: `import serviceAccount from './serviceAccountKey.json'` nunca compilaria num checkout limpo, já que o arquivo é gitignored por conter credenciais. Trocado por leitura em runtime (`readFileSync`).
+
+Na mesma sessão, a camada `presentation/hooks` e boa parte de `presentation/components` (antes 0% cobertas — inclusive excluídas do `collectCoverageFrom` do Jest) ganharam testes, incluindo o `UserContext`/`AuthGuard` e os use cases de delegação pura restantes. Dois bugs reais de lint (`react-hooks/refs` em `useSettlePendingPredictions`, `react-hooks/purity` no sorteio de partículas de `AnimacaoAbrirPacote`) foram corrigidos de fato; os demais 15 avisos de `react-hooks/set-state-in-effect` (regra experimental "React Compiler" que rejeita o padrão `fetch-on-mount` recomendado pelos próprios docs do React) foram suprimidos com comentário justificado — decisão tomada com o usuário para não introduzir uma reescrita arquitetural do data-fetching apenas para satisfazer uma regra experimental.
+
 ---
 
 ## 10. Arquitetura de Dados (Nuvem vs Local)

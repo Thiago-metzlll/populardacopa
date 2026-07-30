@@ -5,7 +5,8 @@
  * ⚠️  PRÉ-REQUISITOS:
  *   1. Revogue a chave anterior e gere uma nova:
  *      Firebase Console → Project Settings → Service accounts → Generate new private key
- *   2. Substitua o conteúdo de scripts/serviceAccountKey.json pela nova chave
+ *   2. Salve a chave em scripts/serviceAccountKey.json (gitignored) ou aponte
+ *      GOOGLE_APPLICATION_CREDENTIALS para o caminho dela
  *   3. Instale as dependências do script:
  *      npm install --save-dev firebase-admin ts-node
  *
@@ -13,12 +14,33 @@
  *   npx ts-node scripts/seedFirestoreUser.ts
  */
 
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import * as admin from 'firebase-admin';
-import serviceAccount from './serviceAccountKey.json';
+
+const serviceAccountPath =
+  process.env.GOOGLE_APPLICATION_CREDENTIALS || join(__dirname, 'serviceAccountKey.json');
+
+/**
+ * A chave é lida em runtime, e não por `import` estático, porque o arquivo é
+ * gitignored: um import faria o `tsc --noEmit` falhar em qualquer checkout limpo.
+ */
+function loadServiceAccount(): admin.ServiceAccount {
+  if (!existsSync(serviceAccountPath)) {
+    console.error(
+      `❌ Service account não encontrada em ${serviceAccountPath}\n` +
+        '   Gere a chave no Firebase Console → Project Settings → Service accounts\n' +
+        '   e salve em scripts/serviceAccountKey.json (ou defina GOOGLE_APPLICATION_CREDENTIALS).',
+    );
+    process.exit(1);
+  }
+
+  return JSON.parse(readFileSync(serviceAccountPath, 'utf8')) as admin.ServiceAccount;
+}
 
 // Inicializa o Admin SDK com a service account
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+  credential: admin.credential.cert(loadServiceAccount()),
 });
 
 const db = admin.firestore();

@@ -40,6 +40,11 @@ export const useAlbumStickers = (albumId: string) => {
   }, [user, albumId]);
 
   useEffect(() => {
+    // Fetch-on-mount/dependência: padrão recomendado pelos docs do React
+    // (react.dev/learn/synchronizing-with-effects#fetching-data). A regra
+    // react-hooks/set-state-in-effect (experimental, do React Compiler)
+    // ainda não modela corretamente esse caso.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, [fetchData]);
 

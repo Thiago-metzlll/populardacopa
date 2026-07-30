@@ -13,7 +13,13 @@ export const useSettlePendingPredictions = (onSettled?: (settled: Prediction[]) 
   const refreshCoins = useRefreshCoins();
   const [loading, setLoading] = useState(false);
   const onSettledRef = useRef(onSettled);
-  onSettledRef.current = onSettled;
+
+  // Mantém a ref atualizada fora do corpo de render (refs não devem ser
+  // lidas/escritas durante o render). Sem array de deps: roda a cada
+  // commit, sempre antes do efeito de settlement abaixo (ordem de declaração).
+  useEffect(() => {
+    onSettledRef.current = onSettled;
+  });
 
   useEffect(() => {
     if (!user) return;

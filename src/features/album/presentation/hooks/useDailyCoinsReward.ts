@@ -29,6 +29,9 @@ export const useDailyCoinsReward = () => {
   }, [user]);
 
   useEffect(() => {
+    // Fetch-on-mount: padrão recomendado pelo React; falso positivo conhecido
+    // do react-hooks/set-state-in-effect (regra experimental do React Compiler).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadStatus();
   }, [loadStatus]);
 
