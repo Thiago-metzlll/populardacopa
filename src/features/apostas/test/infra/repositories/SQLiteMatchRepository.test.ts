@@ -1,14 +1,14 @@
-jest.mock('../../../../shared/infra/sqlite/database', () => ({
+jest.mock('../../../../../shared/infra/sqlite/database', () => ({
   getSQLiteDb: jest.fn(),
 }));
 
-jest.mock('../../domain/constants/odds', () => ({
+jest.mock('../../../domain/constants/odds', () => ({
   computeMatchOdds: jest.fn(() => ({ homeWin: 1.5, draw: 2.8, awayWin: 2.0 })),
 }));
 
-import { getSQLiteDb } from '../../../../shared/infra/sqlite/database';
-import { computeMatchOdds } from '../../domain/constants/odds';
-import { SQLiteMatchRepository } from './SQLiteMatchRepository';
+import { getSQLiteDb } from '../../../../../shared/infra/sqlite/database';
+import { computeMatchOdds } from '../../../domain/constants/odds';
+import { SQLiteMatchRepository } from '../../../infra/repositories/SQLiteMatchRepository';
 
 const mockDb = {
   getFirstAsync: jest.fn(),

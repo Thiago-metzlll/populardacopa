@@ -1,7 +1,7 @@
-import { GetUserProfile } from './GetUserProfile';
-import { AlbumRepository } from '../repositories/AlbumRepository';
-import { Sticker } from '../entities/Sticker';
-import { UserCollection } from '../entities/UserCollection';
+import { GetUserProfile } from '../../../domain/usecases/GetUserProfile';
+import { AlbumRepository } from '../../../domain/repositories/AlbumRepository';
+import { Sticker } from '../../../domain/entities/Sticker';
+import { UserCollection } from '../../../domain/entities/UserCollection';
 
 const makeSticker = (overrides: Partial<Sticker>): Sticker => ({
   id: 'default',

@@ -25,6 +25,14 @@ React Native + Expo Router + TypeScript, Clean Architecture.
 - Use case sempre antes da UI.
 - Datas são string ISO no domain.
 
+## Onde fica cada teste
+- `domain/usecases` e `infra/repositories` → em `src/features/<feature>/test/`, espelhando a camada
+  (ex.: `album/test/domain/usecases/BuyStickerPack.test.ts` testa `album/domain/usecases/BuyStickerPack.ts`).
+- Todo o resto (`presentation/hooks`, `presentation/components`, `domain/constants`,
+  `infra/stores`, `main/factories`) → co-localizado, ao lado do arquivo testado.
+- Ao mover um teste, lembre que as strings de `jest.mock('../...')` também são caminhos
+  relativos e **não** são checadas pelo `tsc` — quebram só em runtime.
+
 ## Comandos
 
 ```bash

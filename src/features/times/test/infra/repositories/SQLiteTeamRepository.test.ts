@@ -1,4 +1,4 @@
-jest.mock('../../../../shared/infra/sqlite/database', () => ({
+jest.mock('../../../../../shared/infra/sqlite/database', () => ({
   getSQLiteDb: jest.fn(),
 }));
 
@@ -10,17 +10,17 @@ jest.mock('firebase/firestore', () => ({
   arrayRemove: jest.fn((...ids) => ({ __op: 'arrayRemove', ids })),
 }));
 
-jest.mock('../../../../shared/infra/firebase/firebaseConfig', () => ({
+jest.mock('../../../../../shared/infra/firebase/firebaseConfig', () => ({
   db: {},
 }));
 
-jest.mock('../../domain/constants/playerStats', () => ({
+jest.mock('../../../domain/constants/playerStats', () => ({
   generatePlayerStats: jest.fn(() => ({ goals: 1, assists: 2, matchesPlayed: 3, worldCupsPlayed: 1 })),
 }));
 
-import { getSQLiteDb } from '../../../../shared/infra/sqlite/database';
+import { getSQLiteDb } from '../../../../../shared/infra/sqlite/database';
 import { getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { SQLiteTeamRepository } from './SQLiteTeamRepository';
+import { SQLiteTeamRepository } from '../../../infra/repositories/SQLiteTeamRepository';
 
 const mockDb = {
   getFirstAsync: jest.fn(),

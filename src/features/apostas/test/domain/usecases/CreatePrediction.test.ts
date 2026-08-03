@@ -1,6 +1,6 @@
-import { CreatePrediction } from './CreatePrediction';
-import { PredictionRepository } from '../repositories/PredictionRepository';
-import { Prediction } from '../entities/Prediction';
+import { CreatePrediction } from '../../../domain/usecases/CreatePrediction';
+import { PredictionRepository } from '../../../domain/repositories/PredictionRepository';
+import { Prediction } from '../../../domain/entities/Prediction';
 
 describe('CreatePrediction', () => {
   it('delega a criação da predição para o repositório com os dados recebidos e retorna o resultado', async () => {

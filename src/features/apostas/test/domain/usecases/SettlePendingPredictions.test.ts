@@ -1,8 +1,8 @@
-import { SettlePendingPredictions, RewardGranter } from './SettlePendingPredictions';
-import { PredictionRepository } from '../repositories/PredictionRepository';
-import { MatchRepository } from '../repositories/MatchRepository';
-import { Prediction } from '../entities/Prediction';
-import { Match } from '../entities/Match';
+import { SettlePendingPredictions, RewardGranter } from '../../../domain/usecases/SettlePendingPredictions';
+import { PredictionRepository } from '../../../domain/repositories/PredictionRepository';
+import { MatchRepository } from '../../../domain/repositories/MatchRepository';
+import { Prediction } from '../../../domain/entities/Prediction';
+import { Match } from '../../../domain/entities/Match';
 
 const makePrediction = (overrides: Partial<Prediction> = {}): Prediction => ({
   id: 'pred-1',

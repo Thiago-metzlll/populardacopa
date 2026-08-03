@@ -1,6 +1,6 @@
-import { makeMatch } from '../../../../../test/fixtures';
-import { MatchRepository } from '../repositories/MatchRepository';
-import { GetUpcomingMatches } from './GetUpcomingMatches';
+import { makeMatch } from '../../../../../../test/fixtures';
+import { MatchRepository } from '../../../domain/repositories/MatchRepository';
+import { GetUpcomingMatches } from '../../../domain/usecases/GetUpcomingMatches';
 
 describe('GetUpcomingMatches', () => {
   it('delega para matchRepository.getUpcomingMatches sem argumentos', async () => {

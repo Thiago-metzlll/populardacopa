@@ -1,6 +1,6 @@
-import { PredictionRepository } from '../repositories/PredictionRepository';
-import { PredictionHistory } from '../entities/PredictionHistory';
-import { GetPredictionHistory } from './GetPredictionHistory';
+import { PredictionRepository } from '../../../domain/repositories/PredictionRepository';
+import { PredictionHistory } from '../../../domain/entities/PredictionHistory';
+import { GetPredictionHistory } from '../../../domain/usecases/GetPredictionHistory';
 
 describe('GetPredictionHistory', () => {
   it('delega para predictionRepository.getPredictionHistory com o userId', async () => {

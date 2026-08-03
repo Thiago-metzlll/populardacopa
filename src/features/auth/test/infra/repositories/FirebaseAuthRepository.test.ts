@@ -14,7 +14,7 @@ jest.mock('firebase/firestore', () => ({
   serverTimestamp: jest.fn(() => 'SERVER_TIMESTAMP'),
 }));
 
-jest.mock('../../../../shared/infra/firebase/firebaseConfig', () => ({
+jest.mock('../../../../../shared/infra/firebase/firebaseConfig', () => ({
   auth: { currentUser: null },
   db: {},
 }));
@@ -29,8 +29,8 @@ import {
   onAuthStateChanged,
 } from 'firebase/auth';
 import { setDoc } from 'firebase/firestore';
-import { auth } from '../../../../shared/infra/firebase/firebaseConfig';
-import { FirebaseAuthRepository } from './FirebaseAuthRepository';
+import { auth } from '../../../../../shared/infra/firebase/firebaseConfig';
+import { FirebaseAuthRepository } from '../../../infra/repositories/FirebaseAuthRepository';
 
 const fakeUser = { uid: 'u1', email: 'a@a.com', displayName: 'Fulano', isAnonymous: false };
 

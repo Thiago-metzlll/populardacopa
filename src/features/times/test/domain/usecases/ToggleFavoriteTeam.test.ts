@@ -1,5 +1,5 @@
-import { ToggleFavoriteTeam } from './ToggleFavoriteTeam';
-import { TeamRepository } from '../repositories/TeamRepository';
+import { ToggleFavoriteTeam } from '../../../domain/usecases/ToggleFavoriteTeam';
+import { TeamRepository } from '../../../domain/repositories/TeamRepository';
 
 describe('ToggleFavoriteTeam', () => {
   it('delega o toggle de favorito para o repositório com os argumentos recebidos', async () => {

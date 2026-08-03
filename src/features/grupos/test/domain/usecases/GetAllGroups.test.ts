@@ -1,6 +1,6 @@
-import { GetAllGroups } from './GetAllGroups';
-import { GroupRepository } from '../repositories/GroupRepository';
-import { Group } from '../entities/Group';
+import { GetAllGroups } from '../../../domain/usecases/GetAllGroups';
+import { GroupRepository } from '../../../domain/repositories/GroupRepository';
+import { Group } from '../../../domain/entities/Group';
 
 describe('GetAllGroups', () => {
   it('delega a busca de todos os grupos para o repositório e retorna o resultado', async () => {

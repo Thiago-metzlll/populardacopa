@@ -8,15 +8,15 @@ jest.mock('firebase/firestore', () => ({
   serverTimestamp: jest.fn(() => 'SERVER_TIMESTAMP'),
 }));
 
-jest.mock('../../../../shared/infra/firebase/firebaseConfig', () => ({
+jest.mock('../../../../../shared/infra/firebase/firebaseConfig', () => ({
   db: {},
 }));
 
 import { getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { FirestoreAlbumRepository } from './FirestoreAlbumRepository';
-import { SQLiteAlbumCatalogRepository } from './SQLiteAlbumCatalogRepository';
-import { Album } from '../../domain/entities/Album';
-import { Sticker } from '../../domain/entities/Sticker';
+import { Album } from '../../../domain/entities/Album';
+import { Sticker } from '../../../domain/entities/Sticker';
+import { FirestoreAlbumRepository } from '../../../infra/repositories/FirestoreAlbumRepository';
+import { SQLiteAlbumCatalogRepository } from '../../../infra/repositories/SQLiteAlbumCatalogRepository';
 
 const makeSticker = (id: string, overrides: Partial<Sticker> = {}): Sticker => ({
   id,

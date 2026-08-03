@@ -1,10 +1,10 @@
-import { makePlayer, makeTeam } from '../../../../../test/fixtures';
-import { TeamRepository } from '../repositories/TeamRepository';
-import { GetAllTeams } from './GetAllTeams';
-import { GetFavoriteTeams } from './GetFavoriteTeams';
-import { GetPlayerById } from './GetPlayerById';
-import { GetTeamById } from './GetTeamById';
-import { SearchTeams } from './SearchTeams';
+import { makePlayer, makeTeam } from '../../../../../../test/fixtures';
+import { TeamRepository } from '../../../domain/repositories/TeamRepository';
+import { GetAllTeams } from '../../../domain/usecases/GetAllTeams';
+import { GetFavoriteTeams } from '../../../domain/usecases/GetFavoriteTeams';
+import { GetPlayerById } from '../../../domain/usecases/GetPlayerById';
+import { GetTeamById } from '../../../domain/usecases/GetTeamById';
+import { SearchTeams } from '../../../domain/usecases/SearchTeams';
 
 /**
  * Estes use cases só delegam para o TeamRepository — a lógica de negócio

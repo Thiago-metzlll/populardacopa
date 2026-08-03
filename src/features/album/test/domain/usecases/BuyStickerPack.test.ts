@@ -1,9 +1,9 @@
-import { makeSticker } from '../../../../../test/fixtures';
-import { PACK_SIZE } from '../constants/collection';
-import { Album } from '../entities/Album';
-import { UserCollection } from '../entities/UserCollection';
-import { AlbumRepository } from '../repositories/AlbumRepository';
-import { BuyStickerPack } from './BuyStickerPack';
+import { makeSticker } from '../../../../../../test/fixtures';
+import { PACK_SIZE } from '../../../domain/constants/collection';
+import { Album } from '../../../domain/entities/Album';
+import { UserCollection } from '../../../domain/entities/UserCollection';
+import { AlbumRepository } from '../../../domain/repositories/AlbumRepository';
+import { BuyStickerPack } from '../../../domain/usecases/BuyStickerPack';
 
 const album: Album = { id: 'a1', name: 'Copa 2026', totalStickers: 10, ownedStickersCount: 0 };
 

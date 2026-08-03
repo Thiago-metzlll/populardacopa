@@ -48,20 +48,22 @@ Não há lógica para quebrar aqui — só uma chamada repassada. A lógica de n
 
 **Convenção de arquivos:** teste ao lado do arquivo original (`Foo.ts` → `Foo.test.ts`). O `testMatch` padrão do Jest já reconhece isso, sem config extra.
 
+> **Revisão posterior (Fase 9).** `domain/usecases` e `infra/repositories` deixaram de ser co-localizados e passaram para `src/features/<feature>/test/`, espelhando a estrutura de camadas. Hooks, componentes, `domain/constants` e `main/factories` seguem co-localizados. Ver a Fase 9, no fim deste documento.
+
 ---
 
 ## Fase 2 — Domain: regras de negócio puras ✅ concluída
 
 - [x] `rewards.ts`: nunca resgatado, exatamente no limite do cooldown, antes do cooldown, depois do cooldown — para os dois cooldowns (moedas diárias e pacote grátis) → [rewards.test.ts](../src/features/album/domain/constants/rewards.test.ts)
-- [x] `SettlePendingPredictions`: ignora predição não-pendente; ignora partida não finalizada/sem placar; acerta vitória (placar bate) e derrota (não bate); concede `coins` vs `stickers` conforme o tipo de recompensa; atualiza o status → [SettlePendingPredictions.test.ts](../src/features/apostas/domain/usecases/SettlePendingPredictions.test.ts)
+- [x] `SettlePendingPredictions`: ignora predição não-pendente; ignora partida não finalizada/sem placar; acerta vitória (placar bate) e derrota (não bate); concede `coins` vs `stickers` conforme o tipo de recompensa; atualiza o status → [SettlePendingPredictions.test.ts](../src/features/apostas/test/domain/usecases/SettlePendingPredictions.test.ts)
   > Ramo descoberto encontrado depois, via *branch coverage*: recompensa vencedora malformada (`type: 'sticker'` sem `stickerIds`, ou `type: 'coins'` sem `coinAmount`) cai fora dos dois `if` — o palpite é marcado como `won` e **nenhuma recompensa é concedida**, sem erro nem log. O teste `'marca como vencedora mas não concede nada quando a recompensa está malformada'` documenta o comportamento atual e fecha o ramo. As métricas de statements/lines/functions já estavam em 100% e não apontavam para isso.
-- [x] `GetUserProfile`: usa `stickerObtainedAt` do usuário quando existe (fallback pro catálogo); ordena `recentStickers` por data desc; filtra `rara`/`lendaria`; corta em 10 recentes → [GetUserProfile.test.ts](../src/features/album/domain/usecases/GetUserProfile.test.ts)
+- [x] `GetUserProfile`: usa `stickerObtainedAt` do usuário quando existe (fallback pro catálogo); ordena `recentStickers` por data desc; filtra `rara`/`lendaria`; corta em 10 recentes → [GetUserProfile.test.ts](../src/features/album/test/domain/usecases/GetUserProfile.test.ts)
   > Pegadinha encontrada durante os testes: o campo `stickers` retornado **não** é ordenado — só `recentStickers`/`rareStickers` usam a lista ordenada internamente. Um teste ingênuo que assume `stickers` ordenado falha; vale como exemplo de como o teste também documenta o comportamento real do código.
 - [x] 5 testes de contrato (um por feature) para o padrão de delegação pura:
-  - `album` → [BuyStickerPack.test.ts](../src/features/album/domain/usecases/BuyStickerPack.test.ts) — *deixou de ser teste de contrato na Fase 8, quando as regras de compra voltaram para o use case*
-  - `apostas` → [CreatePrediction.test.ts](../src/features/apostas/domain/usecases/CreatePrediction.test.ts)
-  - `times` → [ToggleFavoriteTeam.test.ts](../src/features/times/domain/usecases/ToggleFavoriteTeam.test.ts)
-  - `grupos` → [GetAllGroups.test.ts](../src/features/grupos/domain/usecases/GetAllGroups.test.ts)
+  - `album` → [BuyStickerPack.test.ts](../src/features/album/test/domain/usecases/BuyStickerPack.test.ts) — *deixou de ser teste de contrato na Fase 8, quando as regras de compra voltaram para o use case*
+  - `apostas` → [CreatePrediction.test.ts](../src/features/apostas/test/domain/usecases/CreatePrediction.test.ts)
+  - `times` → [ToggleFavoriteTeam.test.ts](../src/features/times/test/domain/usecases/ToggleFavoriteTeam.test.ts)
+  - `grupos` → [GetAllGroups.test.ts](../src/features/grupos/test/domain/usecases/GetAllGroups.test.ts)
   - `auth` → [makeAuth.test.ts](../src/features/auth/main/factories/makeAuth.test.ts) — feature sem `domain/usecases` (as factories chamam o repositório direto), então o teste mocka o módulo `repositoryInstance` em vez de injetar um mock por construtor. Padrão diferente, mesmo objetivo.
 
 **Mocks:** como os repositórios são interfaces TypeScript, os testes usam objetos simples com `jest.fn()` por método — nenhum setup de React Native é necessário nesta fase.
@@ -75,12 +77,12 @@ Não há lógica para quebrar aqui — só uma chamada repassada. A lógica de n
 Sem banco real em ambiente Node — a estratégia é mockar o ponto de acesso ao driver (não o repositório inteiro), validando mapeamento linha→entidade e montagem de queries:
 
 - [x] `jest.mock` em [database.ts](../src/shared/infra/sqlite/database.ts) (`getSQLiteDb`), retornando um fake com `getFirstAsync`/`getAllAsync` como `jest.fn()`
-- [x] Exemplo completo: [SQLiteAlbumCatalogRepository.ts](../src/features/album/infra/repositories/SQLiteAlbumCatalogRepository.ts) → [SQLiteAlbumCatalogRepository.test.ts](../src/features/album/infra/repositories/SQLiteAlbumCatalogRepository.test.ts) — `getAlbumById` (mapeia e lança erro quando não encontra), `getMarketAlbums`, `getStickersByIds` (early-return em array vazio, conversão `null`→`undefined`, cast de `rarity`, placeholders `IN (?,?,...)`), `getStickersByAlbumId`, `getAllStickers`
-- [x] Repositório Firebase Auth: [FirebaseAuthRepository.ts](../src/features/auth/infra/repositories/FirebaseAuthRepository.ts) → [FirebaseAuthRepository.test.ts](../src/features/auth/infra/repositories/FirebaseAuthRepository.test.ts) — mocka `firebase/auth`, `firebase/firestore` **e** o módulo `firebaseConfig` (senão o import real dispara a validação de variáveis de ambiente e tenta inicializar o Firebase de verdade)
-- [x] [SQLiteTeamRepository.ts](../src/features/times/infra/repositories/SQLiteTeamRepository.ts) → [SQLiteTeamRepository.test.ts](../src/features/times/infra/repositories/SQLiteTeamRepository.test.ts) — mocka SQLite **e** Firestore (favoritos ficam no Firestore, elenco no SQLite) + `../../domain/constants/playerStats` (pra não depender de `Math.random` real neste nível). Inclui o caso do `try/catch` que engole erro do Firestore e devolve `[]` em vez de propagar
-- [x] [SQLiteMatchRepository.ts](../src/features/apostas/infra/repositories/SQLiteMatchRepository.ts) → [SQLiteMatchRepository.test.ts](../src/features/apostas/infra/repositories/SQLiteMatchRepository.test.ts) — odds só aparecem em partidas `scheduled`; placar só aparece em `finished`
-- [x] [SQLiteGroupRepository.ts](../src/features/grupos/infra/repositories/SQLiteGroupRepository.ts) → [SQLiteGroupRepository.test.ts](../src/features/grupos/infra/repositories/SQLiteGroupRepository.test.ts) — `getAllGroups` faz N+1 queries (uma por grupo pros standings); mock usa `mockResolvedValueOnce` encadeado pra simular cada chamada em sequência
-- [x] [FirestoreAlbumRepository.ts](../src/features/album/infra/repositories/FirestoreAlbumRepository.ts) → [FirestoreAlbumRepository.test.ts](../src/features/album/infra/repositories/FirestoreAlbumRepository.test.ts) — o mais complexo: `catalogRepository` (dependência concreta, não interface) é substituído por um objeto `jest.fn()` via `as unknown as jest.Mocked<SQLiteAlbumCatalogRepository>` (contorna o `private` da classe real, que quebraria a checagem estrutural do TS). Cobre as guardas de erro (saldo insuficiente, recompensa/pacote ainda não disponível, figurinha inexistente), `ensureUserDoc` (cria vs. reaproveita o doc) e o cruzamento de dados Firestore+SQLite em `getMarketAlbums`. Como o mock do Firestore não simula estado real, os testes verificam a *chamada* a `updateDoc` (o quê foi gravado), não uma releitura pós-gravação
+- [x] Exemplo completo: [SQLiteAlbumCatalogRepository.ts](../src/features/album/infra/repositories/SQLiteAlbumCatalogRepository.ts) → [SQLiteAlbumCatalogRepository.test.ts](../src/features/album/test/infra/repositories/SQLiteAlbumCatalogRepository.test.ts) — `getAlbumById` (mapeia e lança erro quando não encontra), `getMarketAlbums`, `getStickersByIds` (early-return em array vazio, conversão `null`→`undefined`, cast de `rarity`, placeholders `IN (?,?,...)`), `getStickersByAlbumId`, `getAllStickers`
+- [x] Repositório Firebase Auth: [FirebaseAuthRepository.ts](../src/features/auth/infra/repositories/FirebaseAuthRepository.ts) → [FirebaseAuthRepository.test.ts](../src/features/auth/test/infra/repositories/FirebaseAuthRepository.test.ts) — mocka `firebase/auth`, `firebase/firestore` **e** o módulo `firebaseConfig` (senão o import real dispara a validação de variáveis de ambiente e tenta inicializar o Firebase de verdade)
+- [x] [SQLiteTeamRepository.ts](../src/features/times/infra/repositories/SQLiteTeamRepository.ts) → [SQLiteTeamRepository.test.ts](../src/features/times/test/infra/repositories/SQLiteTeamRepository.test.ts) — mocka SQLite **e** Firestore (favoritos ficam no Firestore, elenco no SQLite) + `../../domain/constants/playerStats` (pra não depender de `Math.random` real neste nível). Inclui o caso do `try/catch` que engole erro do Firestore e devolve `[]` em vez de propagar
+- [x] [SQLiteMatchRepository.ts](../src/features/apostas/infra/repositories/SQLiteMatchRepository.ts) → [SQLiteMatchRepository.test.ts](../src/features/apostas/test/infra/repositories/SQLiteMatchRepository.test.ts) — odds só aparecem em partidas `scheduled`; placar só aparece em `finished`
+- [x] [SQLiteGroupRepository.ts](../src/features/grupos/infra/repositories/SQLiteGroupRepository.ts) → [SQLiteGroupRepository.test.ts](../src/features/grupos/test/infra/repositories/SQLiteGroupRepository.test.ts) — `getAllGroups` faz N+1 queries (uma por grupo pros standings); mock usa `mockResolvedValueOnce` encadeado pra simular cada chamada em sequência
+- [x] [FirestoreAlbumRepository.ts](../src/features/album/infra/repositories/FirestoreAlbumRepository.ts) → [FirestoreAlbumRepository.test.ts](../src/features/album/test/infra/repositories/FirestoreAlbumRepository.test.ts) — o mais complexo: `catalogRepository` (dependência concreta, não interface) é substituído por um objeto `jest.fn()` via `as unknown as jest.Mocked<SQLiteAlbumCatalogRepository>` (contorna o `private` da classe real, que quebraria a checagem estrutural do TS). Cobre as guardas de erro (saldo insuficiente, recompensa/pacote ainda não disponível, figurinha inexistente), `ensureUserDoc` (cria vs. reaproveita o doc) e o cruzamento de dados Firestore+SQLite em `getMarketAlbums`. Como o mock do Firestore não simula estado real, os testes verificam a *chamada* a `updateDoc` (o quê foi gravado), não uma releitura pós-gravação
 
 Repositórios Mock em memória (`MockTeamRepository`, `MockGroupRepository`, `MockPredictionRepository`) já são fakes — baixa prioridade, deixados de fora.
 
@@ -149,9 +151,9 @@ Componentes cobertos, com foco em ramificação/lógica (não snapshot):
 ## Fase 6 — Use cases delegantes restantes + correção de erros pré-existentes ✅ concluída
 
 **Use cases de delegação pura** ainda sem teste de contrato (a Fase 2 cobriu 1 por feature como amostra; aqui completamos o resto), em suítes compactas por feature em vez de 1 arquivo por classe:
-- [x] `times` (5 use cases): [TeamUseCases.test.ts](../src/features/times/domain/usecases/TeamUseCases.test.ts) — `GetAllTeams`, `GetFavoriteTeams`, `GetPlayerById`, `SearchTeams` (incluindo `userId: undefined`), `GetTeamById` (o único que combina 2 chamadas ao repositório — testado propagando erro da primeira sem chamar a segunda)
-- [x] `album` (14 use cases): [AlbumUseCases.test.ts](../src/features/album/domain/usecases/AlbumUseCases.test.ts) — `AddUserCoins`, `BuyIndividualSticker`, `ClaimDailyCoins`, `ClaimFreePackage`, `GetAlbumById`, `GetAlbumStickers`, `GetAllStickers`, `GetDailyCoinsStatus`, `GetFreePackStatus`, `GetMarketAlbums`, `GetStickersByIds`, `GetUserCoins`, `GetUserCollection`, `GrantStickers`, `OpenPackage`
-- [x] `apostas`: [GetPredictionHistory.test.ts](../src/features/apostas/domain/usecases/GetPredictionHistory.test.ts), [GetUpcomingMatches.test.ts](../src/features/apostas/domain/usecases/GetUpcomingMatches.test.ts)
+- [x] `times` (5 use cases): [TeamUseCases.test.ts](../src/features/times/test/domain/usecases/TeamUseCases.test.ts) — `GetAllTeams`, `GetFavoriteTeams`, `GetPlayerById`, `SearchTeams` (incluindo `userId: undefined`), `GetTeamById` (o único que combina 2 chamadas ao repositório — testado propagando erro da primeira sem chamar a segunda)
+- [x] `album` (14 use cases): [AlbumUseCases.test.ts](../src/features/album/test/domain/usecases/AlbumUseCases.test.ts) — `AddUserCoins`, `BuyIndividualSticker`, `ClaimDailyCoins`, `ClaimFreePackage`, `GetAlbumById`, `GetAlbumStickers`, `GetAllStickers`, `GetDailyCoinsStatus`, `GetFreePackStatus`, `GetMarketAlbums`, `GetStickersByIds`, `GetUserCoins`, `GetUserCollection`, `GrantStickers`, `OpenPackage`
+- [x] `apostas`: [GetPredictionHistory.test.ts](../src/features/apostas/test/domain/usecases/GetPredictionHistory.test.ts), [GetUpcomingMatches.test.ts](../src/features/apostas/test/domain/usecases/GetUpcomingMatches.test.ts)
 - Deixados de fora conscientemente: as factories `main/factories/make*.ts` (`new X(repositoryInstance)`) — testá-las exigiria mockar o mesmo Firebase pesado do `firebaseConfig.ts` (que lança se as env vars não existirem) sem cobrir nenhuma lógica nova além do já validado nos testes de `auth` (Fase 2)
 
 **Correção dos erros pré-existentes** (`tsc --noEmit`: 19 → 0; `eslint`: 19 → 0), motivada pela mesma sessão de reforço de testes:
@@ -177,7 +179,7 @@ Distinção que orientou a mudança: **decidir o que acontece** (checar saldo, s
 - [x] Contrato: `buyStickerPack`/`buyIndividualSticker` saíram do `AlbumRepository`, substituídos por `commitStickerPurchase(commit: StickerPurchaseCommit)` — uma única escrita, com saldo/ids/progresso já decididos. O tipo tem forma de domínio, não de Firestore
 - [x] [BuyStickerPack.ts](../src/features/album/domain/usecases/BuyStickerPack.ts) e [BuyIndividualSticker.ts](../src/features/album/domain/usecases/BuyIndividualSticker.ts) passaram a conter as regras, com `random` e `now` injetáveis no construtor (mesmo padrão da Fase 3.5, agora aplicado a classes em vez de funções)
 - [x] [FirestoreAlbumRepository.ts](../src/features/album/infra/repositories/FirestoreAlbumRepository.ts) perdeu 57 linhas: as duas compras viraram um método de persistência de 8 linhas que não decide nada
-- [x] Testes: [BuyStickerPack.test.ts](../src/features/album/domain/usecases/BuyStickerPack.test.ts) (9 testes) e [BuyIndividualSticker.test.ts](../src/features/album/domain/usecases/BuyIndividualSticker.test.ts) (8) deixaram de ser contrato e passaram a cobrir comportamento — saldo exato, repetição no sorteio, figurinha já possuída, álbum de referência. 100% nas quatro métricas, **sem mockar Firestore**
+- [x] Testes: [BuyStickerPack.test.ts](../src/features/album/test/domain/usecases/BuyStickerPack.test.ts) (9 testes) e [BuyIndividualSticker.test.ts](../src/features/album/test/domain/usecases/BuyIndividualSticker.test.ts) (8) deixaram de ser contrato e passaram a cobrir comportamento — saldo exato, repetição no sorteio, figurinha já possuída, álbum de referência. 100% nas quatro métricas, **sem mockar Firestore**
 - [x] O `describe('buyStickerPack')` do teste de infra virou `describe('commitStickerPurchase')`, verificando escrita única e ausência de decisão
 
 **Nenhuma mudança em Presentation.** As assinaturas de `execute()` continuaram idênticas, então hooks, factories e telas não foram tocados — evidência prática de que o contrato do use case estava bem colocado desde o início.
@@ -205,6 +207,58 @@ Nem tudo dessa lista deve subir: `ensureUserDoc` criar o documento se não exist
 
 ---
 
+## Fase 9 — Reorganização dos testes de Domain e Infra em `test/` por feature ✅ concluída
+
+Até aqui todo teste ficava ao lado do arquivo testado (convenção da Fase 1). Com a suíte madura, os diretórios `domain/usecases/` e `infra/repositories/` passaram a ter mais arquivos de teste do que de produção, e ler a lista de use cases de uma feature exigia filtrar `.test.ts` mentalmente. Os testes de Domain e Infra passaram para uma pasta `test/` **dentro de cada feature**, espelhando a estrutura de camadas:
+
+```
+src/features/<feature>/
+├── domain/usecases/BuyStickerPack.ts        ← produção
+├── infra/repositories/SQLiteAlbumCatalogRepository.ts
+└── test/
+    ├── domain/usecases/BuyStickerPack.test.ts       ← teste
+    └── infra/repositories/SQLiteAlbumCatalogRepository.test.ts
+```
+
+**O que mudou de lugar** — 17 arquivos, nas 5 features:
+
+| Feature | `test/domain/usecases/` | `test/infra/repositories/` |
+|---|---|---|
+| album | `AlbumUseCases`, `BuyIndividualSticker`, `BuyStickerPack`, `GetUserProfile` | `FirestoreAlbumRepository`, `SQLiteAlbumCatalogRepository` |
+| apostas | `CreatePrediction`, `GetPredictionHistory`, `GetUpcomingMatches`, `SettlePendingPredictions` | `SQLiteMatchRepository` |
+| times | `TeamUseCases`, `ToggleFavoriteTeam` | `SQLiteTeamRepository` |
+| grupos | `GetAllGroups` | `SQLiteGroupRepository` |
+| auth | — *(feature sem `domain/usecases`)* | `FirebaseAuthRepository` |
+
+**O que continua co-localizado**, deliberadamente: `presentation/hooks/`, `presentation/components/`, `domain/constants/`, `infra/stores/` e `main/factories/` (`auth/main/factories/makeAuth.test.ts`). O critério foi mover só as duas camadas onde a proporção teste/produção mais atrapalhava a leitura do diretório; um segundo passo pode estender o padrão ao resto, mas isso ainda não foi feito.
+
+**Nenhuma mudança em `jest.config.js`.** O `testMatch` padrão do Jest casa por sufixo `.test.ts`, não por diretório — a nova árvore é reconhecida sem config extra, do mesmo jeito que a antiga. `collectCoverageFrom` também não precisou mudar: ele lista os arquivos *de produção*, e `src/**/*.{ts,tsx}` nunca incluiu testes.
+
+**A parte que dá trabalho são os imports relativos.** Cada arquivo desceu de `<feature>/domain/usecases/` para `<feature>/test/domain/usecases/` — um nível a mais de profundidade — então todo especificador relativo mudou:
+
+```ts
+// antes, em domain/usecases/BuyStickerPack.test.ts
+import { BuyStickerPack } from './BuyStickerPack';
+import { PACK_SIZE } from '../constants/collection';
+import { makeSticker } from '../../../../../test/fixtures';
+
+// depois, em test/domain/usecases/BuyStickerPack.test.ts
+import { BuyStickerPack } from '../../../domain/usecases/BuyStickerPack';
+import { PACK_SIZE } from '../../../domain/constants/collection';
+import { makeSticker } from '../../../../../../test/fixtures';
+```
+
+Dois detalhes que custam tempo se a migração for feita à mão:
+
+1. **As strings de `jest.mock()` também são caminhos** e não são verificadas pelo TypeScript — um `jest.mock('../../../../shared/infra/sqlite/database')` desatualizado passa no `tsc --noEmit` e só falha em runtime, com `Cannot find module`. Os testes de Infra têm de 1 a 3 `jest.mock` cada.
+2. **O caminho para `test/fixtures.ts` (na raiz, fora de `src/`) fica com 6 níveis** de `../`, e é o mais fácil de errar por um nível.
+
+A migração foi feita com um script que recalcula cada especificador por aritmética de path (`path.relative` da pasta nova até o alvo resolvido a partir da pasta antiga), cobrindo `import` e `jest.mock` na mesma passada, com um *dry-run* que confirma que todo alvo resolve para um arquivo existente antes de escrever. Fazer isso à mão em 17 arquivos é onde os erros aparecem.
+
+**Verificação:** `npm test` (62 suítes, 535 testes) e `npm run typecheck` limpos, antes e depois — a reorganização não alterou nenhum teste nem nenhum arquivo de produção, só a localização e os imports. Os 35 links deste documento que apontavam para os caminhos antigos foram atualizados junto.
+
+---
+
 ## Inventário completo de testes unitários
 
 Todos os `it(...)` já escritos, agrupados por arquivo — atualizado a cada fase. Números por fase abaixo; total atual: **535 testes em 62 suítes** (rode `npm test` para o número exato e sempre atualizado — este documento descreve o quê foi coberto, não recalcula a contagem a cada edição).
@@ -224,7 +278,7 @@ Todos os `it(...)` já escritos, agrupados por arquivo — atualizado a cada fas
   - usa o mesmo cooldown de 24h do pacote grátis
   - libera o pacote grátis depois do cooldown
 
-**[SettlePendingPredictions.test.ts](../src/features/apostas/domain/usecases/SettlePendingPredictions.test.ts)**
+**[SettlePendingPredictions.test.ts](../src/features/apostas/test/domain/usecases/SettlePendingPredictions.test.ts)**
 - ignora predições que não estão pendentes
 - ignora predições cuja partida ainda não terminou
 - ignora predições cuja partida não existe mais
@@ -232,7 +286,7 @@ Todos os `it(...)` já escritos, agrupados por arquivo — atualizado a cada fas
 - marca como perdedora quando o placar previsto não bate e não concede recompensa
 - concede stickers quando a recompensa vencedora é do tipo sticker
 
-**[GetUserProfile.test.ts](../src/features/album/domain/usecases/GetUserProfile.test.ts)**
+**[GetUserProfile.test.ts](../src/features/album/test/domain/usecases/GetUserProfile.test.ts)**
 - usa a data de obtenção por usuário quando disponível, com fallback pro catálogo
 - ordena recentStickers por data de obtenção, mais recente primeiro (stickers preserva a ordem do catálogo)
 - filtra apenas raras e lendárias em rareStickers
@@ -281,16 +335,16 @@ Todos os `it(...)` já escritos, agrupados por arquivo — atualizado a cada fas
 
 | Feature | Arquivo | Teste |
 |---|---|---|
-| apostas | [CreatePrediction.test.ts](../src/features/apostas/domain/usecases/CreatePrediction.test.ts) | delega a criação da predição para o repositório com os dados recebidos e retorna o resultado |
-| times | [ToggleFavoriteTeam.test.ts](../src/features/times/domain/usecases/ToggleFavoriteTeam.test.ts) | delega o toggle de favorito para o repositório com os argumentos recebidos |
-| grupos | [GetAllGroups.test.ts](../src/features/grupos/domain/usecases/GetAllGroups.test.ts) | delega a busca de todos os grupos para o repositório e retorna o resultado |
+| apostas | [CreatePrediction.test.ts](../src/features/apostas/test/domain/usecases/CreatePrediction.test.ts) | delega a criação da predição para o repositório com os dados recebidos e retorna o resultado |
+| times | [ToggleFavoriteTeam.test.ts](../src/features/times/test/domain/usecases/ToggleFavoriteTeam.test.ts) | delega o toggle de favorito para o repositório com os argumentos recebidos |
+| grupos | [GetAllGroups.test.ts](../src/features/grupos/test/domain/usecases/GetAllGroups.test.ts) | delega a busca de todos os grupos para o repositório e retorna o resultado |
 | auth | [makeAuth.test.ts](../src/features/auth/main/factories/makeAuth.test.ts) | delega o login para authRepositoryInstance com e-mail e senha |
 
 > `BuyStickerPack` saiu desta tabela na Fase 8: deixou de delegar e virou teste de comportamento.
 
 ### Domain — regras de compra (Fase 8)
 
-**[BuyStickerPack.test.ts](../src/features/album/domain/usecases/BuyStickerPack.test.ts)** — 9 testes, sorteio e relógio injetados
+**[BuyStickerPack.test.ts](../src/features/album/test/domain/usecases/BuyStickerPack.test.ts)** — 9 testes, sorteio e relógio injetados
 - recusa a compra quando o saldo não cobre o custo, sem persistir nada
 - aceita a compra quando o saldo é exatamente igual ao custo
 - sorteia `PACK_SIZE` figurinhas e carimba `obtainedAt` em todas
@@ -301,7 +355,7 @@ Todos os `it(...)` já escritos, agrupados por arquivo — atualizado a cada fas
 - devolve um `packId` derivado do relógio injetado
 - sem injeção, usa `Math.random` e o relógio do sistema *(fecha o ramo dos parâmetros default)*
 
-**[BuyIndividualSticker.test.ts](../src/features/album/domain/usecases/BuyIndividualSticker.test.ts)** — 8 testes
+**[BuyIndividualSticker.test.ts](../src/features/album/test/domain/usecases/BuyIndividualSticker.test.ts)** — 8 testes
 - recusa quando a figurinha não existe no catálogo, **antes** de olhar o saldo
 - recusa quando o saldo não cobre o custo, sem persistir nada
 - aceita quando o saldo é exatamente igual ao custo
@@ -313,7 +367,7 @@ Todos os `it(...)` já escritos, agrupados por arquivo — atualizado a cada fas
 
 ### Infra — repositórios (SQLite / Firebase mockados)
 
-**[SQLiteAlbumCatalogRepository.test.ts](../src/features/album/infra/repositories/SQLiteAlbumCatalogRepository.test.ts)**
+**[SQLiteAlbumCatalogRepository.test.ts](../src/features/album/test/infra/repositories/SQLiteAlbumCatalogRepository.test.ts)**
 - `getAlbumById`
   - mapeia a linha do banco para a entidade Album
   - lança erro quando o álbum não existe
@@ -328,7 +382,7 @@ Todos os `it(...)` já escritos, agrupados por arquivo — atualizado a cada fas
 - `getAllStickers`
   - consulta todas as figurinhas ordenadas por id
 
-**[FirebaseAuthRepository.test.ts](../src/features/auth/infra/repositories/FirebaseAuthRepository.test.ts)**
+**[FirebaseAuthRepository.test.ts](../src/features/auth/test/infra/repositories/FirebaseAuthRepository.test.ts)**
 - `signInAnonymously`
   - faz login anônimo, garante o documento do usuário e mapeia o retorno
 - `signInWithEmail`
@@ -344,7 +398,7 @@ Todos os `it(...)` já escritos, agrupados por arquivo — atualizado a cada fas
   - repassa a inscrição para o Firebase Auth e mapeia o usuário no callback
   - chama o callback com null quando o usuário desloga
 
-**[SQLiteTeamRepository.test.ts](../src/features/times/infra/repositories/SQLiteTeamRepository.test.ts)**
+**[SQLiteTeamRepository.test.ts](../src/features/times/test/infra/repositories/SQLiteTeamRepository.test.ts)**
 - `getAllTeams`
   - mapeia countryId a partir da flag_url, parseia titles e calcula winRate/isUnbeaten
   - countryId fica vazio quando não há flag_url
@@ -366,7 +420,7 @@ Todos os `it(...)` já escritos, agrupados por arquivo — atualizado a cada fas
   - getPlayerById lança erro quando o jogador não existe
   - number cai para 10 quando não há número no row
 
-**[SQLiteMatchRepository.test.ts](../src/features/apostas/infra/repositories/SQLiteMatchRepository.test.ts)**
+**[SQLiteMatchRepository.test.ts](../src/features/apostas/test/infra/repositories/SQLiteMatchRepository.test.ts)**
 - `getUpcomingMatches`
   - consulta só partidas agendadas, ordenadas por data
 - `getMatchById`
@@ -376,7 +430,7 @@ Todos os `it(...)` já escritos, agrupados por arquivo — atualizado a cada fas
   - partida ao vivo: sem odds e sem placar
   - usa "Fase de Grupos" como fallback quando não há group_label
 
-**[SQLiteGroupRepository.test.ts](../src/features/grupos/infra/repositories/SQLiteGroupRepository.test.ts)**
+**[SQLiteGroupRepository.test.ts](../src/features/grupos/test/infra/repositories/SQLiteGroupRepository.test.ts)**
 - `getAllGroups`
   - busca os grupos e, para cada um, os standings ordenados por critério de desempate
   - deriva teamIds a partir dos standings de cada grupo
@@ -384,7 +438,7 @@ Todos os `it(...)` já escritos, agrupados por arquivo — atualizado a cada fas
   - lança erro quando o grupo não existe
   - mapeia o grupo e seus standings quando encontrado
 
-**[FirestoreAlbumRepository.test.ts](../src/features/album/infra/repositories/FirestoreAlbumRepository.test.ts)**
+**[FirestoreAlbumRepository.test.ts](../src/features/album/test/infra/repositories/FirestoreAlbumRepository.test.ts)**
 - `getUserCollection / ensureUserDoc`
   - não recria o documento quando o usuário já existe
   - cria o documento com valores padrão quando o usuário ainda não existe
@@ -421,7 +475,7 @@ Dado o volume (mais de 300 `it(...)` novos), esta seção resume por arquivo em 
 | Hooks — `grupos` | [useGroups](../src/features/grupos/presentation/hooks/useGroups.test.ts) | Fetch-on-mount simples |
 | Contexto | [UserContext](../src/shared/presentation/contexts/UserContext.test.tsx) | `toUser`, `refreshCoins`, unsubscribe, `AuthGuard` |
 | Componentes | 13 componentes (ver Fase 5) | Estilo condicional por estado/prop, formatação, interação (`fireEvent.press`) |
-| Use cases delegantes | [TeamUseCases](../src/features/times/domain/usecases/TeamUseCases.test.ts), [AlbumUseCases](../src/features/album/domain/usecases/AlbumUseCases.test.ts), [GetPredictionHistory](../src/features/apostas/domain/usecases/GetPredictionHistory.test.ts), [GetUpcomingMatches](../src/features/apostas/domain/usecases/GetUpcomingMatches.test.ts) | Argumentos corretos repassados ao repositório, retorno propagado sem transformação |
+| Use cases delegantes | [TeamUseCases](../src/features/times/test/domain/usecases/TeamUseCases.test.ts), [AlbumUseCases](../src/features/album/test/domain/usecases/AlbumUseCases.test.ts), [GetPredictionHistory](../src/features/apostas/test/domain/usecases/GetPredictionHistory.test.ts), [GetUpcomingMatches](../src/features/apostas/test/domain/usecases/GetUpcomingMatches.test.ts) | Argumentos corretos repassados ao repositório, retorno propagado sem transformação |
 
 **Infra de teste reutilizável** (pasta `test/`, fora de `src/`): [fixtures.ts](../test/fixtures.ts) (`makeUser`, `makeSticker`, `makeTeam`, `makePlayer`, `makeMatch`), [styleHelpers.ts](../test/styleHelpers.ts), [svgMock.tsx](../test/svgMock.tsx), [setup.tsx](../test/setup.tsx).
 

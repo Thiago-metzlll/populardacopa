@@ -1,21 +1,21 @@
-import { makeSticker } from '../../../../../test/fixtures';
-import { AlbumRepository, ClaimDailyCoinsResult } from '../repositories/AlbumRepository';
-import { Album } from '../entities/Album';
-import { UserCollection } from '../entities/UserCollection';
-import { AddUserCoins } from './AddUserCoins';
-import { ClaimDailyCoins } from './ClaimDailyCoins';
-import { ClaimFreePackage } from './ClaimFreePackage';
-import { GetAlbumById } from './GetAlbumById';
-import { GetAlbumStickers } from './GetAlbumStickers';
-import { GetAllStickers } from './GetAllStickers';
-import { GetDailyCoinsStatus } from './GetDailyCoinsStatus';
-import { GetFreePackStatus } from './GetFreePackStatus';
-import { GetMarketAlbums } from './GetMarketAlbums';
-import { GetStickersByIds } from './GetStickersByIds';
-import { GetUserCoins } from './GetUserCoins';
-import { GetUserCollection } from './GetUserCollection';
-import { GrantStickers } from './GrantStickers';
-import { OpenPackage } from './OpenPackage';
+import { makeSticker } from '../../../../../../test/fixtures';
+import { AlbumRepository, ClaimDailyCoinsResult } from '../../../domain/repositories/AlbumRepository';
+import { Album } from '../../../domain/entities/Album';
+import { UserCollection } from '../../../domain/entities/UserCollection';
+import { AddUserCoins } from '../../../domain/usecases/AddUserCoins';
+import { ClaimDailyCoins } from '../../../domain/usecases/ClaimDailyCoins';
+import { ClaimFreePackage } from '../../../domain/usecases/ClaimFreePackage';
+import { GetAlbumById } from '../../../domain/usecases/GetAlbumById';
+import { GetAlbumStickers } from '../../../domain/usecases/GetAlbumStickers';
+import { GetAllStickers } from '../../../domain/usecases/GetAllStickers';
+import { GetDailyCoinsStatus } from '../../../domain/usecases/GetDailyCoinsStatus';
+import { GetFreePackStatus } from '../../../domain/usecases/GetFreePackStatus';
+import { GetMarketAlbums } from '../../../domain/usecases/GetMarketAlbums';
+import { GetStickersByIds } from '../../../domain/usecases/GetStickersByIds';
+import { GetUserCoins } from '../../../domain/usecases/GetUserCoins';
+import { GetUserCollection } from '../../../domain/usecases/GetUserCollection';
+import { GrantStickers } from '../../../domain/usecases/GrantStickers';
+import { OpenPackage } from '../../../domain/usecases/OpenPackage';
 
 /**
  * Estes use cases só delegam para o AlbumRepository — a lógica de negócio

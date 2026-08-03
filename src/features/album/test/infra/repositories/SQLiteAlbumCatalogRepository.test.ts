@@ -1,9 +1,9 @@
-jest.mock('../../../../shared/infra/sqlite/database', () => ({
+jest.mock('../../../../../shared/infra/sqlite/database', () => ({
   getSQLiteDb: jest.fn(),
 }));
 
-import { getSQLiteDb } from '../../../../shared/infra/sqlite/database';
-import { SQLiteAlbumCatalogRepository } from './SQLiteAlbumCatalogRepository';
+import { getSQLiteDb } from '../../../../../shared/infra/sqlite/database';
+import { SQLiteAlbumCatalogRepository } from '../../../infra/repositories/SQLiteAlbumCatalogRepository';
 
 const mockDb = {
   getFirstAsync: jest.fn(),
