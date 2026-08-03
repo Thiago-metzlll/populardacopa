@@ -33,7 +33,7 @@ npx expo start
 # Limpar cache Metro após mudanças estruturais:
 npx expo start --clear
 
-npm test              # roda a suíte Jest (521 testes / 61 suítes)
+npm test              # roda a suíte Jest (535 testes / 62 suítes)
 npm run test:coverage
 npm run typecheck     # tsc --noEmit — depende de .expo/types/router.d.ts
                        # (gitignored); rode `npx expo start` uma vez após

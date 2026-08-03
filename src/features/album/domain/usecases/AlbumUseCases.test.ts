@@ -3,7 +3,6 @@ import { AlbumRepository, ClaimDailyCoinsResult } from '../repositories/AlbumRep
 import { Album } from '../entities/Album';
 import { UserCollection } from '../entities/UserCollection';
 import { AddUserCoins } from './AddUserCoins';
-import { BuyIndividualSticker } from './BuyIndividualSticker';
 import { ClaimDailyCoins } from './ClaimDailyCoins';
 import { ClaimFreePackage } from './ClaimFreePackage';
 import { GetAlbumById } from './GetAlbumById';
@@ -24,6 +23,10 @@ import { OpenPackage } from './OpenPackage';
  * repositório e das constantes de rewards. Aqui garantimos apenas que os
  * argumentos certos chegam ao método certo do repositório, e que o retorno
  * passa direto sem transformação.
+ *
+ * As compras (BuyStickerPack / BuyIndividualSticker) saíram desta suíte: elas
+ * deixaram de delegar e passaram a conter as regras, então ganharam arquivo
+ * próprio com testes de comportamento.
  */
 const makeRepository = (overrides: Partial<AlbumRepository> = {}): AlbumRepository =>
   ({
@@ -32,7 +35,6 @@ const makeRepository = (overrides: Partial<AlbumRepository> = {}): AlbumReposito
     getStickersByIds: jest.fn(),
     openPackage: jest.fn(),
     getMarketAlbums: jest.fn(),
-    buyStickerPack: jest.fn(),
     getUserCoins: jest.fn(),
     deductUserCoins: jest.fn(),
     addUserCoins: jest.fn(),
@@ -43,7 +45,7 @@ const makeRepository = (overrides: Partial<AlbumRepository> = {}): AlbumReposito
     grantStickers: jest.fn(),
     getStickersByAlbumId: jest.fn(),
     getAllStickers: jest.fn(),
-    buyIndividualSticker: jest.fn(),
+    commitStickerPurchase: jest.fn(),
     ...overrides,
   }) as unknown as AlbumRepository;
 
@@ -58,18 +60,6 @@ describe('AddUserCoins', () => {
 
     expect(repository.addUserCoins).toHaveBeenCalledWith('u1', 50);
     expect(result).toBe(150);
-  });
-});
-
-describe('BuyIndividualSticker', () => {
-  it('delega para albumRepository.buyIndividualSticker com userId, stickerId e custo', async () => {
-    const sticker = makeSticker({ id: 's7' });
-    const repository = makeRepository({ buyIndividualSticker: jest.fn().mockResolvedValue(sticker) });
-
-    const result = await new BuyIndividualSticker(repository).execute('u1', 's7', 50);
-
-    expect(repository.buyIndividualSticker).toHaveBeenCalledWith('u1', 's7', 50);
-    expect(result).toBe(sticker);
   });
 });
 

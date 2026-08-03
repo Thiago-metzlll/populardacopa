@@ -21,7 +21,6 @@ const makeSut = (collection: UserCollection, catalogStickers: Sticker[]) => {
     getStickersByIds: jest.fn(async () => catalogStickers),
     openPackage: jest.fn(),
     getMarketAlbums: jest.fn(),
-    buyStickerPack: jest.fn(),
     getUserCoins: jest.fn(),
     deductUserCoins: jest.fn(),
     addUserCoins: jest.fn(),
@@ -32,7 +31,7 @@ const makeSut = (collection: UserCollection, catalogStickers: Sticker[]) => {
     grantStickers: jest.fn(),
     getStickersByAlbumId: jest.fn(),
     getAllStickers: jest.fn(),
-    buyIndividualSticker: jest.fn(),
+    commitStickerPurchase: jest.fn(),
   };
 
   return { sut: new GetUserProfile(albumRepository), albumRepository };

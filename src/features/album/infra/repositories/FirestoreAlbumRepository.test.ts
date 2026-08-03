@@ -190,57 +190,64 @@ describe('FirestoreAlbumRepository', () => {
     });
   });
 
-  describe('buyStickerPack', () => {
-    it('lança erro quando o saldo é insuficiente, sem gravar nada', async () => {
+  // As regras de compra (saldo, sorteio, progresso) vivem nos use cases
+  // BuyStickerPack / BuyIndividualSticker e são testadas lá, sem Firestore.
+  // Aqui resta só a persistência: gravar o que chegou pronto, de uma vez.
+  describe('commitStickerPurchase', () => {
+    it('grava saldo, ids e progresso em uma única escrita', async () => {
       const catalog = makeCatalog();
-      (getDoc as jest.Mock).mockResolvedValue(snapshot({ coins: 10 }));
+      (getDoc as jest.Mock).mockResolvedValue(snapshot({ coins: 200, stickerIds: [] }));
       const sut = new FirestoreAlbumRepository(catalog);
 
-      await expect(sut.buyStickerPack('user-1', 'a1', 100)).rejects.toThrow('Saldo de moedas insuficiente');
-      expect(updateDoc).not.toHaveBeenCalled();
+      await sut.commitStickerPurchase({
+        userId: 'user-1',
+        newBalance: 150,
+        newStickerIds: ['s1', 's2'],
+        progress: 20,
+        obtainedAt: '2026-03-15T12:00:00.000Z',
+      });
+
+      expect(updateDoc).toHaveBeenCalledTimes(1);
+      expect(updateDoc).toHaveBeenCalledWith('USER_DOC_REF', {
+        coins: 150,
+        stickerIds: { __op: 'arrayUnion', ids: ['s1', 's2'] },
+        progress: 20,
+        'stickerObtainedAt.s1': '2026-03-15T12:00:00.000Z',
+        'stickerObtainedAt.s2': '2026-03-15T12:00:00.000Z',
+      });
     });
 
-    it('deduz o custo do saldo e retorna 3 figurinhas sorteadas', async () => {
+    it('não decide nada: grava o saldo recebido mesmo que seja maior que o anterior', async () => {
       const catalog = makeCatalog();
-      catalog.getAllStickers.mockResolvedValue([makeSticker('s1'), makeSticker('s2'), makeSticker('s3')]);
-      (getDoc as jest.Mock).mockResolvedValue(snapshot({ coins: 200, stickerIds: [], stickerObtainedAt: {} }));
+      (getDoc as jest.Mock).mockResolvedValue(snapshot({ coins: 10, stickerIds: [] }));
       const sut = new FirestoreAlbumRepository(catalog);
 
-      const result = await sut.buyStickerPack('user-1', 'a1', 50);
+      await sut.commitStickerPurchase({
+        userId: 'user-1',
+        newBalance: 999,
+        newStickerIds: [],
+        progress: 0,
+        obtainedAt: '2026-03-15T12:00:00.000Z',
+      });
 
-      expect(result.stickers).toHaveLength(3);
-      expect(result.packId).toMatch(/^pkg_/);
-      expect(updateDoc).toHaveBeenCalledWith('USER_DOC_REF', expect.objectContaining({ coins: 150 }));
-    });
-  });
-
-  describe('buyIndividualSticker', () => {
-    it('lança erro quando a figurinha não existe no catálogo', async () => {
-      const catalog = makeCatalog();
-      const sut = new FirestoreAlbumRepository(catalog);
-
-      await expect(sut.buyIndividualSticker('user-1', 'inexistente', 10)).rejects.toThrow('Figurinha não encontrada');
+      expect(updateDoc).toHaveBeenCalledWith('USER_DOC_REF', expect.objectContaining({ coins: 999 }));
     });
 
-    it('lança erro quando o saldo é insuficiente', async () => {
+    it('cria o documento do usuário antes de gravar, se ele ainda não existir', async () => {
       const catalog = makeCatalog();
-      catalog.getStickersByIds.mockResolvedValue([makeSticker('s1')]);
-      (getDoc as jest.Mock).mockResolvedValue(snapshot({ coins: 5 }));
+      (getDoc as jest.Mock).mockResolvedValue(snapshot(undefined));
       const sut = new FirestoreAlbumRepository(catalog);
 
-      await expect(sut.buyIndividualSticker('user-1', 's1', 50)).rejects.toThrow('Saldo de moedas insuficiente');
-    });
+      await sut.commitStickerPurchase({
+        userId: 'user-novo',
+        newBalance: 150,
+        newStickerIds: ['s1'],
+        progress: 10,
+        obtainedAt: '2026-03-15T12:00:00.000Z',
+      });
 
-    it('compra com sucesso e carimba obtainedAt', async () => {
-      const catalog = makeCatalog();
-      catalog.getStickersByIds.mockResolvedValue([makeSticker('s1')]);
-      (getDoc as jest.Mock).mockResolvedValue(snapshot({ coins: 200, stickerIds: [], stickerObtainedAt: {} }));
-      const sut = new FirestoreAlbumRepository(catalog);
-
-      const sticker = await sut.buyIndividualSticker('user-1', 's1', 50);
-
-      expect(sticker.obtainedAt).not.toBe('');
-      expect(updateDoc).toHaveBeenCalledWith('USER_DOC_REF', expect.objectContaining({ coins: 150 }));
+      expect(setDoc).toHaveBeenCalled();
+      expect(updateDoc).toHaveBeenCalled();
     });
   });
 

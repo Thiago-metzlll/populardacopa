@@ -330,6 +330,41 @@
   .table-scroll{ overflow-x: auto; }
   .table-scroll .grid-table{ min-width: 620px; }
 
+  /* ---------- árvore de arquivos de teste ---------- */
+  .tree{
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #0f0f13;
+    padding: 14px 4px 14px 0;
+    margin: 24px 0;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.75;
+  }
+  .tree__row{ display: flex; gap: 12px; align-items: baseline; padding: 0 16px; white-space: nowrap; }
+  .tree__row:hover{ background: rgba(255,255,255,0.03); }
+  .tree__path{ flex: 1 1 auto; color: var(--text-dim); }
+  .tree__path b{ color: var(--text); font-weight: 600; }
+  .tree__count{
+    flex: 0 0 auto;
+    font-family: var(--display);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .tree__count em{ font-style: normal; color: var(--text-dim); font-weight: 700; }
+  .tree__row--head{ padding-top: 10px; }
+  .tree__row--head .tree__path b{ font-family: var(--display); letter-spacing: 0.04em; }
+  .tree__sep{ height: 1px; background: var(--line-soft); margin: 8px 16px; }
+  .tree .d{ color: var(--lime); }
+  .tree .i{ color: var(--purple-soft); }
+  .tree .p{ color: var(--orange); }
+  .tree .m{ color: #d8d8dd; }
+  .tree .s{ color: var(--blue); }
+  .tree .dim{ color: var(--text-faint); }
+
   /* ---------- pyramid ---------- */
   .pyramid{ display: flex; flex-direction: column; gap: 10px; margin: 26px 0; max-width: 700px; }
   .pyr-row{
@@ -521,8 +556,8 @@
       <span class="chip">Clean Architecture</span>
     </div>
     <div class="scoreboard">
-      <div class="stat"><span class="stat__value">521</span><span class="stat__label">testes passando</span></div>
-      <div class="stat"><span class="stat__value">61</span><span class="stat__label">suítes</span></div>
+      <div class="stat"><span class="stat__value">535</span><span class="stat__label">testes passando</span></div>
+      <div class="stat"><span class="stat__value">62</span><span class="stat__label">suítes</span></div>
       <div class="stat"><span class="stat__value">~25s</span><span class="stat__label">execução total</span></div>
       <div class="stat"><span class="stat__value">0</span><span class="stat__label">acessos a banco real</span></div>
     </div>
@@ -535,13 +570,15 @@
     <a class="toc__link" href="#fronteira"><span class="toc__num">02</span>A fronteira do mock</a>
     <a class="toc__link" href="#setup"><span class="toc__num">03</span>Configuração (Jest)</a>
     <a class="toc__link" href="#estrategia"><span class="toc__num">04</span>Estratégia por camada</a>
-    <a class="toc__link" href="#domain"><span class="toc__num">05</span>Domain</a>
-    <a class="toc__link" href="#infra"><span class="toc__num">06</span>Infra (repositórios)</a>
-    <a class="toc__link" href="#hooks"><span class="toc__num">07</span>Hooks</a>
-    <a class="toc__link" href="#componentes"><span class="toc__num">08</span>Componentes</a>
-    <a class="toc__link" href="#pegadinhas"><span class="toc__num">09</span>Pegadinhas reais</a>
-    <a class="toc__link" href="#rodar"><span class="toc__num">10</span>Como rodar</a>
-    <a class="toc__link" href="#glossario"><span class="toc__num">11</span>Glossário</a>
+    <a class="toc__link" href="#cobertura"><span class="toc__num">05</span>Cobertura ≠ qualidade</a>
+    <a class="toc__link" href="#mapa"><span class="toc__num">06</span>Mapa dos arquivos</a>
+    <a class="toc__link" href="#domain"><span class="toc__num">07</span>Domain</a>
+    <a class="toc__link" href="#infra"><span class="toc__num">08</span>Infra (repositórios)</a>
+    <a class="toc__link" href="#hooks"><span class="toc__num">09</span>Hooks</a>
+    <a class="toc__link" href="#componentes"><span class="toc__num">10</span>Componentes</a>
+    <a class="toc__link" href="#pegadinhas"><span class="toc__num">11</span>Pegadinhas reais</a>
+    <a class="toc__link" href="#rodar"><span class="toc__num">12</span>Como rodar</a>
+    <a class="toc__link" href="#glossario"><span class="toc__num">13</span>Glossário</a>
   </nav>
 
   <main class="content">
@@ -561,7 +598,7 @@
       <p>
         A ferramenta usada aqui é o <strong>Jest</strong>, que executa os testes em
         <strong>Node.js</strong> — ou seja, no computador, sem emulador e sem celular.
-        Isso é o que permite rodar as 521 verificações em cerca de 25 segundos.
+        Isso é o que permite rodar as 535 verificações em cerca de 25 segundos.
       </p>
 
       <h3>A anatomia de um teste</h3>
@@ -591,7 +628,7 @@
         Repare que <code>now</code> é <strong>passado por parâmetro</strong>, em vez de a
         função chamar <code>new Date()</code> internamente. Esse detalhe é o que torna o
         teste possível: uma função que lê o relógio do sistema sozinha daria um resultado
-        diferente a cada execução. Voltaremos a isso na seção 05.
+        diferente a cada execução. Voltaremos a isso na seção 07.
       </p>
 
       <div class="note note--core">
@@ -882,7 +919,7 @@
             <tr>
               <td class="tag tag-presentation">Componente</td>
               <td>Ícones, SVGs e o que o Jest não sabe transformar</td>
-              <td>Infra reutilizável em <code>test/</code> (seção 08)</td>
+              <td>Infra reutilizável em <code>test/</code> (seção 10)</td>
             </tr>
           </tbody>
         </table>
@@ -992,12 +1029,12 @@
         <strong>maioria é delegação pura de uma linha</strong> ao repositório.
       </p>
       <div class="code-block">
-        <div class="code-block__bar"><span>src/features/album/domain/usecases/BuyStickerPack.ts</span></div>
-<pre><span class="tok-kw">export class</span> BuyStickerPack {
+        <div class="code-block__bar"><span>src/features/album/domain/usecases/AddUserCoins.ts</span></div>
+<pre><span class="tok-kw">export class</span> AddUserCoins {
   <span class="tok-fn">constructor</span>(<span class="tok-kw">private readonly</span> albumRepository: AlbumRepository) {}
 
-  <span class="tok-kw">async</span> <span class="tok-fn">execute</span>(userId: string, albumId: string, cost: number) {
-    <span class="tok-kw">return this</span>.albumRepository.<span class="tok-fn">buyStickerPack</span>(userId, albumId, cost); <span class="tok-com">// e só</span>
+  <span class="tok-kw">async</span> <span class="tok-fn">execute</span>(userId: string, amount: number) {
+    <span class="tok-kw">return this</span>.albumRepository.<span class="tok-fn">addUserCoins</span>(userId, amount); <span class="tok-com">// e só</span>
   }
 }</pre>
       </div>
@@ -1008,11 +1045,304 @@
         lógica crescer depois. A lógica de negócio real estava concentrada em poucos
         arquivos, e é lá que a cobertura é exaustiva.
       </p>
+      <div class="note note--warn">
+        <span class="note__tag">Quando a delegação é sintoma, não escolha</span>
+        <p>
+          Cuidado com uma leitura fácil demais: um use case de uma linha pode significar
+          que a operação <em>não tem</em> regra — ou que a regra dele foi parar na camada
+          errada. Foi o caso de <code>BuyStickerPack</code> e
+          <code>BuyIndividualSticker</code>: eram uma linha cada porque conferir saldo,
+          sortear e recalcular progresso estava tudo dentro do
+          <code>FirestoreAlbumRepository</code>. Hoje as regras voltaram para os use cases
+          e o repositório só persiste. O sinal de alerta é o nome: um use case que leva o
+          nome de uma operação e não contém nenhuma decisão dela merece uma olhada na
+          Infra.
+        </p>
+      </div>
     </section>
 
     <!-- ================= 05 ================= -->
+    <section class="section" id="cobertura">
+      <span class="section__eyebrow">05 — Leitura crítica</span>
+      <h2>Cobertura de 100% não é qualidade de 100%</h2>
+      <p>
+        A seção anterior explicou <em>por que</em> os use cases delegantes recebem só um
+        teste de contrato. Esta seção mostra o resultado disso em números — e por que esses
+        números enganam se lidos sem contexto. É a leitura mais importante do guia inteiro.
+      </p>
+      <p>
+        Rodando a cobertura restrita aos 28 use cases do projeto:
+      </p>
+      <div class="code-block">
+        <div class="code-block__bar"><span>npx jest --coverage --testPathPattern="domain/usecases"</span></div>
+<pre>Statements   : 100% ( 80/80 )
+Branches     : 100% ( 33/33 )
+Functions    : 100% ( 64/64 )
+Lines        : 100% ( 73/73 )
+
+Test Suites: 11 passed, 11 total
+Tests:       54 passed, 54 total</pre>
+      </div>
+      <p>
+        Todos os 28 use cases estão cobertos, sem exceção. Mas repare na proporção entre as
+        duas colunas abaixo — é ali que a história real aparece:
+      </p>
+      <div class="table-scroll">
+        <table class="grid-table">
+          <thead>
+            <tr><th>Perfil</th><th>Use cases</th><th>Testes</th><th>Testes por use case</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="tag tag-domain">Delegação pura</td>
+              <td>24</td>
+              <td>26</td>
+              <td>1 — teste de contrato</td>
+            </tr>
+            <tr>
+              <td class="tag tag-presentation">Com regra própria</td>
+              <td>4</td>
+              <td>28</td>
+              <td>4 a 9 — casos e ramos</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        <strong>14% dos use cases concentram 52% dos testes.</strong> Os quatro são
+        <code>BuyStickerPack</code> (9 testes), <code>BuyIndividualSticker</code> (8),
+        <code>SettlePendingPredictions</code> (7 — único com <code>for</code>,
+        <code>if</code> aninhado e três dependências injetadas) e
+        <code>GetUserProfile</code> (4). Os outros 24 são uma linha cada.
+      </p>
+      <p>
+        Os dois primeiros entraram nessa lista <em>depois</em>: até pouco tempo eram
+        delegação pura de uma linha, com um teste de contrato cada. Não porque a
+        funcionalidade mudou, mas porque as regras de compra — recusar por saldo
+        insuficiente, sortear <code>PACK_SIZE</code> figurinhas, recalcular progresso —
+        foram trazidas do repositório de volta para o use case, que é onde regra de
+        aplicação pertence. O ganho de teste foi imediato: com <code>random</code> e o
+        relógio injetáveis no construtor, a compra virou determinística e passou a ser
+        testável sem Firestore nenhum.
+      </p>
+
+      <h3>O que a métrica realmente mede</h3>
+      <p>
+        Cobertura responde a uma pergunta só: <strong>esta linha foi executada durante os
+        testes?</strong> Ela não sabe se você verificou alguma coisa depois de executá-la.
+        Um teste sem nenhum <code>expect</code> deixa a linha 100% coberta e não detecta
+        defeito nenhum.
+      </p>
+      <p>
+        No caso dos 24 delegantes, cobrir 100% de <code>AddUserCoins.execute()</code>
+        significa chamar uma linha uma vez. O teste não valida regra de negócio, porque não
+        existe regra ali — ela mora no repositório, e é coberta pelos testes de
+        <code>FirestoreAlbumRepository</code> (17 testes), <code>SQLiteTeamRepository</code>
+        (14) e das funções puras em <code>domain/constants/</code>. O valor desses 24 é
+        outro, e é real: <strong>contrato e regressão</strong>.
+      </p>
+      <div class="table-scroll">
+        <table class="grid-table">
+          <thead>
+            <tr><th>Um teste de contrato...</th><th>...pega</th><th>...não pega</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Alguém trocar o método chamado</td>
+              <td class="tag tag-domain">sim</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td>Inverter a ordem dos argumentos</td>
+              <td class="tag tag-domain">sim</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td>Passar a transformar o retorno sem querer</td>
+              <td class="tag tag-domain">sim</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td>O <code>SELECT</code> do repositório estar errado</td>
+              <td>—</td>
+              <td class="tag tag-mem">não — é o teste de Infra</td>
+            </tr>
+            <tr>
+              <td>O cálculo de cooldown estar errado</td>
+              <td>—</td>
+              <td class="tag tag-mem">não — é o teste de constants</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Um caso concreto: o número que os 100% escondiam</h3>
+      <p>
+        Antes desta revisão a cobertura dos use cases estava em <strong>100% de statements,
+        linhas e funções — mas 95,83% de branches</strong>. Um único ramo descoberto, em
+        <code>SettlePendingPredictions</code>:
+      </p>
+      <div class="code-block">
+        <div class="code-block__bar"><span>domain/usecases/SettlePendingPredictions.ts</span> <span>linha 45</span></div>
+<pre><span class="tok-kw">if</span> (won) {
+  <span class="tok-kw">if</span> (prediction.reward.type === <span class="tok-str">'coins'</span> &amp;&amp; prediction.reward.coinAmount) {
+    <span class="tok-kw">await this</span>.rewardGranter.<span class="tok-fn">grantCoins</span>(userId, prediction.reward.coinAmount);
+  } <span class="tok-kw">else if</span> (prediction.reward.type === <span class="tok-str">'sticker'</span> &amp;&amp; prediction.reward.stickerIds) {
+    <span class="tok-kw">await this</span>.rewardGranter.<span class="tok-fn">grantStickers</span>(userId, prediction.reward.stickerIds);
+  }
+  <span class="tok-com">// ← e se nenhum dos dois casar? o palpite é liquidado, a recompensa evapora</span>
+}</pre>
+      </div>
+      <p>
+        Um palpite vencedor com <code>type: 'sticker'</code> mas sem <code>stickerIds</code>
+        — ou <code>type: 'coins'</code> sem <code>coinAmount</code> — cai fora dos dois
+        ramos: o status vira <code>'won'</code>, o usuário vê que acertou, e não recebe
+        nada. Nenhuma exceção, nenhum log. Não é hipótese: um <em>seed</em> malformado ou um
+        campo opcional esquecido produz exatamente isso.
+      </p>
+      <p>
+        As três métricas em 100% não apontavam para lá. Só o <em>branch coverage</em>
+        apontava — e por isso é a métrica que vale acompanhar. Foi acrescentado o teste
+        <code>'marca como vencedora mas não concede nada quando a recompensa está
+        malformada'</code>, que documenta o comportamento atual e fecha o ramo. Hoje a
+        cobertura dos use cases está em 100% nas quatro métricas.
+      </p>
+      <div class="note note--warn">
+        <span class="note__tag">Como ler cobertura sem se enganar</span>
+        <p>
+          Cobertura alta não prova que o código está certo — prova que o código foi
+          <em>executado</em>. Ela serve bem como <strong>detector de ausência</strong>
+          ("isto aqui ninguém testou") e mal como <strong>certificado de presença</strong>
+          ("isto aqui está testado"). Quando as quatro métricas divergem, a menor delas
+          costuma ser a que está dizendo a verdade.
+        </p>
+      </div>
+    </section>
+
+    <!-- ================= 06 ================= -->
+    <section class="section" id="mapa">
+      <span class="section__eyebrow">06 — Mapa</span>
+      <h2>Onde cada arquivo de teste mora</h2>
+      <p>
+        O projeto não tem pasta <code>__tests__</code> nem diretório <code>tests/</code>
+        espelhando a árvore do código. A convenção é <strong>co-locação</strong>: o teste
+        fica no <em>mesmo diretório</em> do arquivo que testa, com o sufixo
+        <code>.test.ts</code> (ou <code>.test.tsx</code> quando renderiza componente).
+        <code>CreatePrediction.ts</code> e <code>CreatePrediction.test.ts</code> são vizinhos.
+      </p>
+      <p>
+        A vantagem é direta: ao abrir qualquer pasta você vê imediatamente o que tem e o que
+        não tem teste, sem navegar em paralelo por duas árvores. A única exceção é
+        <code>test/</code> na raiz, que guarda a infraestrutura compartilhada da suíte
+        (<em>setup</em>, mocks globais, <em>fixtures</em>) — não testa nada por si só.
+      </p>
+
+      <div class="legend">
+        <span><i class="lg-fs"></i> Domain</span>
+        <span><i style="border-color:var(--purple-soft)"></i> Infra</span>
+        <span><i class="lg-sqlite"></i> Presentation</span>
+        <span><i style="border-color:#d8d8dd"></i> Main</span>
+        <span><i class="lg-auth"></i> Shared</span>
+      </div>
+
+      <div class="tree">
+        <div class="tree__row tree__row--head"><span class="tree__path"><b>src/features/album/</b></span><span class="tree__count"><em>22</em> arq · <em>196</em> testes</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="d">domain/constants/</span> <span class="dim">collection · rewards</span></span><span class="tree__count">2 · 15</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="d">domain/usecases/</span> <span class="dim">AlbumUseCases · BuyStickerPack · BuyIndividualSticker · GetUserProfile</span></span><span class="tree__count">4 · 35</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="i">infra/repositories/</span> <span class="dim">FirestoreAlbum · SQLiteAlbumCatalog</span></span><span class="tree__count">2 · 23</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="i">infra/stores/</span> <span class="dim">pendingPackStore</span></span><span class="tree__count">1 · 6</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="p">presentation/components/</span> <span class="dim">CardPacoteGratis · CardRecompensaDiaria · StickerCard</span></span><span class="tree__count">3 · 36</span></div>
+        <div class="tree__row"><span class="tree__path">└─ <span class="p">presentation/hooks/</span> <span class="dim">useAbrirPacote · useBuyStickerPack · +8</span></span><span class="tree__count">10 · 81</span></div>
+
+        <div class="tree__sep"></div>
+        <div class="tree__row tree__row--head"><span class="tree__path"><b>src/features/apostas/</b></span><span class="tree__count"><em>14</em> arq · <em>66</em> testes</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="d">domain/constants/</span> <span class="dim">odds · predictionStats</span></span><span class="tree__count">2 · 8</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="d">domain/usecases/</span> <span class="dim">SettlePendingPredictions · +3</span></span><span class="tree__count">4 · 10</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="i">infra/repositories/</span> <span class="dim">SQLiteMatchRepository</span></span><span class="tree__count">1 · 6</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="p">presentation/components/</span> <span class="dim">CardResumoApostas · ContainerAposta</span></span><span class="tree__count">2 · 9</span></div>
+        <div class="tree__row"><span class="tree__path">└─ <span class="p">presentation/hooks/</span> <span class="dim">useSettlePendingPredictions · +4</span></span><span class="tree__count">5 · 32</span></div>
+
+        <div class="tree__sep"></div>
+        <div class="tree__row tree__row--head"><span class="tree__path"><b>src/features/times/</b></span><span class="tree__count"><em>11</em> arq · <em>73</em> testes</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="d">domain/constants/</span> <span class="dim">playerStats · ranking</span></span><span class="tree__count">2 · 9</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="d">domain/usecases/</span> <span class="dim">TeamUseCases · ToggleFavoriteTeam</span></span><span class="tree__count">2 · 8</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="i">infra/repositories/</span> <span class="dim">SQLiteTeamRepository</span></span><span class="tree__count">1 · 14</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="p">presentation/components/</span> <span class="dim">CardConquistas · CardHistoricoMundial</span></span><span class="tree__count">2 · 11</span></div>
+        <div class="tree__row"><span class="tree__path">└─ <span class="p">presentation/hooks/</span> <span class="dim">useTimesScreen · +3</span></span><span class="tree__count">4 · 31</span></div>
+
+        <div class="tree__sep"></div>
+        <div class="tree__row tree__row--head"><span class="tree__path"><b>src/features/auth/</b></span><span class="tree__count"><em>5</em> arq · <em>36</em> testes</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="i">infra/repositories/</span> <span class="dim">FirebaseAuthRepository</span></span><span class="tree__count">1 · 9</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="m">main/factories/</span> <span class="dim">makeAuth — a única factory testada</span></span><span class="tree__count">1 · 9</span></div>
+        <div class="tree__row"><span class="tree__path">└─ <span class="p">presentation/hooks/</span> <span class="dim">useLogin · useRegister · useForgotPassword</span></span><span class="tree__count">3 · 18</span></div>
+
+        <div class="tree__sep"></div>
+        <div class="tree__row tree__row--head"><span class="tree__path"><b>src/features/grupos/</b></span><span class="tree__count"><em>3</em> arq · <em>9</em> testes</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="d">domain/usecases/</span> <span class="dim">GetAllGroups</span></span><span class="tree__count">1 · 1</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="i">infra/repositories/</span> <span class="dim">SQLiteGroupRepository</span></span><span class="tree__count">1 · 4</span></div>
+        <div class="tree__row"><span class="tree__path">└─ <span class="p">presentation/hooks/</span> <span class="dim">useGroups</span></span><span class="tree__count">1 · 4</span></div>
+
+        <div class="tree__sep"></div>
+        <div class="tree__row tree__row--head"><span class="tree__path"><b>src/shared/</b></span><span class="tree__count"><em>7</em> arq · <em>68</em> testes</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="s">presentation/contexts/</span> <span class="dim">UserContext — o estado global do usuário</span></span><span class="tree__count">1 · 17</span></div>
+        <div class="tree__row"><span class="tree__path">└─ <span class="s">presentation/components/</span> <span class="dim">CardFigurinha · MolduraIndividualPais · BotaoHomeMolde · PalpiteBtn · MoldeInputs · CardColecao</span></span><span class="tree__count">6 · 51</span></div>
+
+        <div class="tree__sep"></div>
+        <div class="tree__row tree__row--head"><span class="tree__path"><b>test/</b> <span class="dim">— infraestrutura, não contém testes</span></span><span class="tree__count">4 arq</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="dim">setup.tsx</span> — <span class="dim">carregado antes de cada suíte (mocks globais)</span></span><span class="tree__count"></span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="dim">fixtures.ts</span> — <span class="dim">construtores de objeto (makeSticker, makeTeam…)</span></span><span class="tree__count"></span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="dim">styleHelpers.ts</span> — <span class="dim">leitura de estilo achatado em asserções</span></span><span class="tree__count"></span></div>
+        <div class="tree__row"><span class="tree__path">└─ <span class="dim">svgMock.tsx</span> — <span class="dim">substitui imports de .svg no Jest</span></span><span class="tree__count"></span></div>
+      </div>
+      <p class="caption">
+        62 arquivos de teste · 535 testes. A contagem por arquivo soma os blocos
+        <code>it()</code>; suítes que usam <code>it.each</code> geram mais testes em
+        execução do que blocos escritos, por isso os subtotais somam menos que 522.
+      </p>
+
+      <h3>O que o mapa revela sobre a estratégia</h3>
+      <div class="table-scroll">
+        <table class="grid-table">
+          <thead>
+            <tr><th>Camada</th><th>Arquivos</th><th>Leitura</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="tag tag-presentation">Presentation</td>
+              <td>37</td>
+              <td>A maior fatia — 30 nas features e 7 em <code>shared</code>. É onde há mais arquivos e mais estados possíveis (<code>loading</code>/<code>error</code>/<code>data</code>), não onde há mais regra de negócio.</td>
+            </tr>
+            <tr>
+              <td class="tag tag-domain">Domain</td>
+              <td>17</td>
+              <td>Dividido entre <code>usecases/</code> (11) e <code>constants/</code> (6). São os arquivos mais baratos de rodar e os que mais pegam defeito por teste escrito.</td>
+            </tr>
+            <tr>
+              <td class="tag tag-infra">Infra</td>
+              <td>7</td>
+              <td>Poucos arquivos, muitos testes cada (Firestore: 17, SQLiteTeam: 14). É onde mora a lógica que os use cases delegam.</td>
+            </tr>
+            <tr>
+              <td class="tag tag-mem">Main</td>
+              <td>1</td>
+              <td>Só <code>makeAuth</code>. As demais factories são de uma linha e ficaram deliberadamente fora — testá-las seria testar o operador <code>new</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note note--practice">
+        <span class="note__tag">Como achar o teste de um arquivo</span>
+        <p>
+          Não há índice a consultar: abra a pasta do arquivo e procure o vizinho com
+          <code>.test</code> no nome. Se ele não existir, aquele arquivo não tem teste — e
+          essa ausência é visível de imediato, que é justamente o motivo da co-locação.
+        </p>
+      </div>
+    </section>
+
+    <!-- ================= 07 ================= -->
     <section class="section" id="domain">
-      <span class="section__eyebrow">05 — Camada Domain</span>
+      <span class="section__eyebrow">07 — Camada Domain</span>
       <h2>Testando regra de negócio pura</h2>
       <p>
         Esta é a camada mais fácil e mais valiosa de testar: sem React, sem banco, sem
@@ -1102,9 +1432,9 @@
       </p>
     </section>
 
-    <!-- ================= 06 ================= -->
+    <!-- ================= 08 ================= -->
     <section class="section" id="infra">
-      <span class="section__eyebrow">06 — Camada Infra</span>
+      <span class="section__eyebrow">08 — Camada Infra</span>
       <h2>Testando repositórios sem banco de dados</h2>
       <p>
         Aqui o teste chega na fronteira vermelha do grafo. Não existe SQLite nem Firestore
@@ -1116,7 +1446,7 @@
 
       <div class="code-block">
         <div class="code-block__bar"><span>SQLiteAlbumCatalogRepository.test.ts</span><em>estrutura completa</em></div>
-<pre><span class="tok-com">// 1. o mock vem ANTES dos imports — ver a pegadinha do hoisting na seção 09</span>
+<pre><span class="tok-com">// 1. o mock vem ANTES dos imports — ver a pegadinha do hoisting na seção 11</span>
 <span class="tok-fn">jest.mock</span>(<span class="tok-str">'../../../../shared/infra/sqlite/database'</span>, () =&gt; ({
   <span class="tok-fn">getSQLiteDb</span>: <span class="tok-fn">jest.fn</span>(),
 }));
@@ -1181,9 +1511,9 @@
       </p>
     </section>
 
-    <!-- ================= 07 ================= -->
+    <!-- ================= 09 ================= -->
     <section class="section" id="hooks">
-      <span class="section__eyebrow">07 — Presentation</span>
+      <span class="section__eyebrow">09 — Presentation</span>
       <h2>Testando hooks</h2>
       <p>
         Um <strong>hook</strong> é uma função React que guarda estado e lógica reutilizável.
@@ -1253,9 +1583,9 @@
       </div>
     </section>
 
-    <!-- ================= 08 ================= -->
+    <!-- ================= 10 ================= -->
     <section class="section" id="componentes">
-      <span class="section__eyebrow">08 — Presentation</span>
+      <span class="section__eyebrow">10 — Presentation</span>
       <h2>Testando componentes visuais</h2>
       <p>
         É a camada de maior atrito: o Jest não sabe lidar com SVG, fontes de ícone,
@@ -1318,9 +1648,9 @@
       </p>
     </section>
 
-    <!-- ================= 09 ================= -->
+    <!-- ================= 11 ================= -->
     <section class="section" id="pegadinhas">
-      <span class="section__eyebrow">09 — Aprendizados</span>
+      <span class="section__eyebrow">11 — Aprendizados</span>
       <h2>Pegadinhas reais encontradas</h2>
       <p>
         Esta seção é a mais útil para estudar: são erros que só aparecem escrevendo testes
@@ -1379,7 +1709,7 @@
       <ul>
         <li><strong><code>GetUserProfile</code></strong> — o campo <code>stickers</code> retornado <strong>não</strong> é ordenado; só <code>recentStickers</code> e <code>rareStickers</code> usam a lista ordenada internamente. Um teste ingênuo que assume ordenação falha.</li>
         <li><strong><code>CardHistoricoMundial</code></strong> — <code>resultColor</code> testa <code>includes('campeão')</code> <em>antes</em> de <code>includes('vice')</code>, então <code>"Vice-campeão"</code> é pintado de <strong>dourado</strong> (cor de campeão), não prata. Se a ordem dos <code>if</code> for corrigida, o teste precisa mudar junto — e é justamente esse acoplamento que sinaliza a mudança.</li>
-        <li><strong><code>useCreatePrediction</code></strong> — o erro que não se limpa, descrito na seção 07.</li>
+        <li><strong><code>useCreatePrediction</code></strong> — o erro que não se limpa, descrito na seção 09.</li>
       </ul>
 
       <h3>4. Isolamento entre testes é responsabilidade sua</h3>
@@ -1402,13 +1732,13 @@
       </p>
     </section>
 
-    <!-- ================= 10 ================= -->
+    <!-- ================= 12 ================= -->
     <section class="section" id="rodar">
-      <span class="section__eyebrow">10 — Prática</span>
+      <span class="section__eyebrow">12 — Prática</span>
       <h2>Como rodar e o que verificar</h2>
       <div class="code-block">
         <div class="code-block__bar"><span>terminal</span></div>
-<pre>npm test                 <span class="tok-com"># 521 testes, 61 suítes, ~25s</span>
+<pre>npm test                 <span class="tok-com"># 535 testes, 62 suítes, ~25s</span>
 npm run test:watch       <span class="tok-com"># re-roda só o que mudou, enquanto você edita</span>
 npm run test:coverage    <span class="tok-com"># relatório de cobertura por camada</span>
 
@@ -1442,9 +1772,9 @@ npx jest -t <span class="tok-str">"cooldown"</span>     <span class="tok-com"># 
       </ul>
     </section>
 
-    <!-- ================= 11 ================= -->
+    <!-- ================= 13 ================= -->
     <section class="section" id="glossario">
-      <span class="section__eyebrow">11 — Referência</span>
+      <span class="section__eyebrow">13 — Referência</span>
       <h2>Glossário</h2>
       <dl class="glossary">
         <div class="gloss-item">
@@ -1518,7 +1848,7 @@ npx jest -t <span class="tok-str">"cooldown"</span>     <span class="tok-com"># 
 
   <footer class="colophon">
     Guia gerado a partir do código-fonte, de docs/testing-plan.md e de docs/technical-readme.md — para fins de estudo.
-    Números verificados com <code>npm test</code>: 521 testes em 61 suítes.
+    Números verificados com <code>npm test</code>: 535 testes em 62 suítes.
   </footer>
 
 </div>

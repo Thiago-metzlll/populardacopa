@@ -146,4 +146,27 @@ describe('SettlePendingPredictions', () => {
     expect(rewardGranter.grantStickers).toHaveBeenCalledWith('user-1', ['s1', 's2']);
     expect(rewardGranter.grantCoins).not.toHaveBeenCalled();
   });
+
+  it('marca como vencedora mas não concede nada quando a recompensa está malformada', async () => {
+    // reward.type === 'sticker' sem stickerIds (ou 'coins' sem coinAmount) cai fora
+    // dos dois ramos de concessão: o palpite é liquidado, a recompensa é perdida.
+    const predictions = [
+      makePrediction({
+        id: 'p1',
+        matchId: 'match-1',
+        predictedHomeScore: 2,
+        predictedAwayScore: 1,
+        reward: { type: 'sticker', description: 'Figurinha sem ids' },
+      }),
+    ];
+    const matches = { 'match-1': makeMatch({ homeScore: 2, awayScore: 1 }) };
+    const { sut, predictionRepository, rewardGranter } = makeSut(predictions, matches);
+
+    const result = await sut.execute('user-1');
+
+    expect(result[0].status).toBe('won');
+    expect(predictionRepository.updatePredictionStatus).toHaveBeenCalledWith('p1', 'won');
+    expect(rewardGranter.grantStickers).not.toHaveBeenCalled();
+    expect(rewardGranter.grantCoins).not.toHaveBeenCalled();
+  });
 });

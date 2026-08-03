@@ -13,13 +13,31 @@ export interface ClaimDailyCoinsResult {
   amount: number;
 }
 
+/**
+ * Resultado já decidido de uma compra, pronto para ser persistido.
+ *
+ * Quem decide *se* a compra pode acontecer, *quanto* sobra de saldo e *qual*
+ * o novo progresso são os use cases (BuyStickerPack / BuyIndividualSticker).
+ * Ao repositório cabe apenas gravar isto — de uma vez só, atomicamente.
+ */
+export interface StickerPurchaseCommit {
+  userId: string;
+  /** Saldo final já calculado pelo use case. */
+  newBalance: number;
+  /** Ids a acrescentar à coleção (sem repetição; podem já ser possuídos). */
+  newStickerIds: string[];
+  /** Progresso do álbum de referência já recalculado. */
+  progress: number;
+  /** Data ISO carimbada em cada figurinha adquirida. */
+  obtainedAt: string;
+}
+
 export interface AlbumRepository {
   getUserCollection(userId: string): Promise<UserCollection>;
   getAlbumById(id: string): Promise<Album>;
   getStickersByIds(ids: string[]): Promise<Sticker[]>;
   openPackage(packageId: string, userId: string): Promise<Sticker[]>;
   getMarketAlbums(userId: string): Promise<Album[]>;
-  buyStickerPack(userId: string, albumId: string, cost: number): Promise<BuyStickerPackResult>;
   getUserCoins(userId: string): Promise<number>;
   deductUserCoins(userId: string, amount: number): Promise<number>;
   addUserCoins(userId: string, amount: number): Promise<number>;
@@ -30,5 +48,6 @@ export interface AlbumRepository {
   grantStickers(userId: string, stickerIds: string[]): Promise<Sticker[]>;
   getStickersByAlbumId(albumId: string): Promise<Sticker[]>;
   getAllStickers(): Promise<Sticker[]>;
-  buyIndividualSticker(userId: string, stickerId: string, cost: number): Promise<Sticker>;
+  /** Persiste uma compra já decidida pelo use case. Uma única escrita. */
+  commitStickerPurchase(commit: StickerPurchaseCommit): Promise<void>;
 }

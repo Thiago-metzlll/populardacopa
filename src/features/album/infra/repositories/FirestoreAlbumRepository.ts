@@ -10,11 +10,16 @@ import {
 import { COLLECTIONS, USER_FIELDS } from '../../../../shared/infra/firebase/collections';
 import { db } from '../../../../shared/infra/firebase/firebaseConfig';
 import { computeDailyCoinsStatus, computeFreePackStatus, DailyClaimStatus, DailyCoinsStatus } from '../../domain/constants/rewards';
-import { computeCollectionProgress, drawStickersWithRepetition, drawUnownedStickers } from '../../domain/constants/collection';
+import {
+  PACK_SIZE,
+  REFERENCE_ALBUM_ID,
+  computeCollectionProgress,
+  drawUnownedStickers,
+} from '../../domain/constants/collection';
 import { Album } from '../../domain/entities/Album';
 import { Sticker } from '../../domain/entities/Sticker';
 import { UserCollection } from '../../domain/entities/UserCollection';
-import { AlbumRepository, BuyStickerPackResult, ClaimDailyCoinsResult } from '../../domain/repositories/AlbumRepository';
+import { AlbumRepository, ClaimDailyCoinsResult, StickerPurchaseCommit } from '../../domain/repositories/AlbumRepository';
 import { SQLiteAlbumCatalogRepository } from './SQLiteAlbumCatalogRepository';
 
 /**
@@ -78,11 +83,11 @@ export class FirestoreAlbumRepository implements AlbumRepository {
     const stickerObtainedAt: Record<string, string> = data[USER_FIELDS.STICKER_OBTAINED_AT] ?? {};
 
     // Busca informações do álbum a1 no catálogo SQLite para ver o total
-    const album = await this.catalogRepository.getAlbumById('a1');
+    const album = await this.catalogRepository.getAlbumById(REFERENCE_ALBUM_ID);
 
     return {
       userId,
-      albumId: 'a1',
+      albumId: REFERENCE_ALBUM_ID,
       stickerIds,
       stickerObtainedAt,
       progress: computeCollectionProgress(stickerIds.length, album.totalStickers),
@@ -175,19 +180,20 @@ export class FirestoreAlbumRepository implements AlbumRepository {
   }
 
   // ─── Lógica de negócio (híbrida: sorteio local + persistência Firestore) ───
-  // TODO arquitetura: o sorteio (aqui e em buyStickerPack) é regra de negócio pura,
-  // independente de Firestore/SQLite — candidato a virar usecase/serviço de domínio
-  // testável sem infra, em vez de ficar duplicado dentro do repository concreto.
+  // TODO arquitetura: o sorteio do pacote grátis ainda mora aqui. As compras
+  // (BuyStickerPack / BuyIndividualSticker) já foram movidas para os use cases,
+  // que recebem `random`/`now` injetáveis e chamam commitStickerPurchase; o mesmo
+  // tratamento cabe a openPackage/claimFreePackage.
 
   /**
-   * Sorteia até 3 figurinhas não possuídas e grava na coleção do usuário.
+   * Sorteia até PACK_SIZE figurinhas não possuídas e grava na coleção do usuário.
    * Compartilhado por openPackage (fluxo legado) e claimFreePackage (pacote grátis diário).
    */
   private async drawAndGrantStickers(userId: string): Promise<Sticker[]> {
     const collection = await this.getUserCollection(userId);
     const allStickers = await this.catalogRepository.getAllStickers();
     const now = new Date().toISOString();
-    const newStickers: Sticker[] = drawUnownedStickers(allStickers, collection.stickerIds, 3).map((s) => ({
+    const newStickers: Sticker[] = drawUnownedStickers(allStickers, collection.stickerIds, PACK_SIZE).map((s) => ({
       ...s,
       obtainedAt: now,
     }));
@@ -195,7 +201,7 @@ export class FirestoreAlbumRepository implements AlbumRepository {
     if (newStickers.length > 0) {
       const newIds = newStickers.map((s) => s.id);
       const updatedIds = [...collection.stickerIds, ...newIds];
-      const album = await this.catalogRepository.getAlbumById('a1');
+      const album = await this.catalogRepository.getAlbumById(REFERENCE_ALBUM_ID);
       const newProgress = computeCollectionProgress(updatedIds.length, album.totalStickers);
 
       await updateDoc(this.userRef(userId), {
@@ -243,7 +249,7 @@ export class FirestoreAlbumRepository implements AlbumRepository {
 
     if (granted.length > 0) {
       const updatedIds = [...collection.stickerIds, ...newIds];
-      const album = await this.catalogRepository.getAlbumById('a1');
+      const album = await this.catalogRepository.getAlbumById(REFERENCE_ALBUM_ID);
       const newProgress = computeCollectionProgress(updatedIds.length, album.totalStickers);
       await updateDoc(this.userRef(userId), {
         [USER_FIELDS.STICKER_IDS]: arrayUnion(...newIds),
@@ -255,62 +261,20 @@ export class FirestoreAlbumRepository implements AlbumRepository {
     return granted;
   }
 
-  async buyStickerPack(userId: string, albumId: string, cost: number): Promise<BuyStickerPackResult> {
-    const coins = await this.getUserCoins(userId);
-    if (coins < cost) throw new Error('Saldo de moedas insuficiente');
-
-    const allStickers = await this.catalogRepository.getAllStickers();
-    const now = new Date().toISOString();
-    const drawn: Sticker[] = drawStickersWithRepetition(allStickers, 3).map((s) => ({ ...s, obtainedAt: now }));
-
-    // Novas figurinhas únicas para adicionar à coleção
-    const newIds = drawn.map((s) => s.id);
-    const newBalance = coins - cost;
-
-    const collection = await this.getUserCollection(userId);
-    const updatedIds = [...new Set([...collection.stickerIds, ...newIds])];
-    const album = await this.catalogRepository.getAlbumById('a1');
-    const newProgress = computeCollectionProgress(updatedIds.length, album.totalStickers);
-
-    await updateDoc(this.userRef(userId), {
-      [USER_FIELDS.COINS]: newBalance,
-      [USER_FIELDS.STICKER_IDS]: arrayUnion(...newIds),
-      [USER_FIELDS.PROGRESS]: newProgress,
-      ...this.obtainedAtUpdate(newIds, now),
+  /**
+   * Persistência pura de uma compra já decidida pelo use case — sem nenhuma
+   * regra de negócio: não confere saldo, não sorteia, não calcula progresso.
+   * Saldo, ids e progresso chegam prontos e vão numa única escrita, para que
+   * a compra não deixe o documento pela metade se algo falhar no meio.
+   */
+  async commitStickerPurchase(commit: StickerPurchaseCommit): Promise<void> {
+    await this.ensureUserDoc(commit.userId);
+    await updateDoc(this.userRef(commit.userId), {
+      [USER_FIELDS.COINS]: commit.newBalance,
+      [USER_FIELDS.STICKER_IDS]: arrayUnion(...commit.newStickerIds),
+      [USER_FIELDS.PROGRESS]: commit.progress,
+      ...this.obtainedAtUpdate(commit.newStickerIds, commit.obtainedAt),
     });
-
-    const packId = `pkg_${Date.now()}`;
-    return { packId, stickers: drawn };
-  }
-
-  async buyIndividualSticker(userId: string, stickerId: string, cost: number): Promise<Sticker> {
-    const dbStickers = await this.catalogRepository.getStickersByIds([stickerId]);
-    const sticker = dbStickers[0];
-    if (!sticker) throw new Error('Figurinha não encontrada');
-
-    const coins = await this.getUserCoins(userId);
-    if (coins < cost) throw new Error('Saldo de moedas insuficiente');
-
-    const newBalance = coins - cost;
-    const now = new Date().toISOString();
-    const updatedSticker = { ...sticker, obtainedAt: now };
-
-    const collection = await this.getUserCollection(userId);
-    const updatedIds = [...new Set([...collection.stickerIds, stickerId])];
-
-    // Progress é sempre relativo ao álbum 'a1', igual em getUserCollection/buyStickerPack/
-    // drawAndGrantStickers — evita que o valor persistido flutue conforme a última ação.
-    const album = await this.catalogRepository.getAlbumById('a1');
-    const newProgress = computeCollectionProgress(updatedIds.length, album.totalStickers);
-
-    await updateDoc(this.userRef(userId), {
-      [USER_FIELDS.COINS]: newBalance,
-      [USER_FIELDS.STICKER_IDS]: arrayUnion(stickerId),
-      [USER_FIELDS.PROGRESS]: newProgress,
-      ...this.obtainedAtUpdate([stickerId], now),
-    });
-
-    return updatedSticker;
   }
 }
 

@@ -11,11 +11,11 @@ O projeto segue Clean Architecture ([technical-readme.md](technical-readme.md)),
 Mapeando os use cases existentes, um padrão ficou claro: a maioria é **delegação pura de uma linha** para o repositório — por exemplo:
 
 ```ts
-// BuyStickerPack.ts
-export class BuyStickerPack {
+// AddUserCoins.ts
+export class AddUserCoins {
   constructor(private readonly albumRepository: AlbumRepository) {}
-  async execute(userId: string, albumId: string, cost: number) {
-    return this.albumRepository.buyStickerPack(userId, albumId, cost);
+  async execute(userId: string, amount: number) {
+    return this.albumRepository.addUserCoins(userId, amount);
   }
 }
 ```
@@ -29,6 +29,8 @@ Não há lógica para quebrar aqui — só uma chamada repassada. A lógica de n
 | [GetUserProfile.ts](../src/features/album/domain/usecases/GetUserProfile.ts) | Mescla `obtainedAt`, ordena por data, filtra raras, corta os 10 mais recentes |
 
 **Estratégia:** cobertura completa de casos nesses três pontos; nos demais use cases (delegação pura), um teste de contrato rápido — "chama o repositório certo com os argumentos certos" — que serve de rede de segurança caso a lógica cresça depois. É aí que a quantidade de testes varia conforme o tempo disponível, sem risco arquitetural.
+
+> **Revisão posterior (Fase 8).** Nem toda delegação de uma linha era ausência de regra: `BuyStickerPack` e `BuyIndividualSticker` eram de uma linha porque a regra deles estava na camada errada, dentro do `FirestoreAlbumRepository`. Depois de movida para o use case, cada um passou a ter 8–9 testes de comportamento. O sinal de alerta: um use case que leva o nome de uma operação e não contém nenhuma decisão dela.
 
 ---
 
@@ -52,10 +54,11 @@ Não há lógica para quebrar aqui — só uma chamada repassada. A lógica de n
 
 - [x] `rewards.ts`: nunca resgatado, exatamente no limite do cooldown, antes do cooldown, depois do cooldown — para os dois cooldowns (moedas diárias e pacote grátis) → [rewards.test.ts](../src/features/album/domain/constants/rewards.test.ts)
 - [x] `SettlePendingPredictions`: ignora predição não-pendente; ignora partida não finalizada/sem placar; acerta vitória (placar bate) e derrota (não bate); concede `coins` vs `stickers` conforme o tipo de recompensa; atualiza o status → [SettlePendingPredictions.test.ts](../src/features/apostas/domain/usecases/SettlePendingPredictions.test.ts)
+  > Ramo descoberto encontrado depois, via *branch coverage*: recompensa vencedora malformada (`type: 'sticker'` sem `stickerIds`, ou `type: 'coins'` sem `coinAmount`) cai fora dos dois `if` — o palpite é marcado como `won` e **nenhuma recompensa é concedida**, sem erro nem log. O teste `'marca como vencedora mas não concede nada quando a recompensa está malformada'` documenta o comportamento atual e fecha o ramo. As métricas de statements/lines/functions já estavam em 100% e não apontavam para isso.
 - [x] `GetUserProfile`: usa `stickerObtainedAt` do usuário quando existe (fallback pro catálogo); ordena `recentStickers` por data desc; filtra `rara`/`lendaria`; corta em 10 recentes → [GetUserProfile.test.ts](../src/features/album/domain/usecases/GetUserProfile.test.ts)
   > Pegadinha encontrada durante os testes: o campo `stickers` retornado **não** é ordenado — só `recentStickers`/`rareStickers` usam a lista ordenada internamente. Um teste ingênuo que assume `stickers` ordenado falha; vale como exemplo de como o teste também documenta o comportamento real do código.
 - [x] 5 testes de contrato (um por feature) para o padrão de delegação pura:
-  - `album` → [BuyStickerPack.test.ts](../src/features/album/domain/usecases/BuyStickerPack.test.ts)
+  - `album` → [BuyStickerPack.test.ts](../src/features/album/domain/usecases/BuyStickerPack.test.ts) — *deixou de ser teste de contrato na Fase 8, quando as regras de compra voltaram para o use case*
   - `apostas` → [CreatePrediction.test.ts](../src/features/apostas/domain/usecases/CreatePrediction.test.ts)
   - `times` → [ToggleFavoriteTeam.test.ts](../src/features/times/domain/usecases/ToggleFavoriteTeam.test.ts)
   - `grupos` → [GetAllGroups.test.ts](../src/features/grupos/domain/usecases/GetAllGroups.test.ts)
@@ -160,13 +163,51 @@ Componentes cobertos, com foco em ramificação/lógica (não snapshot):
 - [x] `AnimacaoAbrirPacote.tsx` → `ParticleBurst` (`react-hooks/purity`) — o sorteio de `distance`/`delay` de cada partícula (`Math.random()`) foi movido para dentro de um `useMemo` — antes recalculava (e fazia as partículas "pularem" de posição) a cada re-render
 - [x] 15 hooks de fetch-on-mount (`useAlbumStickers`, `useAllStickers`, `useDailyCoinsReward`, `useFreePackage`, `useMarketAlbums`, `useStickerDetail`, `useUserProfile`, `useMatchDetail`, `usePredictionHistory`, `useUpcomingMatches`, `useFavoriteTeams`, `usePlayerDetail`, `useTeamDetail`, `useTimesScreen` ×2) + [use-color-scheme.web.ts](../src/hooks/use-color-scheme.web.ts) — `react-hooks/set-state-in-effect` suprimido com `eslint-disable-next-line` documentado. **Decisão consciente, não atalho**: essa regra faz parte do conjunto experimental "React Compiler" do `eslint-plugin-react-hooks` e rejeita o padrão `useEffect(() => { fetchX() }, [deps])` — que é exatamente o recomendado pelos docs oficiais do React para fetch-on-mount — porque tecnicamente o React pode descartar e refazer um render (Strict Mode/Suspense) antes do primeiro `await`. Reescrever os 15 hooks para evitar isso seria uma mudança de arquitetura de data-fetching real (maior risco, fora do escopo de "corrigir os erros"), então a opção escolhida (com o usuário) foi documentar o falso positivo com comentário em vez de refatorar
 
-**Resultado:** `npm run typecheck` limpo, `npx eslint .` com 0 erros (20 warnings pré-existentes, não bloqueantes), 521 testes em 61 suítes (`npm test`).
+**Resultado:** `npm run typecheck` limpo, `npx eslint .` com 0 erros (20 warnings pré-existentes, não bloqueantes), 535 testes em 62 suítes (`npm test`).
+
+---
+
+## Fase 8 — Devolver as regras de compra ao use case ✅ concluída
+
+A Fase 3.5 extraiu as **funções puras** (sorteio, progresso, cooldown) dos repositórios, mas deixou a **decisão** onde estava: `FirestoreAlbumRepository.buyStickerPack()` continuava conferindo saldo, escolhendo o tamanho do pacote e montando o resultado. Consequência: os use cases `BuyStickerPack` e `BuyIndividualSticker` eram delegação de uma linha, e a única forma de testar a compra era mockando o Firestore inteiro.
+
+Distinção que orientou a mudança: **decidir o que acontece** (checar saldo, sortear, recalcular progresso) é regra de aplicação e pertence ao use case; **montar como aquilo é gravado** (o objeto de update, o `arrayUnion`, o formato do documento) é detalhe de banco e pertence ao repositório. O `import` estava na direção certa nos dois casos — a direção dos imports não pega esse tipo de desvio.
+
+- [x] `PACK_SIZE` e `REFERENCE_ALBUM_ID` extraídos para [collection.ts](../src/features/album/domain/constants/collection.ts) — o `3` estava hardcoded em dois pontos da infra e o `'a1'` em quatro
+- [x] Contrato: `buyStickerPack`/`buyIndividualSticker` saíram do `AlbumRepository`, substituídos por `commitStickerPurchase(commit: StickerPurchaseCommit)` — uma única escrita, com saldo/ids/progresso já decididos. O tipo tem forma de domínio, não de Firestore
+- [x] [BuyStickerPack.ts](../src/features/album/domain/usecases/BuyStickerPack.ts) e [BuyIndividualSticker.ts](../src/features/album/domain/usecases/BuyIndividualSticker.ts) passaram a conter as regras, com `random` e `now` injetáveis no construtor (mesmo padrão da Fase 3.5, agora aplicado a classes em vez de funções)
+- [x] [FirestoreAlbumRepository.ts](../src/features/album/infra/repositories/FirestoreAlbumRepository.ts) perdeu 57 linhas: as duas compras viraram um método de persistência de 8 linhas que não decide nada
+- [x] Testes: [BuyStickerPack.test.ts](../src/features/album/domain/usecases/BuyStickerPack.test.ts) (9 testes) e [BuyIndividualSticker.test.ts](../src/features/album/domain/usecases/BuyIndividualSticker.test.ts) (8) deixaram de ser contrato e passaram a cobrir comportamento — saldo exato, repetição no sorteio, figurinha já possuída, álbum de referência. 100% nas quatro métricas, **sem mockar Firestore**
+- [x] O `describe('buyStickerPack')` do teste de infra virou `describe('commitStickerPurchase')`, verificando escrita única e ausência de decisão
+
+**Nenhuma mudança em Presentation.** As assinaturas de `execute()` continuaram idênticas, então hooks, factories e telas não foram tocados — evidência prática de que o contrato do use case estava bem colocado desde o início.
+
+**Resultado:** 62 suítes, 535 testes, `tsc --noEmit` limpo, `eslint` com 0 erros.
+
+### Ainda em aberto — regras que seguem no `FirestoreAlbumRepository`
+
+A Fase 8 corrigiu **2 das 8** operações do repositório. As demais continuam com decisão dentro da Infra, pelo mesmo motivo que as compras tinham — e é por isso que os use cases `ClaimDailyCoins`, `ClaimFreePackage`, `GrantStickers` e `OpenPackage` ainda são delegação de uma linha:
+
+| Onde | Decisão que ficou | Linha |
+|---|---|---|
+| `ensureUserDoc` / `getUserCoins` | saldo inicial de 200 moedas — regra de negócio, duplicada em dois pontos | [:55](../src/features/album/infra/repositories/FirestoreAlbumRepository.ts#L55), [:100](../src/features/album/infra/repositories/FirestoreAlbumRepository.ts#L100) |
+| `deductUserCoins` | "o saldo nunca fica negativo" (`Math.max(0, …)`) | [:105](../src/features/album/infra/repositories/FirestoreAlbumRepository.ts#L105) |
+| `claimDailyCoins` | recusa se o cooldown não venceu | [:131](../src/features/album/infra/repositories/FirestoreAlbumRepository.ts#L131) |
+| `claimFreePackage` / `openPackage` | recusa + sorteio do pacote grátis | [:232](../src/features/album/infra/repositories/FirestoreAlbumRepository.ts#L232) |
+| `grantStickers` | filtra as já possuídas e recalcula progresso | [:244](../src/features/album/infra/repositories/FirestoreAlbumRepository.ts#L244) |
+| `getMarketAlbums` | cruza coleção × catálogo para contar por álbum | [:151](../src/features/album/infra/repositories/FirestoreAlbumRepository.ts#L151) |
+
+Nem tudo dessa lista deve subir: `ensureUserDoc` criar o documento se não existir é ciclo de vida do Firestore, legitimamente Infra — o que não pertence ali é o número **200**, que é regra e deveria morar em `domain/constants/` junto de `PACK_SIZE`. Já `claimFreePackage` e `grantStickers` são casos idênticos aos das compras e subiriam inteiros.
+
+**Caminho quando for retomar:** generalizar `commitStickerPurchase` para um `commitCollectionChange` (saldo opcional + ids + progresso + timestamp de resgate) e mover as decisões para os quatro use cases, replicando o que a Fase 8 fez. Os testes de Infra correspondentes viram testes de escrita, como aconteceu com `commitStickerPurchase`.
+
+**Outra pendência, independente desta:** `pendingPackStore` continua sendo importado direto pela Presentation em [useAbrirPacote.ts:5](../src/features/album/presentation/hooks/useAbrirPacote.ts#L5) e [useBuyStickerPack.ts:5](../src/features/album/presentation/hooks/useBuyStickerPack.ts#L5) — única violação da direção dos imports no projeto.
 
 ---
 
 ## Inventário completo de testes unitários
 
-Todos os `it(...)` já escritos, agrupados por arquivo — atualizado a cada fase. Números por fase abaixo; total atual: **521 testes em 61 suítes** (rode `npm test` para o número exato e sempre atualizado — este documento descreve o quê foi coberto, não recalcula a contagem a cada edição).
+Todos os `it(...)` já escritos, agrupados por arquivo — atualizado a cada fase. Números por fase abaixo; total atual: **535 testes em 62 suítes** (rode `npm test` para o número exato e sempre atualizado — este documento descreve o quê foi coberto, não recalcula a contagem a cada edição).
 
 ### Domain — regras de negócio puras
 
@@ -240,11 +281,35 @@ Todos os `it(...)` já escritos, agrupados por arquivo — atualizado a cada fas
 
 | Feature | Arquivo | Teste |
 |---|---|---|
-| album | [BuyStickerPack.test.ts](../src/features/album/domain/usecases/BuyStickerPack.test.ts) | delega a compra para o repositório com os argumentos recebidos e retorna o resultado |
 | apostas | [CreatePrediction.test.ts](../src/features/apostas/domain/usecases/CreatePrediction.test.ts) | delega a criação da predição para o repositório com os dados recebidos e retorna o resultado |
 | times | [ToggleFavoriteTeam.test.ts](../src/features/times/domain/usecases/ToggleFavoriteTeam.test.ts) | delega o toggle de favorito para o repositório com os argumentos recebidos |
 | grupos | [GetAllGroups.test.ts](../src/features/grupos/domain/usecases/GetAllGroups.test.ts) | delega a busca de todos os grupos para o repositório e retorna o resultado |
 | auth | [makeAuth.test.ts](../src/features/auth/main/factories/makeAuth.test.ts) | delega o login para authRepositoryInstance com e-mail e senha |
+
+> `BuyStickerPack` saiu desta tabela na Fase 8: deixou de delegar e virou teste de comportamento.
+
+### Domain — regras de compra (Fase 8)
+
+**[BuyStickerPack.test.ts](../src/features/album/domain/usecases/BuyStickerPack.test.ts)** — 9 testes, sorteio e relógio injetados
+- recusa a compra quando o saldo não cobre o custo, sem persistir nada
+- aceita a compra quando o saldo é exatamente igual ao custo
+- sorteia `PACK_SIZE` figurinhas e carimba `obtainedAt` em todas
+- debita o custo e envia ao repositório o resultado já decidido
+- não conta figurinha repetida duas vezes no progresso
+- não recontabiliza figurinha que o usuário já possuía
+- calcula o progresso contra o álbum de referência, não contra o álbum comprado
+- devolve um `packId` derivado do relógio injetado
+- sem injeção, usa `Math.random` e o relógio do sistema *(fecha o ramo dos parâmetros default)*
+
+**[BuyIndividualSticker.test.ts](../src/features/album/domain/usecases/BuyIndividualSticker.test.ts)** — 8 testes
+- recusa quando a figurinha não existe no catálogo, **antes** de olhar o saldo
+- recusa quando o saldo não cobre o custo, sem persistir nada
+- aceita quando o saldo é exatamente igual ao custo
+- debita o custo e envia ao repositório o resultado já decidido
+- devolve a figurinha carimbada com a data da compra
+- não altera o progresso ao recomprar uma figurinha já possuída
+- calcula o progresso contra o álbum de referência
+- sem injeção, usa o relógio do sistema
 
 ### Infra — repositórios (SQLite / Firebase mockados)
 
@@ -333,13 +398,10 @@ Todos os `it(...)` já escritos, agrupados por arquivo — atualizado a cada fas
   - sorteia só entre as figurinhas não possuídas quando disponível
 - `openPackage`: delega para o mesmo sorteio sem repetição do pacote grátis
 - `getMarketAlbums`: cruza a coleção do usuário com o catálogo para calcular ownedStickersCount por álbum
-- `buyStickerPack`
-  - lança erro quando o saldo é insuficiente, sem gravar nada
-  - deduz o custo do saldo e retorna 3 figurinhas sorteadas
-- `buyIndividualSticker`
-  - lança erro quando a figurinha não existe no catálogo
-  - lança erro quando o saldo é insuficiente
-  - compra com sucesso e carimba obtainedAt
+- `commitStickerPurchase` *(substituiu `buyStickerPack`/`buyIndividualSticker` na Fase 8)*
+  - grava saldo, ids e progresso em uma única escrita
+  - não decide nada: grava o saldo recebido mesmo que seja maior que o anterior
+  - cria o documento do usuário antes de gravar, se ele ainda não existir
 - `grantStickers`
   - não grava nada quando todas as figurinhas já são possuídas
   - concede só as figurinhas que o usuário ainda não tem
@@ -367,7 +429,7 @@ Dado o volume (mais de 300 `it(...)` novos), esta seção resume por arquivo em 
 
 ## Verificação
 
-- `npm test` deve rodar e passar após cada fase — atualmente 521 testes em 61 suítes
+- `npm test` deve rodar e passar após cada fase — atualmente 535 testes em 62 suítes
 - `npm run test:coverage` para acompanhar cobertura por camada (`presentation/components` e `presentation/hooks` não são mais excluídos do `collectCoverageFrom`)
 - `npm run typecheck` (`tsc --noEmit`) deve ficar limpo — **atenção**: depende de `.expo/types/router.d.ts`, que é gerado por `npx expo start` e é gitignored; rode o dev server uma vez após um checkout novo antes de confiar no typecheck
 - `npm run lint` (`expo lint`) deve ficar em 0 erros — os warnings restantes (`react-hooks/exhaustive-deps`, `no-unused-vars`) são pré-existentes e não bloqueantes

@@ -331,6 +331,8 @@
   .doc-tree .row{ padding: 2px 0; }
 
   /* ---------- golden rule table ---------- */
+  .table-scroll{ overflow-x: auto; }
+  .table-scroll .golden-table{ min-width: 560px; }
   .golden-table{ width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 14.5px; }
   .golden-table th{
     font-family: var(--display);
@@ -474,13 +476,15 @@
     <a class="toc__link" href="#intro"><span class="toc__num">00</span>O que é o app</a>
     <a class="toc__link" href="#clean-architecture"><span class="toc__num">01</span>Clean Architecture</a>
     <a class="toc__link" href="#camadas"><span class="toc__num">02</span>As 4 camadas</a>
-    <a class="toc__link" href="#pastas"><span class="toc__num">03</span>Pastas do projeto</a>
-    <a class="toc__link" href="#rotas"><span class="toc__num">04</span>Rotas (Expo Router)</a>
-    <a class="toc__link" href="#fluxo"><span class="toc__num">05</span>Fluxo ponta a ponta</a>
-    <a class="toc__link" href="#banco-dados"><span class="toc__num">06</span>Banco não-relacional</a>
-    <a class="toc__link" href="#regra-ouro"><span class="toc__num">07</span>Regra de ouro dos dados</a>
-    <a class="toc__link" href="#decisoes"><span class="toc__num">08</span>Decisões técnicas</a>
-    <a class="toc__link" href="#glossario"><span class="toc__num">09</span>Glossário</a>
+    <a class="toc__link" href="#imports"><span class="toc__num">03</span>A regra dos imports</a>
+    <a class="toc__link" href="#classes"><span class="toc__num">04</span>Por que tanta classe</a>
+    <a class="toc__link" href="#pastas"><span class="toc__num">05</span>Pastas do projeto</a>
+    <a class="toc__link" href="#rotas"><span class="toc__num">06</span>Rotas (Expo Router)</a>
+    <a class="toc__link" href="#fluxo"><span class="toc__num">07</span>Fluxo ponta a ponta</a>
+    <a class="toc__link" href="#banco-dados"><span class="toc__num">08</span>Banco não-relacional</a>
+    <a class="toc__link" href="#regra-ouro"><span class="toc__num">09</span>Regra de ouro dos dados</a>
+    <a class="toc__link" href="#decisoes"><span class="toc__num">10</span>Decisões técnicas</a>
+    <a class="toc__link" href="#glossario"><span class="toc__num">11</span>Glossário</a>
   </nav>
 
   <main class="content">
@@ -503,7 +507,7 @@
         moedas (apostas, recompensa diária) e gasta moedas (comprar pacotes/figurinhas).
         Esse saldo, junto com o progresso do álbum, é o dado "vivo" do app — e é
         justamente esse tipo de dado que faz sentido guardar num banco não-relacional
-        na nuvem, como veremos na seção 06.
+        na nuvem, como veremos na seção 08.
       </p>
     </section>
 
@@ -596,7 +600,8 @@
           A Presentation nunca importa a Infra diretamente — sempre passa pela Main.
           Isso significa que um componente de tela nunca faz <code>import { FirestoreAlbumRepository }</code>
           diretamente; ele chama uma <em>factory</em> como <code>makeGetUserProfile()</code>,
-          que devolve o use case já pronto para uso.
+          que devolve o use case já pronto para uso. A seção 03 destrincha essa regra
+          linha a linha.
         </p>
       </div>
 
@@ -609,8 +614,457 @@
       </div>
     </section>
 
+    <section class="section" id="imports">
+      <span class="section__eyebrow">03 — A regra na prática</span>
+      <h2>A regra dos imports: por que uma camada não importa a outra</h2>
+      <p>
+        A seção anterior falou em "camadas que não conhecem umas às outras". Mas o que é,
+        <em>concretamente</em>, uma camada "conhecer" outra? Em TypeScript a resposta é
+        direta e um pouco brutal: <strong>conhecer é importar</strong>. Se um arquivo
+        escreve <code>import { X } from '...'</code>, ele passa a depender de X — não tem
+        meio-termo, não tem dependência "leve". O arquivo não compila mais sem ele, não
+        pode ser testado sem ele e não pode ser reaproveitado sem ele.
+      </p>
+      <p>
+        Por isso, neste projeto, a regra de dependência não é uma boa intenção escrita na
+        documentação: ela é uma regra sobre <strong>quais linhas de <code>import</code>
+        podem existir no topo de cada arquivo</strong>. É verificável, é fácil de auditar
+        e é fácil de violar por descuido — daí a insistência.
+      </p>
+
+      <div class="note note--core">
+        <span class="note__tag">A regra em uma frase</span>
+        <p>
+          Os imports só podem apontar <strong>para dentro</strong>. Presentation importa
+          Main e Domain; Main importa Domain e Infra; Infra importa Domain. O Domain
+          <strong>não importa ninguém</strong> — nem React, nem Firebase, nem SQLite, nem
+          outra camada.
+        </p>
+      </div>
+
+      <h3>O paradoxo: o Domain precisa de dados, mas não pode importar quem busca dados</h3>
+      <p>
+        Aqui está o nó que costuma travar quem está aprendendo. O caso de uso
+        <code>CreatePrediction</code> precisa gravar um palpite no banco. Mas quem sabe
+        gravar no banco é a Infra — e o Domain não pode importar a Infra. Como ele grava,
+        então?
+      </p>
+      <p>
+        A saída é <strong>inversão de dependência</strong>: em vez de o Domain procurar
+        alguém que saiba gravar, ele <em>declara</em> o que precisa e deixa outro alguém
+        cumprir. Essa declaração é uma <code>interface</code> — um contrato sem
+        implementação — e ela mora <strong>dentro do próprio Domain</strong>.
+      </p>
+
+      <div class="code-block">
+        <div class="code-block__bar"><span>domain/repositories/MatchRepository.ts</span> <span>o contrato</span></div>
+        <pre><span class="tok-com">// Só descreve O QUE precisa existir. Nenhum import de banco aqui.</span>
+<span class="tok-kw">export interface</span> MatchRepository {
+  <span class="tok-fn">getUpcomingMatches</span>(): Promise&lt;Match[]&gt;;
+  <span class="tok-fn">getMatchById</span>(matchId: <span class="tok-kw">string</span>): Promise&lt;Match | <span class="tok-kw">null</span>&gt;;
+}</pre>
+      </div>
+
+      <div class="code-block">
+        <div class="code-block__bar"><span>infra/repositories/SQLiteMatchRepository.ts</span> <span>quem cumpre o contrato</span></div>
+        <pre><span class="tok-com">// Repare na direção: é a INFRA que importa o DOMAIN, nunca o contrário.</span>
+<span class="tok-kw">import</span> { MatchRepository } <span class="tok-kw">from</span> <span class="tok-str">'../../domain/repositories/MatchRepository'</span>;
+
+<span class="tok-kw">export class</span> SQLiteMatchRepository <span class="tok-kw">implements</span> MatchRepository {
+  <span class="tok-kw">async</span> <span class="tok-fn">getUpcomingMatches</span>() { <span class="tok-com">/* SELECT * FROM matches ... */</span> }
+}</pre>
+      </div>
+
+      <p>
+        É isso que a seta apontando <em>para cima</em> no diagrama da seção 02 significa. A
+        Infra se submete ao Domain, e não o Domain à Infra. O nome disso — "inverter" — vem
+        justamente daí: numa arquitetura tradicional, a regra de negócio importaria a
+        classe do banco; aqui a relação está de cabeça para baixo de propósito.
+      </p>
+
+      <h3>Em execução as setas são outras</h3>
+      <p>
+        O detalhe que confunde: em tempo de <strong>execução</strong>, o use case
+        <em>realmente</em> chama o <code>SQLiteMatchRepository</code>. A independência não é
+        uma ilusão nem um truque — ela existe apenas no <strong>código-fonte</strong>. As
+        duas direções coexistem:
+      </p>
+
+      <div class="compare-grid">
+        <div class="compare-card compare-card--sql">
+          <div class="compare-card__title">Em execução (runtime)</div>
+          <div class="doc-tree">
+            <div class="row">Hook</div>
+            <div class="row">&nbsp;&nbsp;↓ chama</div>
+            <div class="row">Use case (Domain)</div>
+            <div class="row">&nbsp;&nbsp;↓ chama</div>
+            <div class="row"><span class="v-str">SQLiteMatchRepository</span></div>
+          </div>
+          <p style="font-size:13.5px; color:var(--text-dim); margin:12px 0 0;">
+            O dado flui para a Infra — como em qualquer app.
+          </p>
+        </div>
+        <div class="compare-card compare-card--nosql">
+          <div class="compare-card__title">No código-fonte (imports)</div>
+          <div class="doc-tree">
+            <div class="row">Hook <span class="v-str">→ importa Main + Domain</span></div>
+            <div class="row">Main <span class="v-str">→ importa Domain + Infra</span></div>
+            <div class="row">Infra <span class="v-str">→ importa Domain</span></div>
+            <div class="row"><span class="k">Domain → importa NADA</span></div>
+          </div>
+          <p style="font-size:13.5px; color:var(--text-dim); margin:12px 0 0;">
+            Nenhuma seta chega ao Domain vinda de fora.
+          </p>
+        </div>
+      </div>
+
+      <p>
+        Quem faz as duas colunas conversarem é a <strong>Main</strong>. Ela é o único lugar
+        que escreve o nome concreto <code>SQLiteMatchRepository</code> e o entrega ao use
+        case pelo construtor. O use case recebe "algo que cumpre o contrato" e nunca fica
+        sabendo o nome de quem chegou.
+      </p>
+
+      <div class="code-block">
+        <div class="code-block__bar"><span>main/factories/repositoryInstance.ts</span> <span>o único ponto de acoplamento</span></div>
+        <pre><span class="tok-kw">import</span> { SQLiteMatchRepository } <span class="tok-kw">from</span> <span class="tok-str">'../../infra/repositories/SQLiteMatchRepository'</span>;
+<span class="tok-kw">import</span> { MockPredictionRepository } <span class="tok-kw">from</span> <span class="tok-str">'../../infra/repositories/MockPredictionRepository'</span>;
+
+<span class="tok-kw">export const</span> matchRepositoryInstance = <span class="tok-kw">new</span> SQLiteMatchRepository();
+<span class="tok-kw">export const</span> predictionRepositoryInstance = <span class="tok-kw">new</span> MockPredictionRepository();</pre>
+      </div>
+
+      <p>
+        Esse arquivo de cinco linhas é o motivo de a migração de mock para banco real ter
+        sido barata: trocar <code>MockPredictionRepository</code> por uma implementação
+        de verdade é editar <strong>uma palavra, em um arquivo</strong>. Nenhum use case,
+        nenhum hook e nenhuma tela precisam ser abertos — porque nenhum deles jamais
+        escreveu esse nome.
+      </p>
+
+      <h3>A mesma regra vale entre features</h3>
+      <p>
+        Quando um palpite é vencedor, o usuário ganha moedas — e moedas pertencem à feature
+        <code>album</code>, não a <code>apostas</code>. A tentação seria importar o álbum
+        dentro do use case de apostas. O projeto resolve isso do mesmo jeito: o Domain de
+        apostas declara um contrato (<code>RewardGranter</code>) e só a Main de apostas
+        conhece as factories do álbum.
+      </p>
+
+      <div class="code-block">
+        <div class="code-block__bar"><span>main/factories/makeSettlePendingPredictions.ts</span></div>
+        <pre><span class="tok-com">// apostas/domain não conhece album. Só este arquivo conhece os dois.</span>
+<span class="tok-kw">import</span> { makeAddUserCoins } <span class="tok-kw">from</span> <span class="tok-str">'../../../album/main/factories/makeAddUserCoins'</span>;
+
+<span class="tok-kw">export const</span> <span class="tok-fn">makeSettlePendingPredictions</span> = () =>
+  <span class="tok-kw">new</span> SettlePendingPredictions(predictionRepositoryInstance, matchRepositoryInstance, {
+    <span class="tok-fn">grantCoins</span>: <span class="tok-kw">async</span> (userId, amount) => {
+      <span class="tok-kw">await</span> <span class="tok-fn">makeAddUserCoins</span>().<span class="tok-fn">execute</span>(userId, amount);
+    },
+    <span class="tok-com">// ...</span>
+  });</pre>
+      </div>
+
+      <h3>Como auditar isso em 5 segundos</h3>
+      <p>
+        Como a regra é sobre texto no topo dos arquivos, ela se verifica com uma busca
+        simples. Rodando no repositório hoje:
+      </p>
+      <ul>
+        <li><strong>Domain importando Infra, Main ou Presentation:</strong> 0 ocorrências. O núcleo está limpo.</li>
+        <li><strong>Infra importando Domain:</strong> 20 arquivos — e isso é o esperado, é a seta correta.</li>
+        <li><strong>Presentation importando Infra:</strong> 2 ocorrências (ver abaixo).</li>
+      </ul>
+
+      <div class="note note--warn">
+        <span class="note__tag">Honestidade sobre o código real</span>
+        <p>
+          As duas exceções são <code>useAbrirPacote</code> e <code>useBuyStickerPack</code>,
+          que importam <code>pendingPackStore</code> — um cache em memória guardado em
+          <code>infra/stores/</code> para evitar sortear as figurinhas duas vezes. É uma
+          violação real da regra, ainda que pequena: o correto seria expor esse cache por
+          uma factory ou movê-lo para <code>shared</code>. Vale registrar como está, em vez
+          de fingir que a arquitetura é 100% pura — reconhecer o débito é parte de estudá-la.
+        </p>
+      </div>
+
+      <h3>A regra que a direção dos imports não pega</h3>
+      <p>
+        Vale um alerta, porque é a confusão mais comum: <strong>ter os imports na direção
+        certa não garante que o código esteja na camada certa.</strong> São duas perguntas
+        diferentes, e só a primeira é verificável com uma busca de texto.
+      </p>
+      <p>
+        A feature de álbum ilustrou isso. O <code>FirestoreAlbumRepository</code> sempre
+        respeitou a direção — ele importa o Domain, nunca o contrário. Mesmo assim, dentro
+        dele moravam decisões que são regra de negócio pura: "recusar a compra se o saldo
+        não cobre o custo", "um pacote tem 3 figurinhas", "o progresso se recalcula assim".
+        Enquanto isso, o use case <code>BuyStickerPack</code> — a classe que leva o nome da
+        operação — tinha uma linha só, repassando tudo ao repositório.
+      </p>
+      <div class="note note--core">
+        <span class="note__tag">Conceito fundamental</span>
+        <p>
+          Existem <strong>duas coisas diferentes</strong> chamadas de "orquestração":
+          decidir <em>o que</em> acontece (checar saldo, sortear, calcular o novo
+          progresso) é regra de aplicação e pertence ao <strong>use case</strong>; montar
+          <em>como</em> aquilo é gravado (o objeto de update, o <code>arrayUnion</code>,
+          o formato do documento) é detalhe do banco e pertence ao
+          <strong>repositório</strong>. Misturar as duas dentro do repositório é o desvio
+          mais comum — e o mais silencioso, porque nenhum <code>import</code> denuncia.
+        </p>
+      </div>
+      <p>
+        Hoje as duas operações de compra foram corrigidas: as regras voltaram para
+        <code>BuyStickerPack</code> e <code>BuyIndividualSticker</code>, e o repositório
+        ficou com um único método de persistência, <code>commitStickerPurchase()</code>,
+        que grava o que já foi decidido — sem conferir saldo, sem sortear, sem calcular
+        nada. Mas a correção alcançou <strong>2 das 8 operações</strong> do repositório: o
+        sorteio do pacote grátis, a recusa por cooldown da recompensa diária, o saldo
+        inicial de 200 moedas e a regra "o saldo nunca fica negativo" seguem dentro da
+        Infra. Não por acaso, os use cases dessas operações continuam sendo delegação de
+        uma linha — mesmo sintoma, ainda não tratado. O inventário completo da pendência
+        está em <code>docs/testing-plan.md</code>.
+      </p>
+      <p>
+        O ganho não foi só teórico. Com a regra no use case, o sorteio e o relógio passaram
+        a ser injetáveis pelo construtor — e a compra virou testável de ponta a ponta sem
+        Firestore nenhum. Antes era impossível afirmar "o saldo debitado é exatamente 150"
+        sem simular um banco inteiro.
+      </p>
+      <div class="note note--practice">
+        <span class="note__tag">O teste que revela a camada errada</span>
+        <p>
+          Um sintoma prático: se para testar uma regra de negócio você precisa simular um
+          banco de dados, provavelmente a regra está na camada errada. Regra de negócio
+          bem posicionada se testa com objetos simples em memória.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="classes">
+      <span class="section__eyebrow">04 — Estilo de código</span>
+      <h2>Por que tanta classe num projeto React?</h2>
+      <p>
+        Quem vem de React moderno estranha: hoje quase tudo em React é função — componentes
+        são funções, hooks são funções, e classes praticamente sumiram do ecossistema. Só
+        que ao abrir <code>src/features/*/domain/</code> e <code>infra/</code> aparecem
+        <strong>38 arquivos com <code>export class</code></strong>. Não é apego a Java: cada
+        lugar do projeto usa a forma que resolve melhor o problema daquela camada.
+      </p>
+
+      <h3>1. A classe existe para receber dependências pelo construtor</h3>
+      <p>
+        Este é o motivo principal. Um use case tem duas coisas de naturezas diferentes:
+        <em>com o que ele trabalha</em> (o repositório) e <em>o que ele faz</em> (a regra).
+        A classe separa fisicamente as duas: o construtor recebe as dependências e guarda;
+        o <code>execute()</code> usa. É a injeção de dependência da seção anterior,
+        materializada em sintaxe.
+      </p>
+
+      <div class="code-block">
+        <div class="code-block__bar"><span>domain/usecases/CreatePrediction.ts</span></div>
+        <pre><span class="tok-kw">export class</span> CreatePrediction {
+  <span class="tok-com">// "private readonly" no parâmetro já cria e trava o campo — atalho do TS</span>
+  <span class="tok-fn">constructor</span>(<span class="tok-kw">private readonly</span> predictionRepository: PredictionRepository) {}
+
+  <span class="tok-kw">async</span> <span class="tok-fn">execute</span>(data: Omit&lt;Prediction, <span class="tok-str">'id'</span> | <span class="tok-str">'createdAt'</span> | <span class="tok-str">'status'</span>&gt;) {
+    <span class="tok-kw">return this</span>.predictionRepository.<span class="tok-fn">createPrediction</span>(data);
+  }
+}</pre>
+      </div>
+      <p>
+        Repare que o tipo do parâmetro é <code>PredictionRepository</code> — a
+        <strong>interface</strong>, não uma implementação. A classe declara "eu preciso de
+        algo com este formato" e aceita qualquer coisa que se encaixe: o mock, o SQLite, um
+        fake de teste. Quando o use case precisa de três dependências, como
+        <code>SettlePendingPredictions</code>, o construtor simplesmente lista as três.
+      </p>
+
+      <h3>2. <code>implements</code> transforma o contrato em erro de compilação</h3>
+      <p>
+        Escrever <code>class SQLiteMatchRepository implements MatchRepository</code> não é
+        decoração: o TypeScript passa a exigir que <em>todos</em> os métodos do contrato
+        existam, com os tipos exatos. Esquecer um método ou trocar o retorno de
+        <code>Promise&lt;Match | null&gt;</code> para <code>Promise&lt;Match&gt;</code> quebra
+        o build antes de o app rodar.
+      </p>
+      <p>
+        É isso que torna a substituição de implementações <strong>segura</strong>. Sem essa
+        checagem, "trocar o mock pelo Firestore" seria um ato de fé — com ela, o compilador
+        garante que a peça nova encaixa no mesmo buraco.
+      </p>
+
+      <h3>3. Forma previsível: uma classe, um <code>execute()</code></h3>
+      <p>
+        São <strong>28 use cases</strong> no projeto e todos têm exatamente a mesma
+        silhueta: construtor com dependências, um único método público
+        <code>execute()</code>. Você sabe como o arquivo é antes de abri-lo, e sabe onde
+        procurar a regra de negócio de qualquer funcionalidade.
+      </p>
+      <p>
+        Essa uniformidade tem um retorno prático: com todos os use cases tendo a mesma
+        forma, eles viram peças intercambiáveis. É o que permite a factory
+        <code>makeSettlePendingPredictions</code> compor
+        <code>makeAddUserCoins().execute(...)</code> como recompensa, sem que o domínio de
+        apostas saiba absolutamente nada sobre álbum.
+      </p>
+
+      <div class="note note--warn">
+        <span class="note__tag">Convenção do projeto ≠ lei da arquitetura</span>
+        <p>
+          "Cada classe tem um método só" <strong>não é regra de Clean Architecture</strong>
+          — é convenção deste projeto. O que a arquitetura pede vem do princípio da
+          responsabilidade única (SRP): <em>uma razão para mudar</em>, não <em>um
+          método</em>. São coisas diferentes: uma classe pode ter cinco métodos e uma só
+          razão para mudar, ou um método e três razões.
+        </p>
+      </div>
+
+      <h3>Um método, várias regras — e por que isso está certo</h3>
+      <p>
+        A confusão mais comum aqui é achar que <em>um método</em> significa <em>uma
+        regra</em>. Não significa. A convenção fala do <strong>método público</strong>, ou
+        seja, da porta de entrada — não do tamanho do que existe lá dentro.
+      </p>
+      <p>
+        Um use case corresponde a <strong>uma intenção do usuário</strong>: "comprar um
+        pacote". Essa única intenção envolve várias regras, e elas pertencem juntas
+        justamente porque servem à mesma intenção:
+      </p>
+      <div class="code-block">
+        <div class="code-block__bar"><span>domain/usecases/BuyStickerPack.ts</span> <span>um execute(), cinco regras</span></div>
+        <pre><span class="tok-kw">async</span> <span class="tok-fn">execute</span>(userId, albumId, cost) {
+  <span class="tok-kw">const</span> coins = <span class="tok-kw">await</span> repo.<span class="tok-fn">getUserCoins</span>(userId);
+  <span class="tok-kw">if</span> (coins &lt; cost) <span class="tok-kw">throw new</span> Error(<span class="tok-str">'Saldo insuficiente'</span>);  <span class="tok-com">// regra 1</span>
+
+  <span class="tok-kw">const</span> drawn = <span class="tok-fn">drawStickersWithRepetition</span>(pool, PACK_SIZE, ...); <span class="tok-com">// regra 2</span>
+  <span class="tok-kw">const</span> drawnIds = [...<span class="tok-kw">new</span> Set(drawn.map((s) => s.id))];         <span class="tok-com">// regra 3</span>
+
+  <span class="tok-kw">await</span> repo.<span class="tok-fn">commitStickerPurchase</span>({
+    newBalance: coins - cost,                                <span class="tok-com">// regra 4</span>
+    progress: <span class="tok-fn">computeCollectionProgress</span>(...),                <span class="tok-com">// regra 5</span>
+    ...
+  });
+}</pre>
+      </div>
+      <p>
+        O limite não é a <em>quantidade</em> de regras — é se elas mudam pelo mesmo motivo.
+        Se <code>BuyStickerPack</code> também atualizasse o ranking e disparasse uma
+        notificação, aí sim seria cheiro: são intenções diferentes, que mudam por razões
+        diferentes, e mereceriam use cases separados.
+      </p>
+      <div class="note note--practice">
+        <span class="note__tag">A válvula de escape</span>
+        <p>
+          Repare no código acima: o <code>execute()</code> tem 23 linhas, mas o cálculo
+          pesado não está nele. <code>drawStickersWithRepetition</code> e
+          <code>computeCollectionProgress</code> são funções puras em
+          <code>domain/constants/</code>, chamadas de lá. <strong>Um método público,
+          várias peças testáveis separadamente.</strong> É assim que um use case cresce sem
+          inchar — e é o primeiro lugar para onde olhar quando um <code>execute()</code>
+          começa a ficar longo demais para caber na tela.
+        </p>
+      </div>
+
+      <h3>4. Testar fica trivial — e sem mock de módulo</h3>
+      <p>
+        Talvez o ganho mais concreto no dia a dia. Como a dependência entra pelo construtor,
+        o teste só precisa passar um objeto falso. Não existe <code>jest.mock()</code>
+        interceptando imports, não existe banco de dados subindo, não existe React
+        envolvido:
+      </p>
+
+      <div class="code-block">
+        <div class="code-block__bar"><span>domain/usecases/CreatePrediction.test.ts</span></div>
+        <pre><span class="tok-kw">const</span> predictionRepository = {
+  <span class="tok-fn">createPrediction</span>: jest.<span class="tok-fn">fn</span>(<span class="tok-kw">async</span> () => expected),
+} <span class="tok-kw">as unknown as</span> PredictionRepository;
+
+<span class="tok-kw">const</span> sut = <span class="tok-kw">new</span> CreatePrediction(predictionRepository);   <span class="tok-com">// injeta o falso</span>
+<span class="tok-kw">const</span> result = <span class="tok-kw">await</span> sut.<span class="tok-fn">execute</span>(predictionData);</pre>
+      </div>
+      <p>
+        Esse teste roda em milissegundos e vale para qualquer implementação futura do
+        repositório. <em>(<code>sut</code> = "system under test", o objeto que está sendo
+        testado — convenção comum na suíte do projeto.)</em>
+      </p>
+
+      <h3>Quantos testes uma regra pede?</h3>
+      <p>
+        Consequência direta da seção anterior, e uma pergunta que costuma aparecer: se
+        <code>BuyStickerPack</code> tem 5 regras, por que o arquivo de teste dele tem
+        <strong>9 testes</strong>? Porque testes não contam regras —
+        <strong>contam caminhos distintos</strong>.
+      </p>
+      <div class="table-scroll">
+        <table class="golden-table">
+          <thead>
+            <tr><th style="width:52%">Teste em <code>BuyStickerPack.test.ts</code></th><th>O que cobre</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>recusa quando o saldo não cobre o custo</td><td>regra 1</td></tr>
+            <tr><td>aceita quando o saldo é exatamente igual ao custo</td><td><strong>mesma</strong> regra 1 — caso-limite</td></tr>
+            <tr><td>sorteia <code>PACK_SIZE</code> figurinhas e carimba <code>obtainedAt</code></td><td>regra 2</td></tr>
+            <tr><td>debita o custo e envia o resultado já decidido</td><td>regras 3 e 4</td></tr>
+            <tr><td>não conta figurinha repetida duas vezes no progresso</td><td>regra 5</td></tr>
+            <tr><td>não recontabiliza figurinha já possuída</td><td><strong>mesma</strong> regra 5, outro ângulo</td></tr>
+            <tr><td>calcula o progresso contra o álbum de referência</td><td>regra 5, terceiro ângulo</td></tr>
+            <tr><td>devolve um <code>packId</code> derivado do relógio injetado</td><td>comportamento do retorno</td></tr>
+            <tr><td>sem injeção, usa <code>Math.random</code> e o relógio do sistema</td><td>caminho padrão do construtor</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note note--core">
+        <span class="note__tag">Regra prática</span>
+        <p>
+          Toda regra que envolve uma comparação (<code>&lt;</code>, <code>&lt;=</code>,
+          <code>&gt;</code>) pede pelo menos <strong>dois</strong> testes — um de cada lado
+          da fronteira. Foi exatamente o <code>if (coins &lt; cost)</code> que gerou os dois
+          primeiros da tabela: se alguém trocar por <code>&lt;=</code>, só o teste do
+          "saldo exatamente igual" quebra. Um teste só nunca pegaria isso.
+        </p>
+      </div>
+
+      <h3>Onde o projeto deliberadamente NÃO usa classes</h3>
+      <table class="golden-table">
+        <thead>
+          <tr><th>O quê</th><th>Forma</th><th>Por quê</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="width:24%"><strong>Entidades</strong><br><span style="color:var(--text-faint); font-size:13px;">Match, Prediction, Sticker</span></td>
+            <td style="width:22%"><code>interface</code></td>
+            <td>São dados puros, sem comportamento. Como <code>interface</code>, somem na compilação (custo zero) e atravessam JSON/Firestore sem perder nada — uma classe viraria objeto solto ao ser serializada, perdendo os métodos.</td>
+          </tr>
+          <tr>
+            <td><strong>Factories</strong><br><span style="color:var(--text-faint); font-size:13px;">makeCreatePrediction</span></td>
+            <td><code>arrow function</code></td>
+            <td>Não guardam estado nenhum — só montam e devolvem. Uma classe aqui seria cerimônia sem ganho.</td>
+          </tr>
+          <tr>
+            <td><strong>Hooks e componentes</strong><br><span style="color:var(--text-faint); font-size:13px;">useCreatePrediction, ContainerAposta</span></td>
+            <td><code>function</code></td>
+            <td>Exigência do React moderno: <code>useState</code> e afins só funcionam dentro de funções. Aqui o "estado" é do React, não do objeto.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="note note--practice">
+        <span class="note__tag">Para não decorar errado</span>
+        <p>
+          Clean Architecture <strong>não exige</strong> classes — dava para escrever os use
+          cases como funções que recebem o repositório por parâmetro, e o resultado seria
+          arquitetonicamente idêntico. O que a arquitetura exige é a <em>injeção de
+          dependência</em> e o <em>contrato</em>. A classe é a forma que este projeto
+          escolheu para expressar isso de maneira consistente e legível; a regra de ouro
+          continua sendo a direção dos imports, não a palavra <code>class</code>.
+        </p>
+      </div>
+    </section>
+
     <section class="section" id="pastas">
-      <span class="section__eyebrow">03 — Organização</span>
+      <span class="section__eyebrow">05 — Organização</span>
       <h2>Como isso vira pastas de verdade</h2>
       <p>
         O código é dividido por <strong>feature</strong> (funcionalidade) — <code>album</code>,
@@ -640,7 +1094,7 @@
     </section>
 
     <section class="section" id="rotas">
-      <span class="section__eyebrow">04 — Navegação</span>
+      <span class="section__eyebrow">06 — Navegação</span>
       <h2>Rotas com Expo Router</h2>
       <p>
         O Expo Router usa <strong>roteamento baseado em arquivos</strong>: o nome e o
@@ -665,7 +1119,7 @@
     </section>
 
     <section class="section" id="fluxo">
-      <span class="section__eyebrow">05 — Na prática</span>
+      <span class="section__eyebrow">07 — Na prática</span>
       <h2>Fluxo ponta a ponta: abrir um pacote de figurinhas</h2>
       <p>
         Para amarrar tudo, veja o caminho completo de uma ação real do usuário — do toque
@@ -694,13 +1148,13 @@
           <span class="flow__num">4</span>
           <span class="flow__layer-label">Domain</span>
           <strong>O use case roda a regra de negócio</strong>
-          <p><code>BuyStickerPack.execute()</code> não sabe se os dados vêm da nuvem ou de um mock — só chama o método <code>buyStickerPack()</code> da interface <code>AlbumRepository</code>.</p>
+          <p><code>BuyStickerPack.execute()</code> confere o saldo, sorteia <code>PACK_SIZE</code> figurinhas e recalcula o progresso — tudo em memória. Ele não sabe se os dados vêm da nuvem ou de um mock: só conversa com a interface <code>AlbumRepository</code>.</p>
         </li>
         <li data-layer="infra">
           <span class="flow__num">5</span>
           <span class="flow__layer-label">Infra</span>
           <strong>O Firestore é consultado e atualizado</strong>
-          <p><code>FirestoreAlbumRepository</code> confere o saldo de moedas, sorteia 3 figurinhas e grava tudo no documento do usuário na nuvem (mais detalhes na seção 06).</p>
+          <p><code>FirestoreAlbumRepository.commitStickerPurchase()</code> recebe o resultado já decidido — saldo novo, ids e progresso — e grava tudo numa única escrita no documento do usuário (mais detalhes na seção 08). Ele não decide nada.</p>
         </li>
         <li data-layer="presentation">
           <span class="flow__num">6</span>
@@ -717,7 +1171,7 @@
     </section>
 
     <section class="section" id="banco-dados">
-      <span class="section__eyebrow">06 — Persistência</span>
+      <span class="section__eyebrow">08 — Persistência</span>
       <h2>Banco de dados não-relacional (Firestore)</h2>
       <p>
         Um banco <strong>relacional</strong> (SQL, como PostgreSQL ou SQLite) guarda dados
@@ -801,7 +1255,7 @@
     </section>
 
     <section class="section" id="regra-ouro">
-      <span class="section__eyebrow">07 — Critério de decisão</span>
+      <span class="section__eyebrow">09 — Critério de decisão</span>
       <h2>Regra de ouro: o que vai onde</h2>
       <p>
         O projeto usa <strong>dois</strong> tipos de armazenamento por um motivo de
@@ -835,7 +1289,7 @@
     </section>
 
     <section class="section" id="decisoes">
-      <span class="section__eyebrow">08 — Padrões</span>
+      <span class="section__eyebrow">10 — Padrões</span>
       <h2>Decisões técnicas que vale a pena entender</h2>
       <table class="golden-table">
         <tbody>
@@ -849,7 +1303,7 @@
           </tr>
           <tr>
             <td><strong>Um <code>execute()</code> por use case</strong></td>
-            <td>Toda regra de negócio segue a mesma "forma": uma classe, um método <code>execute()</code>. Fica previsível e fácil de testar isoladamente.</td>
+            <td>Todo use case segue a mesma "forma": uma classe, um método <strong>público</strong> <code>execute()</code>. Fica previsível, fácil de testar e de compor. Atenção: um método não quer dizer uma regra — dentro dele podem morar várias, desde que sirvam à mesma intenção do usuário (ver seção 04).</td>
           </tr>
           <tr>
             <td><strong>Datas como texto (ISO)</strong></td>
@@ -864,7 +1318,7 @@
     </section>
 
     <section class="section" id="glossario">
-      <span class="section__eyebrow">09 — Referência rápida</span>
+      <span class="section__eyebrow">11 — Referência rápida</span>
       <h2>Glossário</h2>
       <dl class="glossary">
         <div class="gloss-item">
@@ -878,6 +1332,18 @@
         <div class="gloss-item">
           <dt>Injeção de dependência</dt>
           <dd>Em vez de uma classe criar suas próprias dependências, elas chegam prontas "de fora" (por parâmetro do construtor, por exemplo) — facilita trocar uma peça por outra.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>Inversão de dependência</dt>
+          <dd>Quando a camada de fora se submete ao contrato definido pela camada de dentro. Aqui: o Domain declara a <code>interface</code> e a Infra a implementa — por isso a Infra importa o Domain, e nunca o contrário.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt>Interface (contrato)</dt>
+          <dd>Descrição de quais métodos algo precisa ter, sem dizer como eles funcionam. Some na compilação: existe só para o TypeScript checar que a peça encaixa.</dd>
+        </div>
+        <div class="gloss-item">
+          <dt><code>sut</code></dt>
+          <dd><em>System under test</em> — nome dado nos testes ao objeto que está sendo testado, para distingui-lo dos dublês (mocks/fakes) ao redor.</dd>
         </div>
         <div class="gloss-item">
           <dt>Hook (React)</dt>
