@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react-native';
 import { makeSticker, makeUser } from '../../../../../test/fixtures';
 import { useCurrentUser } from '../../../../shared/presentation/contexts/UserContext';
-import { pendingPackStore } from '../../infra/stores/pendingPackStore';
+import { pendingPackStore, FREE_PACK_PREFIX } from '../../infra/stores/pendingPackStore';
 import { makeOpenPackage } from '../../main/factories/makeOpenPackage';
 import { useAbrirPacote } from './useAbrirPacote';
 
@@ -79,6 +79,36 @@ describe('useAbrirPacote', () => {
 
       expect(execute).toHaveBeenCalledWith('pack-1', 'u1');
       expect(result.current.stickers).toBe(sorteadas);
+    });
+
+    describe('pacote grátis', () => {
+      const freePackId = `${FREE_PACK_PREFIX}123`;
+
+      afterEach(() => pendingPackStore.clear(freePackId));
+
+      it('revela as figurinhas já sorteadas pelo claim', async () => {
+        pendingPackStore.set(freePackId, sorteadas);
+        const { result } = renderHook(() => useAbrirPacote(freePackId));
+
+        await act(async () => {
+          await result.current.startReveal();
+        });
+
+        expect(execute).not.toHaveBeenCalled();
+        expect(result.current.stickers).toBe(sorteadas);
+      });
+
+      it('não cai no openPackage quando o store perdeu o pacote — sortear de novo daria um pacote grátis extra', async () => {
+        const { result } = renderHook(() => useAbrirPacote(freePackId));
+
+        await act(async () => {
+          await result.current.startReveal();
+        });
+
+        expect(execute).not.toHaveBeenCalled();
+        expect(result.current.error).toBe('Este pacote grátis já foi aberto.');
+        expect(result.current.stickers).toEqual([]);
+      });
     });
   });
 

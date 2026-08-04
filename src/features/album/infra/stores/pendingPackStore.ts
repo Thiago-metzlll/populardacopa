@@ -7,6 +7,13 @@
  */
 const store: Record<string, Sticker[]> = {};
 
+/**
+ * Prefixo dos pacotes gratis diarios. Eles ja foram sorteados e cobrados do
+ * limite diario no claim, entao nao existe fallback: se o id sumir do store,
+ * a tela precisa avisar em vez de chamar openPackage e sortear de novo.
+ */
+export const FREE_PACK_PREFIX = 'free_';
+
 export const pendingPackStore = {
   set(packId: string, stickers: Sticker[]): void {
     store[packId] = stickers;

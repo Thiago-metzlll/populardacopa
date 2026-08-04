@@ -31,18 +31,27 @@ export class BuyStickerPack {
     const pool = await this.albumRepository.getAllStickers();
     const drawnAt = this.now();
     const obtainedAt = drawnAt.toISOString();
-    const drawn: Sticker[] = drawStickersWithRepetition(pool, PACK_SIZE, this.random).map((sticker) => ({
-      ...sticker,
-      obtainedAt,
-    }));
-
-    // O sorteio permite repetição, mas a coleção guarda ids únicos.
-    const drawnIds = [...new Set(drawn.map((sticker) => sticker.id))];
+    const rawDrawn = drawStickersWithRepetition(pool, PACK_SIZE, this.random);
 
     const [collection, album] = await Promise.all([
       this.albumRepository.getUserCollection(userId),
       this.albumRepository.getAlbumById(REFERENCE_ALBUM_ID),
     ]);
+
+    // `isNew` é decidido varrendo o pacote em ordem: a figurinha é nova se o
+    // usuário não a tinha *e* ela ainda não apareceu antes no próprio pacote —
+    // dois exemplares da mesma figurinha no mesmo sorteio contam como uma nova
+    // e uma repetida, que é o que o usuário vê ao abrir.
+    const owned = new Set(collection.stickerIds);
+    const drawn: Sticker[] = rawDrawn.map((sticker) => {
+      const isNew = !owned.has(sticker.id);
+      owned.add(sticker.id);
+      return { ...sticker, obtainedAt, isNew };
+    });
+
+    // O sorteio permite repetição, mas a coleção guarda ids únicos.
+    const drawnIds = [...new Set(drawn.map((sticker) => sticker.id))];
+
     const updatedIds = [...new Set([...collection.stickerIds, ...drawnIds])];
 
     await this.albumRepository.commitStickerPurchase({

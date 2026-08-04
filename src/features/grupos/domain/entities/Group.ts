@@ -1,5 +1,6 @@
 export interface GroupStanding {
   teamId: string;
+  teamName: string;
   points: number;
   matchesPlayed: number;
   wins: number;

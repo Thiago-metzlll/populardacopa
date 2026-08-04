@@ -1,17 +1,25 @@
 import React from 'react';
-import { ActivityIndicator, Alert } from 'react-native';
+import { ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { DailyClaimStatus } from '../../domain/constants/rewards';
 import { Sticker } from '../../domain/entities/Sticker';
 import { colors } from '../../../../shared/presentation/theme';
 import { flattenStyle } from '../../../../../test/styleHelpers';
+import { pendingPackStore, FREE_PACK_PREFIX } from '../../infra/stores/pendingPackStore';
 import { useFreePackage } from '../hooks/useFreePackage';
 import { CardPacoteGratis } from './CardPacoteGratis';
 
 // jest.mock é elevado acima dos imports pelo babel-plugin-jest-hoist
 jest.mock('../hooks/useFreePackage', () => ({
   useFreePackage: jest.fn(),
+}));
+
+// Prefixo `mock` é exigido pelo babel-plugin-jest-hoist para variáveis
+// referenciadas dentro da factory (que é elevada acima das declarações).
+const mockPush = jest.fn();
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: mockPush }),
 }));
 
 const NOW = new Date('2026-07-29T12:00:00.000Z').getTime();
@@ -40,7 +48,6 @@ const inFuture = (ms: number) => new Date(NOW + ms).toISOString();
 beforeEach(() => {
   jest.clearAllMocks();
   jest.useFakeTimers().setSystemTime(NOW);
-  jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 });
 
 afterEach(() => {
@@ -147,7 +154,7 @@ describe('CardPacoteGratis', () => {
       { id: 's2', albumId: 'a1', playerName: 'Ciclano', price: 50, rarity: 'lendaria', imageUrl: '', obtainedAt: '' },
     ];
 
-    it('avisa o pai e lista as figurinhas obtidas no Alert', async () => {
+    it('avisa o pai e manda as figurinhas para a tela de reveal', async () => {
       claim.mockResolvedValue(stickers);
       const onClaimed = jest.fn();
       mockHook();
@@ -159,10 +166,13 @@ describe('CardPacoteGratis', () => {
 
       expect(claim).toHaveBeenCalledTimes(1);
       expect(onClaimed).toHaveBeenCalledTimes(1);
-      expect(Alert.alert).toHaveBeenCalledWith(
-        'Pacote grátis aberto!',
-        '• Fulano (comum)\n• Ciclano (lendaria)',
-      );
+
+      const packId = `${FREE_PACK_PREFIX}${NOW}`;
+      expect(mockPush).toHaveBeenCalledWith(`/abrir-pacote/${packId}`);
+      // As figurinhas já sorteadas ficam no store para a tela apenas revelar,
+      // sem sortear de novo.
+      expect(pendingPackStore.get(packId)).toEqual(stickers);
+      pendingPackStore.clear(packId);
     });
 
     it('não quebra quando onClaimed não é informado', async () => {
@@ -174,13 +184,14 @@ describe('CardPacoteGratis', () => {
         fireEvent.press(screen.getByText('Abrir'));
       });
 
-      expect(Alert.alert).toHaveBeenCalledTimes(1);
+      expect(mockPush).toHaveBeenCalledTimes(1);
+      pendingPackStore.clear(`${FREE_PACK_PREFIX}${NOW}`);
     });
 
     it.each([
       ['undefined', undefined],
       ['lista vazia', []],
-    ])('não avisa o pai nem abre Alert quando o claim retorna %s', async (_caso, returned) => {
+    ])('não avisa o pai nem navega quando o claim retorna %s', async (_caso, returned) => {
       claim.mockResolvedValue(returned);
       const onClaimed = jest.fn();
       mockHook();
@@ -191,7 +202,7 @@ describe('CardPacoteGratis', () => {
       });
 
       expect(onClaimed).not.toHaveBeenCalled();
-      expect(Alert.alert).not.toHaveBeenCalled();
+      expect(mockPush).not.toHaveBeenCalled();
     });
 
     it('troca o texto por um spinner enquanto resgata', () => {

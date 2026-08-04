@@ -1,12 +1,14 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
   ActivityIndicator,
   ScrollView,
   Dimensions,
+  Platform,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -17,14 +19,23 @@ import Animated, {
   withRepeat,
   withDelay,
   interpolate,
-  Extrapolation,
   Easing,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { Sticker } from '../../domain/entities/Sticker';
 import { CompartilhBtn } from './CompartilhBtn';
-import { colors, spacing, typography, radius } from '../../../../shared/presentation/theme';
+import { MolduraIndividualPais } from '../../../../shared/presentation/components/MolduraIndividualPais';
+import {
+  colors,
+  spacing,
+  typography,
+  radius,
+  rarityColors,
+} from '../../../../shared/presentation/theme';
+import type { Rarity } from '../../../../shared/presentation/theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.75;
@@ -32,6 +43,8 @@ const CARD_WIDTH = SCREEN_WIDTH * 0.75;
 // abaixo — em telas pequenas, CARD_WIDTH * 1.4 sozinho já empurrava o botão
 // pra fora da viewport, deixando a tela sem nenhuma ação alcançável.
 const CARD_HEIGHT = Math.min(CARD_WIDTH * 1.4, SCREEN_HEIGHT * 0.48);
+// Sem perspective o rotateY em RN achata a carta em vez de girá-la.
+const PERSPECTIVE = 900;
 
 interface AnimacaoAbrirPacoteProps {
   stickers: Sticker[];
@@ -44,41 +57,53 @@ interface AnimacaoAbrirPacoteProps {
   onDone: () => void;
 }
 
-const RARITY_COLORS: Record<Sticker['rarity'], [string, string]> = {
-  comum: ['#24242B', '#1A1A1E'],
-  rara: ['#1a1a4e', '#24242B'],
-  lendaria: ['#3d2000', '#24242B'],
+// Fundo escuro tingido com a cor de cada raridade. As cores de identidade
+// (borda, badge, label) vêm de theme/rarityColors — as mesmas usadas no
+// StickerCard do álbum, para a carta revelada e a guardada baterem.
+const RARITY_GRADIENT: Record<Rarity, [string, string]> = {
+  comum: ['#2A2A30', '#1A1A1E'],
+  rara: ['#2E3A00', '#1A1A1E'],
+  lendaria: ['#2B0E4D', '#1A1A1E'],
 };
 
-const RARITY_GLOW: Record<Sticker['rarity'], string> = {
-  comum: '#444',
-  rara: '#4488FF',
-  lendaria: '#FFD700',
-};
-
-const RARITY_LABEL: Record<Sticker['rarity'], string> = {
-  comum: 'COMUM',
-  rara: 'RARA',
-  lendaria: 'LENDÁRIA',
-};
-
-const RARITY_ICON: Record<Sticker['rarity'], keyof typeof Ionicons.glyphMap | null> = {
-  comum: null,
+const RARITY_ICON: Record<Rarity, keyof typeof Ionicons.glyphMap> = {
+  comum: 'football',
   rara: 'star',
   lendaria: 'flash',
 };
 
-// Duração da "carga" de expectativa antes do reveal — quanto mais rara, mais suspense.
-const RARITY_CHARGE_MS: Record<Sticker['rarity'], number> = {
-  comum: 100,
-  rara: 500,
-  lendaria: 900,
+// Duração da "carga" de expectativa antes do reveal — quanto mais rara, mais
+// suspense. Nenhuma raridade fica em zero: sem um beat de carga, o reveal de
+// figurinha comum (a maioria absoluta) vira um flash sem sensação alguma.
+const RARITY_CHARGE_MS: Record<Rarity, number> = {
+  comum: 350,
+  rara: 700,
+  lendaria: 1100,
 };
 
-const RARITY_PARTICLES: Record<Sticker['rarity'], number> = {
-  comum: 0,
-  rara: 10,
-  lendaria: 16,
+const RARITY_PARTICLES: Record<Rarity, number> = {
+  comum: 6,
+  rara: 14,
+  lendaria: 22,
+};
+
+// expo-haptics não existe na web e é ruído em qualquer erro de plataforma —
+// a animação nunca deve quebrar por causa do retorno tátil.
+const haptic = {
+  charge() {
+    if (Platform.OS === 'web') return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+  },
+  reveal(rarity: Rarity) {
+    if (Platform.OS === 'web') return;
+    if (rarity === 'lendaria') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      return;
+    }
+    const style =
+      rarity === 'rara' ? Haptics.ImpactFeedbackStyle.Heavy : Haptics.ImpactFeedbackStyle.Medium;
+    Haptics.impactAsync(style).catch(() => {});
+  },
 };
 
 const Particle: React.FC<{ angle: number; distance: number; delay: number; color: string }> = ({
@@ -123,8 +148,9 @@ const ParticleBurst: React.FC<{ count: number; color: string }> = ({ count, colo
     () =>
       Array.from({ length: count }, (_, i) => ({
         angle: (i / count) * Math.PI * 2,
+        // Passa da metade da carta para o estouro sair pelas bordas.
         // eslint-disable-next-line react-hooks/purity
-        distance: 60 + Math.random() * 50,
+        distance: CARD_WIDTH * 0.55 + Math.random() * 60,
         // eslint-disable-next-line react-hooks/purity
         delay: Math.random() * 120,
       })),
@@ -141,146 +167,210 @@ const ParticleBurst: React.FC<{ count: number; color: string }> = ({ count, colo
   );
 };
 
-const ChargeGlow: React.FC<{ color: string }> = ({ color }) => {
-  const scale = useSharedValue(0.85);
-  const opacity = useSharedValue(0.2);
+/** Verso da carta: o que o usuário vê enquanto a carga acontece. */
+const CardBack: React.FC<{ color: string }> = ({ color }) => (
+  <LinearGradient colors={['#1E1E2E', '#141419']} style={styles.cardFace}>
+    <View style={[styles.cardBackInner, { borderColor: color }]}>
+      <Ionicons name="cube" size={72} color={color} />
+      <Text style={styles.cardBackText}>POPULAR DA COPA</Text>
+    </View>
+  </LinearGradient>
+);
 
-  useEffect(() => {
-    scale.value = withRepeat(
-      withSequence(
-        withTiming(1.2, { duration: 260, easing: Easing.out(Easing.quad) }),
-        withTiming(0.9, { duration: 260, easing: Easing.in(Easing.quad) }),
-      ),
-      -1,
-      true,
-    );
-    opacity.value = withRepeat(
-      withSequence(withTiming(0.85, { duration: 260 }), withTiming(0.25, { duration: 260 })),
-      -1,
-      true,
-    );
-  }, []);
+/** Frente da carta: a figurinha de verdade — foto, nome, país e raridade. */
+const CardFront: React.FC<{ sticker: Sticker }> = ({ sticker }) => {
+  const rarity = rarityColors[sticker.rarity];
 
-  const style = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ scale: scale.value }],
-  }));
+  return (
+    <LinearGradient colors={RARITY_GRADIENT[sticker.rarity]} style={styles.cardFace}>
+      <View style={[styles.cardFrontInner, { borderColor: rarity.border }]}>
+        <View style={styles.photoWrapper}>
+          <Image
+            source={{ uri: sticker.imageUrl }}
+            style={styles.photo}
+            contentFit="cover"
+            transition={200}
+          />
+          {sticker.teamId && (
+            <View style={styles.flagBadge}>
+              <MolduraIndividualPais teamId={sticker.teamId} size="sm" />
+            </View>
+          )}
+          <View style={[styles.rarityBadge, { backgroundColor: rarity.badgeBg }]}>
+            <Ionicons name={RARITY_ICON[sticker.rarity]} size={11} color={rarity.badgeText} />
+            <Text style={[styles.rarityText, { color: rarity.badgeText }]}>{rarity.label}</Text>
+          </View>
+          {sticker.isNew !== undefined && (
+            <View
+              style={[
+                styles.newBadge,
+                sticker.isNew ? styles.newBadgeNew : styles.newBadgeRepeated,
+              ]}
+            >
+              <Text style={[styles.newText, !sticker.isNew && styles.newTextRepeated]}>
+                {sticker.isNew ? 'NOVA' : 'REPETIDA'}
+              </Text>
+            </View>
+          )}
+        </View>
 
-  return <Animated.View style={[styles.chargeGlow, { borderColor: color, shadowColor: color }, style]} />;
+        <Text style={styles.playerName} numberOfLines={2}>
+          {sticker.playerName}
+        </Text>
+
+        {sticker.rarity !== 'comum' && (
+          <CompartilhBtn stickerImageUrl={sticker.imageUrl} stickerId={sticker.id} />
+        )}
+      </View>
+    </LinearGradient>
+  );
 };
 
 const StickerRevealCard: React.FC<{
   sticker: Sticker;
   onAdvance: () => void;
   isLast: boolean;
-  onDone: () => void;
-}> = ({ sticker, onAdvance, isLast, onDone }) => {
-  const [phase, setPhase] = useState<'charging' | 'revealed'>(
-    sticker.rarity === 'comum' ? 'revealed' : 'charging',
-  );
-  const scale = useSharedValue(0);
-  const rotateY = useSharedValue(90);
-  const opacity = useSharedValue(0);
+}> = ({ sticker, onAdvance, isLast }) => {
+  const [phase, setPhase] = useState<'charging' | 'revealed'>('charging');
+  const flip = useSharedValue(0);
+  const scale = useSharedValue(0.9);
+  const shake = useSharedValue(0);
 
+  // As duas fases moram no mesmo efeito de propósito: `shake` e `scale` são
+  // animados nas duas, e a regra react-hooks/immutability proíbe mexer em um
+  // shared value que já foi mexido num efeito anterior.
   useEffect(() => {
-    if (phase !== 'charging') return;
-    const timeout = setTimeout(() => setPhase('revealed'), RARITY_CHARGE_MS[sticker.rarity]);
-    return () => clearTimeout(timeout);
-  }, [phase]);
+    if (phase === 'charging') {
+      haptic.charge();
+      // Tremor de expectativa enquanto a carta ainda está de costas.
+      shake.value = withRepeat(
+        withSequence(
+          withTiming(-3, { duration: 90, easing: Easing.inOut(Easing.quad) }),
+          withTiming(3, { duration: 90, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+        true,
+      );
+      scale.value = withTiming(1, { duration: 250, easing: Easing.out(Easing.quad) });
 
-  useEffect(() => {
-    if (phase !== 'revealed') return;
-    opacity.value = withTiming(1, { duration: 200 });
-    rotateY.value = withSpring(0, { damping: 12, stiffness: 100 });
+      const timeout = setTimeout(() => setPhase('revealed'), RARITY_CHARGE_MS[sticker.rarity]);
+      return () => clearTimeout(timeout);
+    }
+
+    haptic.reveal(sticker.rarity);
+    shake.value = withTiming(0, { duration: 120 });
+    flip.value = withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) });
     scale.value = withSequence(
-      withSpring(1.1, { damping: 8, stiffness: 120 }),
+      // Espera o giro passar da metade para o "pulo" coincidir com a frente
+      // aparecendo, e não com a carta ainda de costas.
+      withDelay(380, withSpring(1.08, { damping: 8, stiffness: 140 })),
       withSpring(1, { damping: 15, stiffness: 200 }),
     );
   }, [phase]);
 
-  const animStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [
-      { scale: scale.value },
-      {
-        rotateY: `${interpolate(
-          rotateY.value,
-          [0, 90],
-          [0, 90],
-          Extrapolation.CLAMP
-        )}deg`,
-      },
-    ],
+  // Duas faces com backfaceVisibility: em flip=0 o verso está a 0° (visível) e a
+  // frente a 180° (escondida); em flip=1 elas trocam de papel.
+  const stageStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shake.value }, { scale: scale.value }],
   }));
 
-  const glowColor = RARITY_GLOW[sticker.rarity];
-  const particleCount = phase === 'revealed' ? RARITY_PARTICLES[sticker.rarity] : 0;
+  const backStyle = useAnimatedStyle(() => ({
+    transform: [{ perspective: PERSPECTIVE }, { rotateY: `${flip.value * 180}deg` }],
+  }));
+
+  const frontStyle = useAnimatedStyle(() => ({
+    transform: [{ perspective: PERSPECTIVE }, { rotateY: `${flip.value * 180 + 180}deg` }],
+  }));
+
+  const revealed = phase === 'revealed';
+  const glowColor = rarityColors[sticker.rarity].border;
 
   return (
     <View style={styles.cardWrapper}>
-      <View style={styles.cardStage}>
-        {phase === 'charging' && <ChargeGlow color={glowColor} />}
-        {phase === 'revealed' && <ParticleBurst count={particleCount} color={glowColor} />}
-
-        <Animated.View style={[styles.stickerCardOuter, { shadowColor: glowColor }, animStyle]}>
-          <LinearGradient
-            colors={RARITY_COLORS[sticker.rarity]}
-            style={styles.stickerCard}
-          >
-            {/* Glow border */}
-            <View style={[styles.glowBorder, { borderColor: glowColor }]}>
-              {/* Sticker rarity avatar */}
-              <View style={styles.stickerImageContainer}>
-                <Ionicons
-                  name={RARITY_ICON[sticker.rarity] ?? 'football'}
-                  size={64}
-                  color={glowColor}
-                />
-              </View>
-
-              {/* Rarity Badge */}
-              <View style={[styles.rarityBadge, { borderColor: glowColor }]}>
-                {RARITY_ICON[sticker.rarity] && (
-                  <Ionicons name={RARITY_ICON[sticker.rarity]!} size={12} color={glowColor} />
-                )}
-                <Text style={[styles.rarityText, { color: glowColor }]}>
-                  {RARITY_LABEL[sticker.rarity]}
-                </Text>
-              </View>
-
-              {/* Sticker ID */}
-              <Text style={styles.stickerIdText}>Figurinha #{sticker.id}</Text>
-
-              {/* Share button for rare/legendary */}
-              {sticker.rarity !== 'comum' && (
-                <CompartilhBtn
-                  stickerImageUrl={sticker.imageUrl}
-                  stickerId={sticker.id}
-                />
-              )}
-            </View>
-          </LinearGradient>
-        </Animated.View>
-      </View>
-
-      {/* Action Button */}
-      <TouchableOpacity
-        style={styles.nextButton}
-        onPress={isLast ? onDone : onAdvance}
-        activeOpacity={0.8}
+      <Pressable
+        onPress={revealed ? onAdvance : undefined}
+        accessibilityRole="button"
+        accessibilityLabel={revealed ? 'Avançar para a próxima figurinha' : 'Revelando figurinha'}
       >
-        <LinearGradient
-          colors={['#B4FF00', '#88CC00']}
-          style={styles.nextButtonGradient}
-        >
-          <Text style={styles.nextButtonText}>
-            {isLast ? 'CONCLUIR' : 'PRÓXIMA'}
-          </Text>
+        <Animated.View style={[styles.cardStage, { shadowColor: glowColor }, stageStyle]}>
+          {revealed && <ParticleBurst count={RARITY_PARTICLES[sticker.rarity]} color={glowColor} />}
+
+          <Animated.View style={[styles.cardSide, backStyle]}>
+            <CardBack color={glowColor} />
+          </Animated.View>
+          <Animated.View style={[styles.cardSide, styles.cardSideAbsolute, frontStyle]}>
+            <CardFront sticker={sticker} />
+          </Animated.View>
+        </Animated.View>
+      </Pressable>
+
+      <TouchableOpacity
+        style={[styles.nextButton, !revealed && styles.nextButtonHidden]}
+        onPress={onAdvance}
+        activeOpacity={0.8}
+        disabled={!revealed}
+      >
+        <LinearGradient colors={['#B4FF00', '#88CC00']} style={styles.nextButtonGradient}>
+          <Text style={styles.nextButtonText}>{isLast ? 'VER RESUMO' : 'PRÓXIMA'}</Text>
           <Ionicons
-            name={isLast ? 'checkmark-circle' : 'arrow-forward'}
+            name={isLast ? 'list' : 'arrow-forward'}
             size={18}
             color="#0D0D0D"
           />
+        </LinearGradient>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+const PackSummary: React.FC<{ stickers: Sticker[]; onDone: () => void }> = ({
+  stickers,
+  onDone,
+}) => {
+  // Só quebra entre novas/repetidas quando o sorteio informou isso; fora do
+  // fluxo de abertura `isNew` é undefined e a contagem seria inventada.
+  const classificadas = stickers.filter((s) => s.isNew !== undefined);
+  const novas = classificadas.filter((s) => s.isNew).length;
+  const repetidas = classificadas.length - novas;
+  const total = `${stickers.length} ${stickers.length === 1 ? 'figurinha' : 'figurinhas'}`;
+
+  return (
+    <View style={styles.summaryContainer}>
+      <Ionicons name="checkmark-circle" size={48} color={colors.primary} />
+      <Text style={styles.summaryTitle}>Pacote aberto!</Text>
+      <Text style={styles.summarySubtitle}>
+        {total}
+        {classificadas.length > 0 && ` · ${novas} ${novas === 1 ? 'nova' : 'novas'}`}
+        {repetidas > 0 && ` · ${repetidas} ${repetidas === 1 ? 'repetida' : 'repetidas'}`}
+      </Text>
+
+      <View style={styles.summaryList}>
+        {stickers.map((sticker, index) => {
+          const rarity = rarityColors[sticker.rarity];
+          return (
+            <View key={`${sticker.id}-${index}`} style={styles.summaryRow}>
+              <View style={[styles.summaryDot, { backgroundColor: rarity.border }]} />
+              {sticker.teamId && <MolduraIndividualPais teamId={sticker.teamId} size="sm" />}
+              <View style={styles.summaryTexts}>
+                <Text style={styles.summaryName} numberOfLines={1}>
+                  {sticker.playerName}
+                </Text>
+                <Text style={[styles.summaryRarity, { color: rarity.border }]}>{rarity.label}</Text>
+              </View>
+              {sticker.isNew !== undefined && (
+                <Text style={sticker.isNew ? styles.summaryNew : styles.summaryRepeated}>
+                  {sticker.isNew ? 'NOVA' : 'REPETIDA'}
+                </Text>
+              )}
+            </View>
+          );
+        })}
+      </View>
+
+      <TouchableOpacity style={styles.nextButton} onPress={onDone} activeOpacity={0.8}>
+        <LinearGradient colors={['#B4FF00', '#88CC00']} style={styles.nextButtonGradient}>
+          <Text style={styles.nextButtonText}>CONCLUIR</Text>
+          <Ionicons name="checkmark-circle" size={18} color="#0D0D0D" />
         </LinearGradient>
       </TouchableOpacity>
     </View>
@@ -308,6 +398,7 @@ const IdlePackCard: React.FC<{ onStartReveal: () => void }> = ({ onStartReveal }
   const handlePress = () => {
     if (bursting) return;
     setBursting(true);
+    haptic.charge();
     shakeX.value = withSequence(
       withTiming(-6, { duration: 60 }),
       withTiming(6, { duration: 60 }),
@@ -319,10 +410,7 @@ const IdlePackCard: React.FC<{ onStartReveal: () => void }> = ({ onStartReveal }
       300,
       withTiming(1.4, { duration: 300, easing: Easing.out(Easing.cubic) }),
     );
-    burstOpacity.value = withDelay(
-      300,
-      withTiming(0, { duration: 300 }),
-    );
+    burstOpacity.value = withDelay(300, withTiming(0, { duration: 300 }));
     // Dispara via timer do JS thread em vez do callback do worklet: o callback
     // de withTiming depende da ponte UI->JS e, se não disparar (animação
     // interrompida, hiccup do bridge), o botão ficava travado em "bursting"
@@ -332,19 +420,13 @@ const IdlePackCard: React.FC<{ onStartReveal: () => void }> = ({ onStartReveal }
 
   const packStyle = useAnimatedStyle(() => ({
     opacity: burstOpacity.value,
-    transform: [
-      { translateX: shakeX.value },
-      { scale: breathScale.value * burstScale.value },
-    ],
+    transform: [{ translateX: shakeX.value }, { scale: breathScale.value * burstScale.value }],
   }));
 
   return (
     <View style={styles.center}>
       <Animated.View style={packStyle}>
-        <LinearGradient
-          colors={['#1E1E2E', '#24242B']}
-          style={styles.packContainer}
-        >
+        <LinearGradient colors={['#1E1E2E', '#24242B']} style={styles.packContainer}>
           <View style={styles.packGlowRing} />
           <Ionicons name="cube" size={72} color={colors.primary} style={styles.packIcon} />
           <Text style={styles.packTitle}>Pacote de Figurinhas</Text>
@@ -358,10 +440,7 @@ const IdlePackCard: React.FC<{ onStartReveal: () => void }> = ({ onStartReveal }
         activeOpacity={0.8}
         disabled={bursting}
       >
-        <LinearGradient
-          colors={['#B4FF00', '#88CC00']}
-          style={styles.openButtonGradient}
-        >
+        <LinearGradient colors={['#B4FF00', '#88CC00']} style={styles.openButtonGradient}>
           <Text style={styles.openButtonText}>ABRIR PACOTE</Text>
           <Ionicons name="sparkles" size={20} color="#0D0D0D" />
         </LinearGradient>
@@ -380,6 +459,16 @@ export const AnimacaoAbrirPacote: React.FC<AnimacaoAbrirPacoteProps> = ({
   onAdvanceCard,
   onDone,
 }) => {
+  // O resumo é uma fase só da UI: o hook continua responsável apenas por
+  // sortear e navegar entre as cartas.
+  const [showSummary, setShowSummary] = useState(false);
+  const isLast = currentIndex === stickers.length - 1;
+
+  const handleAdvance = useCallback(() => {
+    if (isLast) setShowSummary(true);
+    else onAdvanceCard();
+  }, [isLast, onAdvanceCard]);
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -401,6 +490,18 @@ export const AnimacaoAbrirPacote: React.FC<AnimacaoAbrirPacoteProps> = ({
     return <IdlePackCard onStartReveal={onStartReveal} />;
   }
 
+  if (showSummary) {
+    return (
+      <ScrollView
+        style={styles.revealContainer}
+        contentContainerStyle={styles.revealContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <PackSummary stickers={stickers} onDone={onDone} />
+      </ScrollView>
+    );
+  }
+
   const currentSticker = stickers[currentIndex];
   if (!currentSticker) return null;
 
@@ -410,7 +511,6 @@ export const AnimacaoAbrirPacote: React.FC<AnimacaoAbrirPacoteProps> = ({
       contentContainerStyle={styles.revealContent}
       showsVerticalScrollIndicator={false}
     >
-      {/* Header */}
       <View style={styles.revealHeader}>
         <Text style={styles.revealTitle}>FIGURINHA REVELADA</Text>
         <Text style={styles.revealCounter}>
@@ -418,7 +518,6 @@ export const AnimacaoAbrirPacote: React.FC<AnimacaoAbrirPacoteProps> = ({
         </Text>
       </View>
 
-      {/* Progress dots */}
       <View style={styles.dotsRow}>
         {stickers.map((_, idx) => (
           <View
@@ -435,9 +534,8 @@ export const AnimacaoAbrirPacote: React.FC<AnimacaoAbrirPacoteProps> = ({
       <StickerRevealCard
         key={currentIndex}
         sticker={currentSticker}
-        onAdvance={onAdvanceCard}
-        isLast={currentIndex === stickers.length - 1}
-        onDone={onDone}
+        onAdvance={handleAdvance}
+        isLast={isLast}
       />
     </ScrollView>
   );
@@ -556,32 +654,126 @@ const styles = StyleSheet.create({
   dotDone: {
     backgroundColor: '#555',
   },
+
   cardWrapper: {
     alignItems: 'center',
     gap: spacing.xl,
   },
   cardStage: {
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  chargeGlow: {
-    position: 'absolute',
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    borderWidth: 2,
-    shadowOpacity: 0.9,
-    shadowRadius: 24,
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
     shadowOffset: { width: 0, height: 0 },
+    elevation: 12,
+  },
+  cardSide: {
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    backfaceVisibility: 'hidden',
+  },
+  cardSideAbsolute: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  cardFace: {
+    flex: 1,
+    borderRadius: radius.xl,
+    padding: 12,
+  },
+  cardBackInner: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+  },
+  cardBackText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    letterSpacing: 3,
+    fontWeight: 'bold',
+  },
+  cardFrontInner: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    padding: spacing.sm,
+    gap: spacing.sm,
+  },
+  photoWrapper: {
+    width: '100%',
+    flex: 1,
+    borderRadius: radius.sm,
+    overflow: 'hidden',
+    backgroundColor: '#1A1A1E',
+  },
+  photo: {
+    width: '100%',
+    height: '100%',
+  },
+  flagBadge: {
+    position: 'absolute',
+    bottom: spacing.xs,
+    right: spacing.xs,
+  },
+  rarityBadge: {
+    position: 'absolute',
+    top: spacing.xs,
+    left: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+  },
+  rarityText: {
+    ...typography.caption,
+    fontSize: 10,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  newBadge: {
+    position: 'absolute',
+    top: spacing.xs,
+    right: spacing.xs,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+  },
+  newBadgeNew: {
+    backgroundColor: colors.primary,
+  },
+  newBadgeRepeated: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  newText: {
+    ...typography.caption,
+    fontSize: 10,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    color: '#0D0D0D',
+  },
+  newTextRepeated: {
+    color: colors.textSecondary,
+  },
+  playerName: {
+    ...typography.subheading,
+    color: colors.textPrimary,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   particleContainer: {
-    position: 'absolute',
-    width: 1,
-    height: 1,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
-    top: '35%',
-    alignSelf: 'center',
   },
   particle: {
     position: 'absolute',
@@ -589,59 +781,74 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
   },
-  stickerCardOuter: {
-    borderRadius: radius.xl,
-    shadowOpacity: 0.6,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 12,
-  },
-  stickerCard: {
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
-    borderRadius: radius.xl,
-    padding: 12,
-  },
-  glowBorder: {
-    flex: 1,
-    borderRadius: 12,
-    borderWidth: 1.5,
+
+  summaryContainer: {
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.md,
-    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+    width: '100%',
   },
-  stickerImageContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rarityBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  rarityText: {
-    ...typography.caption,
+  summaryTitle: {
+    ...typography.heading,
+    color: colors.textPrimary,
     fontWeight: 'bold',
-    letterSpacing: 1.5,
   },
-  stickerIdText: {
+  summarySubtitle: {
     ...typography.body,
     color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  summaryList: {
+    width: '100%',
+    marginVertical: spacing.md,
+    gap: spacing.sm,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+  },
+  summaryDot: {
+    width: 4,
+    alignSelf: 'stretch',
+    borderRadius: 2,
+  },
+  summaryTexts: {
+    flex: 1,
+  },
+  summaryName: {
+    ...typography.body,
+    color: colors.textPrimary,
     fontWeight: '600',
   },
+  summaryRarity: {
+    ...typography.caption,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  summaryNew: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  summaryRepeated: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+
   nextButton: {
     borderRadius: radius.lg,
     overflow: 'hidden',
+  },
+  nextButtonHidden: {
+    opacity: 0,
   },
   nextButtonGradient: {
     flexDirection: 'row',

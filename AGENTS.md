@@ -18,6 +18,7 @@ React Native + Expo Router + TypeScript, Clean Architecture.
 | expo-sqlite | ~56 | Catálogo estático local (times, jogadores, partidas, figurinhas) |
 | firebase | ^12 | Auth + Firestore (dados por usuário) |
 | react-native-reanimated | 4.3.1 | Animações (abertura de pacote) |
+| expo-haptics | ~56 | Retorno tátil no reveal de figurinha |
 | @expo/vector-icons | ^15 | Ícones Ionicons — único sistema de ícones do app, sem emojis em UI |
 
 > Não há mais SVG no projeto: `react-native-svg` e `react-native-svg-transformer` foram
@@ -48,7 +49,7 @@ npx expo start
 # Limpar cache Metro após mudanças estruturais:
 npx expo start --clear
 
-npm test              # roda a suíte Jest (544 testes / 63 suítes)
+npm test              # roda a suíte Jest (568 testes / 64 suítes)
 npm run test:coverage
 npm run typecheck     # tsc --noEmit — depende de .expo/types/router.d.ts
                        # (gitignored); rode `npx expo start` uma vez após

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography, radius } from '../../../../shared/presentation/theme';
+import { pendingPackStore, FREE_PACK_PREFIX } from '../../infra/stores/pendingPackStore';
 import { useFreePackage } from '../hooks/useFreePackage';
 
 function formatCountdown(nextAvailableAt: string): string {
@@ -19,6 +21,7 @@ interface CardPacoteGratisProps {
 }
 
 export const CardPacoteGratis: React.FC<CardPacoteGratisProps> = ({ onClaimed }) => {
+  const router = useRouter();
   const { status, loading, claiming, error, claim } = useFreePackage();
   const [, forceTick] = useState(0);
 
@@ -33,8 +36,12 @@ export const CardPacoteGratis: React.FC<CardPacoteGratisProps> = ({ onClaimed })
     const stickers = await claim();
     if (stickers && stickers.length > 0) {
       onClaimed?.();
-      const names = stickers.map((s) => `• ${s.playerName} (${s.rarity})`).join('\n');
-      Alert.alert('Pacote grátis aberto!', names);
+      // O pacote grátis reaproveita a tela de reveal do pacote comprado: as
+      // figurinhas já foram sorteadas e persistidas pelo claim, então vão para
+      // o pendingPackStore e a tela apenas as revela (sem sortear de novo).
+      const packId = `${FREE_PACK_PREFIX}${Date.now()}`;
+      pendingPackStore.set(packId, stickers);
+      router.push(`/abrir-pacote/${packId}`);
     }
   };
 

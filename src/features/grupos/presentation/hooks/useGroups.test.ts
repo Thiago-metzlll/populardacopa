@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { Group } from '../../domain/entities/Group';
 import { makeGetAllGroups } from '../../main/factories/makeGetAllGroups';
 import { useGroups } from './useGroups';
@@ -55,5 +55,35 @@ describe('useGroups', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(execute).toHaveBeenCalledTimes(1);
+  });
+
+  it('refetch busca de novo e atualiza a lista', async () => {
+    const { result } = renderHook(() => useGroups());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const atualizados: Group[] = [{ id: 'g3', name: 'Grupo C', teamIds: [], standings: [] }];
+    execute.mockResolvedValue(atualizados);
+
+    await act(async () => {
+      await result.current.refetch();
+    });
+
+    expect(execute).toHaveBeenCalledTimes(2);
+    expect(result.current.groups).toEqual(atualizados);
+    expect(result.current.refreshing).toBe(false);
+  });
+
+  it('refetch limpa o erro anterior quando a nova busca dá certo', async () => {
+    execute.mockRejectedValueOnce(new Error('SQLite indisponível'));
+
+    const { result } = renderHook(() => useGroups());
+    await waitFor(() => expect(result.current.error).toBe('SQLite indisponível'));
+
+    await act(async () => {
+      await result.current.refetch();
+    });
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.groups).toEqual(groups);
   });
 });

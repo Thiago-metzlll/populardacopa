@@ -193,9 +193,11 @@ export class FirestoreAlbumRepository implements AlbumRepository {
     const collection = await this.getUserCollection(userId);
     const allStickers = await this.catalogRepository.getAllStickers();
     const now = new Date().toISOString();
+    // drawUnownedStickers só sorteia figurinhas fora da coleção — todas são novas.
     const newStickers: Sticker[] = drawUnownedStickers(allStickers, collection.stickerIds, PACK_SIZE).map((s) => ({
       ...s,
       obtainedAt: now,
+      isNew: true,
     }));
 
     if (newStickers.length > 0) {

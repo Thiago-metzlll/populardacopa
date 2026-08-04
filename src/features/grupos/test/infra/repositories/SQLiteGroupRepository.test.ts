@@ -12,6 +12,7 @@ const mockDb = {
 
 const standingRow = {
   team_id: 't1',
+  team_name: 'Brasil',
   points: 6,
   matches_played: 2,
   wins: 2,
@@ -44,10 +45,16 @@ describe('SQLiteGroupRepository', () => {
         expect.stringContaining('ORDER BY points DESC, goal_difference DESC, goals_for DESC'),
         ['A'],
       );
+      expect(mockDb.getAllAsync).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining('LEFT JOIN teams t ON t.id = gs.team_id'),
+        ['A'],
+      );
       expect(group.id).toBe('A');
       expect(group.teamIds).toEqual(['t1']);
       expect(group.standings[0]).toEqual({
         teamId: 't1',
+        teamName: 'Brasil',
         points: 6,
         matchesPlayed: 2,
         wins: 2,
@@ -74,6 +81,16 @@ describe('SQLiteGroupRepository', () => {
       expect(groups[0].teamIds).toEqual(['t1']);
       expect(groups[1].teamIds).toEqual(['t2']);
     });
+
+    it('usa o teamId como nome quando o time não existe na tabela teams', async () => {
+      mockDb.getAllAsync
+        .mockResolvedValueOnce([{ id: 'A', name: 'Grupo A' }])
+        .mockResolvedValueOnce([{ ...standingRow, team_name: null }]);
+
+      const [group] = await sut.getAllGroups();
+
+      expect(group.standings[0].teamName).toBe('t1');
+    });
   });
 
   describe('getGroupById', () => {
@@ -91,6 +108,7 @@ describe('SQLiteGroupRepository', () => {
 
       expect(mockDb.getFirstAsync).toHaveBeenCalledWith('SELECT * FROM groups WHERE id = ?;', ['A']);
       expect(group.standings).toHaveLength(1);
+      expect(group.standings[0].teamName).toBe('Brasil');
       expect(group.teamIds).toEqual(['t1']);
     });
   });

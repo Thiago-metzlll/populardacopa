@@ -104,6 +104,48 @@ describe('BuyStickerPack', () => {
     );
   });
 
+  describe('marcação nova/repetida', () => {
+    /** Sorteia s1, s2 e s3 — um pacote sem repetição interna. */
+    const semRepeticao = () => {
+      const sequence = [0, 0.4, 0.7];
+      let call = 0;
+      return () => sequence[call++];
+    };
+
+    it('marca como nova a figurinha que o usuário ainda não tinha', async () => {
+      const { sut } = makeSut({ random: semRepeticao() });
+
+      const result = await sut.execute('u1', 'a1', 50);
+
+      expect(result.stickers.map((s) => s.id)).toEqual(['s1', 's2', 's3']);
+      expect(result.stickers.every((s) => s.isNew)).toBe(true);
+    });
+
+    it('marca como repetida a figurinha que já estava na coleção', async () => {
+      const { sut } = makeSut({ owned: ['s1', 's3'], random: semRepeticao() });
+
+      const result = await sut.execute('u1', 'a1', 50);
+
+      expect(result.stickers.map((s) => s.isNew)).toEqual([false, true, false]);
+    });
+
+    it('dentro do mesmo pacote, só a primeira ocorrência conta como nova', async () => {
+      // sorteia s1, s2, s1 — o segundo s1 é repetida ainda que o usuário
+      // não tivesse nenhuma das duas antes de abrir.
+      const sequence = [0, 0.4, 0];
+      let call = 0;
+      const { sut } = makeSut({ random: () => sequence[call++] });
+
+      const result = await sut.execute('u1', 'a1', 50);
+
+      expect(result.stickers.map((s) => ({ id: s.id, isNew: s.isNew }))).toEqual([
+        { id: 's1', isNew: true },
+        { id: 's2', isNew: true },
+        { id: 's1', isNew: false },
+      ]);
+    });
+  });
+
   it('calcula o progresso contra o álbum de referência, não contra o álbum comprado', async () => {
     const { sut, albumRepository } = makeSut();
 

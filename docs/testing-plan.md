@@ -287,7 +287,7 @@ A migração foi feita com um script que recalcula cada especificador por aritm�
 
 ## Inventário completo de testes unitários
 
-Todos os `it(...)` já escritos, agrupados por arquivo — atualizado a cada fase. Números por fase abaixo; total atual: **544 testes em 63 suítes** (rode `npm test` para o número exato e sempre atualizado — este documento descreve o quê foi coberto, não recalcula a contagem a cada edição).
+Todos os `it(...)` já escritos, agrupados por arquivo — atualizado a cada fase. Números por fase abaixo; total atual: **568 testes em 64 suítes** (rode `npm test` para o número exato e sempre atualizado — este documento descreve o quê foi coberto, não recalcula a contagem a cada edição).
 
 ### Domain — regras de negócio puras
 
@@ -519,11 +519,13 @@ Dado o volume (mais de 300 `it(...)` novos), esta seção resume por arquivo em 
 
 **Infra de teste reutilizável** (pasta `test/`, fora de `src/`): [fixtures.ts](../test/fixtures.ts) (`makeUser`, `makeSticker`, `makeTeam`, `makePlayer`, `makeMatch`), [styleHelpers.ts](../test/styleHelpers.ts), [setup.tsx](../test/setup.tsx). *(`svgMock.tsx` existiu até 08/2026 — ver Fase 5.)*
 
+**Componentes com Reanimated** só rodam por causa do `resolver: 'react-native-worklets/jest/resolver'` em [jest.config.js](../jest.config.js): sem ele, importar `react-native-reanimated` num teste falha com *"Native part of Worklets doesn't seem to be initialized"*, porque a entrada `.native` do worklets exige o módulo nativo. Testar animação é testar o que dá para afirmar sem relógio real — fases, textos e callbacks — adiantando os `setTimeout` com `jest.useFakeTimers()`; ver [AnimacaoAbrirPacote.test.tsx](../src/features/album/presentation/components/AnimacaoAbrirPacote.test.tsx).
+
 ---
 
 ## Verificação
 
-- `npm test` deve rodar e passar após cada fase — atualmente 544 testes em 63 suítes
+- `npm test` deve rodar e passar após cada fase — atualmente 568 testes em 64 suítes
 - `npm run test:coverage` para acompanhar cobertura por camada (`presentation/components` e `presentation/hooks` não são mais excluídos do `collectCoverageFrom`)
 - `npm run typecheck` (`tsc --noEmit`) deve ficar limpo — **atenção**: depende de `.expo/types/router.d.ts`, que é gerado por `npx expo start` e é gitignored; rode o dev server uma vez após um checkout novo antes de confiar no typecheck
 - `npm run lint` (`expo lint`) deve ficar em 0 erros — os warnings restantes (`react-hooks/exhaustive-deps`, `no-unused-vars`) são pré-existentes e não bloqueantes

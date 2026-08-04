@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { Sticker } from '../../domain/entities/Sticker';
 import { makeOpenPackage } from '../../main/factories/makeOpenPackage';
 import { useCurrentUser } from '../../../../shared/presentation/contexts/UserContext';
-import { pendingPackStore } from '../../infra/stores/pendingPackStore';
+import { pendingPackStore, FREE_PACK_PREFIX } from '../../infra/stores/pendingPackStore';
 
 export const useAbrirPacote = (packId: string) => {
   const user = useCurrentUser();
@@ -22,6 +22,10 @@ export const useAbrirPacote = (packId: string) => {
         // Figurinhas já sorteadas e persistidas por buyStickerPack; evita double-draw.
         result = pendingPackStore.get(packId);
         pendingPackStore.clear(packId);
+      } else if (packId.startsWith(FREE_PACK_PREFIX)) {
+        // Pacote grátis já sorteado e cobrado do limite diário: cair no
+        // openPackage aqui sortearia um segundo pacote de graça.
+        throw new Error('Este pacote grátis já foi aberto.');
       } else {
         const useCase = makeOpenPackage();
         result = await useCase.execute(packId, user.id);
