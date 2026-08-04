@@ -86,6 +86,8 @@ Sem banco real em ambiente Node — a estratégia é mockar o ponto de acesso ao
 
 Repositórios Mock em memória (`MockTeamRepository`, `MockGroupRepository`, `MockPredictionRepository`) já são fakes — baixa prioridade, deixados de fora.
 
+> **Revisão posterior (Fase 7).** Essa avaliação estava certa para dois dos três e errada para o terceiro: `MockTeamRepository` e `MockGroupRepository` eram mesmo dead code (removidos), mas `MockPredictionRepository` era o repositório **de produção** dos palpites. "Deixar de fora por ser fake" só é seguro depois de conferir quem o `repositoryInstance.ts` da feature injeta.
+
 **Resultado:** 19 suítes, 105 testes, todos passando (`npm test`), `tsc --noEmit` limpo.
 
 ---
@@ -98,7 +100,8 @@ Ao tentar testar o `FirestoreAlbumRepository` na Fase 3, ficou claro que ele mis
 - [x] `generatePlayerStats` — [playerStats.ts](../src/features/times/domain/constants/playerStats.ts) — o pior caso encontrado: gerava gols/assistências/jogos com `Math.random()` direto dentro de um mapper de linha→entidade. Agora recebe `random` injetável e é 100% testável
 - [x] `computeMatchOdds` — [odds.ts](../src/features/apostas/domain/constants/odds.ts) — já era determinístico (hash do id da partida), só não estava extraído; testado com valores exatos conhecidos
 - [x] `computeCollectionProgress`, `drawUnownedStickers`, `drawStickersWithRepetition` — [collection.ts](../src/features/album/domain/constants/collection.ts) — o cálculo de progresso estava duplicado **5 vezes** dentro do `FirestoreAlbumRepository`; os dois algoritmos de sorteio (sem repetição / com repetição, usados em fluxos diferentes) também saíram de lá
-- [x] `computePredictionStats` — [predictionStats.ts](../src/features/apostas/domain/constants/predictionStats.ts) — extraído do `MockPredictionRepository`. Importante: esse Mock é o repositório real em produção hoje (`repositoryInstance.ts` da feature `apostas` usa `MockPredictionRepository`, não SQLite), não só um double de teste
+- [x] `computePredictionStats` — [predictionStats.ts](../src/features/apostas/domain/constants/predictionStats.ts) — extraído do `MockPredictionRepository`. Importante: esse Mock era o repositório real em produção à época (`repositoryInstance.ts` da feature `apostas` usava `MockPredictionRepository`, não SQLite), não só um double de teste
+  > **Atualização (Fase 7).** O Mock foi substituído pelo `FirestorePredictionRepository` e removido. A função pura sobreviveu intacta à troca de banco — e é exatamente esse o retorno da extração: `computePredictionStats` e seus testes não foram tocados na migração.
 
 **Bug de tooling encontrado no caminho:** `tsc --noEmit` nunca tinha sido rodado no projeto (só `expo lint`, que é ESLint, roda no CI/scripts). Descobrimos que `describe`/`it`/`expect`/`jest` estavam **todos** com erro de tipo em todo arquivo de teste desde a Fase 1 — mascarado porque `npm test` usa Babel (não type-checa). Duas causas, duas correções:
 1. Sem `"types": ["jest"]` no [tsconfig.json](../tsconfig.json), o TypeScript não carregava `@types/jest` (mesmo estando instalado) — corrigido adicionando essa linha.
@@ -127,16 +130,18 @@ Setup: `renderHook`/`act`/`waitFor` do `@testing-library/react-native`, mockando
 
 ## Fase 5 — Presentation: componentes visuais ✅ concluída (parcial — screens de fora)
 
-Maior atrito esperado (mocks de Reanimated, SVG, `expo-image`, `expo-linear-gradient`) — resolvido com 3 peças de infra reaproveitáveis em `test/`:
+Maior atrito esperado (mocks de Reanimated, SVG, `expo-image`, `expo-linear-gradient`) — resolvido com 3 peças de infra reaproveitáveis em `test/` (hoje 2, desde a remoção do `svgMock`):
 
-- [x] [test/svgMock.tsx](../test/svgMock.tsx) — mapeado via `moduleNameMapper: { '\\.svg$': ... }` no `jest.config.js`; o `react-native-svg-transformer` não roda sob Jest, então todo `import Flag from '...svg'` vira um `<View testID="svg-flag">`
+- [x] ~~[test/svgMock.tsx] — mapeado via `moduleNameMapper: { '\\.svg$': ... }` no `jest.config.js`; o `react-native-svg-transformer` não roda sob Jest, então todo `import Flag from '...svg'` vira um `<View testID="svg-flag">`~~
+  > **Removido em 08/2026** junto com os SVGs de bandeira (seção 9.10 do [technical-readme.md](technical-readme.md)). Sem nenhum `import ... from '*.svg'` no projeto, o mock, o `moduleNameMapper` e as duas dependências de SVG deixaram de ter função. Mantido aqui como registro: se algum SVG voltar ao projeto, essa peça de infra volta junto.
 - [x] [test/setup.tsx](../test/setup.tsx) (`setupFilesAfterEnv`) — mocka `@expo/vector-icons`: a fonte real carrega assíncrono e chama `setState` fora de `act()`, poluindo a saída de todo teste de componente que usa `Ionicons`. O mock troca o ícone por um `<Text testID="icon-{name}">`, o que também permite asserir qual ícone cada estado do componente renderiza
 - [x] [test/styleHelpers.ts](../test/styleHelpers.ts) — `flattenStyle`/`collectStyles`/`hasStyle`/`collectProps`: percorrem a árvore de `render(...).toJSON()` para assertar estilo condicional sem precisar espalhar `testID` de teste no código de produção
 - [x] `collectCoverageFrom` no `jest.config.js` não exclui mais `presentation/components/**` (antes o coverage da camada ficava invisível mesmo quando testada)
 
 Componentes cobertos, com foco em ramificação/lógica (não snapshot):
 - [x] [CardFigurinha](../src/shared/presentation/components/CardFigurinha/index.test.tsx) — gradiente/borda/símbolo por raridade, `selected`, `size` compact/full, formatação de data pt-BR e o fallback `N/A`
-- [x] [MolduraIndividualPais](../src/shared/presentation/components/MolduraIndividualPais/index.test.tsx) — mapeamento ISO-3→ISO-2 das 48 seleções, SVG local vs. fallback do flagcdn, sub-regiões (`sco`→`gb-sct`), dimensões por `size`
+- [x] [MolduraIndividualPais](../src/shared/presentation/components/MolduraIndividualPais/index.test.tsx) — mapeamento ISO-3→ISO-2 das 48 seleções, montagem da URL do flagcdn, sub-regiões (`sco`→`gb-sct`), dimensões por `size`
+  > Reescrito em 08/2026: os 9 códigos que antes exigiam SVG local (`br`, `ar`, …) passaram a afirmar a URL do CDN, e o `describe('fallback pelo CDN')` virou `describe('mapeamento ISO-3 -> ISO-2')` — não é mais fallback, é o único caminho. Mesma contagem de testes (38).
 - [x] [CardPacoteGratis](../src/features/album/presentation/components/CardPacoteGratis.test.tsx) e [CardRecompensaDiaria](../src/features/album/presentation/components/CardRecompensaDiaria.test.tsx) — `formatCountdown` com fake timers, estados disponível/cooldown/`claiming`, o `Alert` com a lista de figurinhas, re-render do intervalo de 30s
 - [x] [BotaoHomeMolde](../src/shared/presentation/components/BotaoHomeMolde/index.test.tsx), [PalpiteBtn](../src/shared/presentation/components/PalpiteBtn/index.test.tsx), [MoldeInputs](../src/shared/presentation/components/MoldeInputs/index.test.tsx), [StickerCard](../src/features/album/presentation/components/StickerCard.test.tsx), [CardColecao](../src/shared/presentation/components/CardColecao/index.test.tsx), [CardResumoApostas](../src/features/apostas/presentation/components/CardResumoApostas.test.tsx), [ContainerAposta](../src/features/apostas/presentation/components/ContainerAposta.test.tsx), [CardHistoricoMundial](../src/features/times/presentation/components/CardHistoricoMundial.test.tsx), [CardConquistas](../src/features/times/presentation/components/CardConquistas.test.tsx)
 
@@ -166,6 +171,27 @@ Componentes cobertos, com foco em ramificação/lógica (não snapshot):
 - [x] 15 hooks de fetch-on-mount (`useAlbumStickers`, `useAllStickers`, `useDailyCoinsReward`, `useFreePackage`, `useMarketAlbums`, `useStickerDetail`, `useUserProfile`, `useMatchDetail`, `usePredictionHistory`, `useUpcomingMatches`, `useFavoriteTeams`, `usePlayerDetail`, `useTeamDetail`, `useTimesScreen` ×2) + [use-color-scheme.web.ts](../src/hooks/use-color-scheme.web.ts) — `react-hooks/set-state-in-effect` suprimido com `eslint-disable-next-line` documentado. **Decisão consciente, não atalho**: essa regra faz parte do conjunto experimental "React Compiler" do `eslint-plugin-react-hooks` e rejeita o padrão `useEffect(() => { fetchX() }, [deps])` — que é exatamente o recomendado pelos docs oficiais do React para fetch-on-mount — porque tecnicamente o React pode descartar e refazer um render (Strict Mode/Suspense) antes do primeiro `await`. Reescrever os 15 hooks para evitar isso seria uma mudança de arquitetura de data-fetching real (maior risco, fora do escopo de "corrigir os erros"), então a opção escolhida (com o usuário) foi documentar o falso positivo com comentário em vez de refatorar
 
 **Resultado:** `npm run typecheck` limpo, `npx eslint .` com 0 erros (20 warnings pré-existentes, não bloqueantes), 535 testes em 62 suítes (`npm test`).
+
+---
+
+## Fase 7 — Palpites no Firestore + fim dos repositórios Mock ✅ concluída
+
+> Registrada em 08/2026, **depois** das Fases 8 e 9: o número 7 estava vago no plano e foi preenchido por este trabalho. As fases abaixo são cronologicamente anteriores a esta.
+
+O gatilho não foi cobertura, foi um defeito que os testes existentes não podiam pegar: `MockPredictionRepository` era o repositório de palpites **injetado em produção** pelo `repositoryInstance.ts` (fato já anotado na Fase 3.5), guardando tudo num array de instância. Todo palpite — e toda recompensa concedida pelo settlement em cima dele — se perdia no reload. Nenhum teste falhava, porque o repositório fazia exatamente o que seu código dizia; o problema era qual implementação estava plugada.
+
+- [x] [FirestorePredictionRepository.ts](../src/features/apostas/infra/repositories/FirestorePredictionRepository.ts) — coleção raiz `predictions`, um documento por palpite com campo `userId`. O porquê de raiz e não subcoleção está na seção 9.11 do [technical-readme.md](technical-readme.md): `updatePredictionStatus` não recebe `userId`
+- [x] [FirestorePredictionRepository.test.ts](../src/features/apostas/test/infra/repositories/FirestorePredictionRepository.test.ts) — 9 testes, mesmo padrão de mock do `FirestoreAlbumRepository` (mocka `firebase/firestore` **e** o módulo `firebaseConfig`, senão o import real valida env vars e tenta inicializar o Firebase de verdade). Cobre: filtro por `userId`, mapeamento doc→entidade **usando o id do documento** (não um campo), ordenação client-side, delegação a `computePredictionStats`, histórico vazio, `addDoc` com `status: 'pending'`, `createdAt` em ISO, e o `updatePredictionStatus` nos dois ramos (documento inexistente → erro sem gravar; existente → grava só `status`)
+- [x] Removidos `MockPredictionRepository.ts` e `PredictionSeed.ts`
+- [x] Removido o dead code que sobrou da migração para SQLite: `MockGroupRepository`, `MockTeamRepository`, `MockMatchRepository` e os seeds que só eles consumiam (`GroupSeed`, `TeamSeed`, `PlayerSeed`, `MatchSeed`) — nenhum tinha consumidor fora de si mesmo. **Não sobrou nenhum repositório Mock no projeto**
+- [x] Palpites de demonstração movidos para [scripts/seedFirestoreUser.ts](../scripts/seedFirestoreUser.ts) — dado de usuário não tem mais seed em código
+
+**Duas coisas que este trabalho ensina sobre o plano de testes:**
+
+1. **Cobertura não vê troca de implementação.** `computePredictionStats` estava 100% coberto desde a Fase 3.5, e os hooks de palpite desde a Fase 4 — ainda assim, o dado não persistia. Teste unitário valida a unidade, não qual unidade foi injetada no `repositoryInstance.ts`. Esse arquivo é o ponto cego estrutural da suíte (ver "Deixados de fora conscientemente" na Fase 6).
+2. **O nome do arquivo mentia.** Um `Mock*` em `infra/repositories/` foi lido por muito tempo como double de teste esquecido, quando era produção. Vale como heurística: se um `Mock*` aparece importado por um `repositoryInstance.ts`, ele não é mock — é a implementação.
+
+**Resultado:** 63 suítes, 544 testes, `tsc --noEmit` limpo, `eslint` com 0 erros.
 
 ---
 
@@ -261,7 +287,7 @@ A migração foi feita com um script que recalcula cada especificador por aritm�
 
 ## Inventário completo de testes unitários
 
-Todos os `it(...)` já escritos, agrupados por arquivo — atualizado a cada fase. Números por fase abaixo; total atual: **535 testes em 62 suítes** (rode `npm test` para o número exato e sempre atualizado — este documento descreve o quê foi coberto, não recalcula a contagem a cada edição).
+Todos os `it(...)` já escritos, agrupados por arquivo — atualizado a cada fase. Números por fase abaixo; total atual: **544 testes em 63 suítes** (rode `npm test` para o número exato e sempre atualizado — este documento descreve o quê foi coberto, não recalcula a contagem a cada edição).
 
 ### Domain — regras de negócio puras
 
@@ -430,6 +456,20 @@ Todos os `it(...)` já escritos, agrupados por arquivo — atualizado a cada fas
   - partida ao vivo: sem odds e sem placar
   - usa "Fase de Grupos" como fallback quando não há group_label
 
+**[FirestorePredictionRepository.test.ts](../src/features/apostas/test/infra/repositories/FirestorePredictionRepository.test.ts)** *(Fase 7)*
+- `getPredictionHistory`
+  - filtra os palpites pelo userId recebido
+  - mapeia cada documento para a entidade Prediction, usando o id do doc
+  - ordena do mais recente para o mais antigo no cliente
+  - calcula successRate e totalPoints só sobre os palpites resolvidos
+  - devolve histórico vazio e zerado quando o usuário nunca palpitou
+- `createPrediction`
+  - grava o palpite como pending e devolve o id gerado pelo Firestore
+  - carimba createdAt em ISO no momento da criação
+- `updatePredictionStatus`
+  - lança erro quando o palpite não existe, sem gravar nada
+  - grava só o campo status e devolve o palpite já atualizado
+
 **[SQLiteGroupRepository.test.ts](../src/features/grupos/test/infra/repositories/SQLiteGroupRepository.test.ts)**
 - `getAllGroups`
   - busca os grupos e, para cada um, os standings ordenados por critério de desempate
@@ -477,13 +517,13 @@ Dado o volume (mais de 300 `it(...)` novos), esta seção resume por arquivo em 
 | Componentes | 13 componentes (ver Fase 5) | Estilo condicional por estado/prop, formatação, interação (`fireEvent.press`) |
 | Use cases delegantes | [TeamUseCases](../src/features/times/test/domain/usecases/TeamUseCases.test.ts), [AlbumUseCases](../src/features/album/test/domain/usecases/AlbumUseCases.test.ts), [GetPredictionHistory](../src/features/apostas/test/domain/usecases/GetPredictionHistory.test.ts), [GetUpcomingMatches](../src/features/apostas/test/domain/usecases/GetUpcomingMatches.test.ts) | Argumentos corretos repassados ao repositório, retorno propagado sem transformação |
 
-**Infra de teste reutilizável** (pasta `test/`, fora de `src/`): [fixtures.ts](../test/fixtures.ts) (`makeUser`, `makeSticker`, `makeTeam`, `makePlayer`, `makeMatch`), [styleHelpers.ts](../test/styleHelpers.ts), [svgMock.tsx](../test/svgMock.tsx), [setup.tsx](../test/setup.tsx).
+**Infra de teste reutilizável** (pasta `test/`, fora de `src/`): [fixtures.ts](../test/fixtures.ts) (`makeUser`, `makeSticker`, `makeTeam`, `makePlayer`, `makeMatch`), [styleHelpers.ts](../test/styleHelpers.ts), [setup.tsx](../test/setup.tsx). *(`svgMock.tsx` existiu até 08/2026 — ver Fase 5.)*
 
 ---
 
 ## Verificação
 
-- `npm test` deve rodar e passar após cada fase — atualmente 535 testes em 62 suítes
+- `npm test` deve rodar e passar após cada fase — atualmente 544 testes em 63 suítes
 - `npm run test:coverage` para acompanhar cobertura por camada (`presentation/components` e `presentation/hooks` não são mais excluídos do `collectCoverageFrom`)
 - `npm run typecheck` (`tsc --noEmit`) deve ficar limpo — **atenção**: depende de `.expo/types/router.d.ts`, que é gerado por `npx expo start` e é gitignored; rode o dev server uma vez após um checkout novo antes de confiar no typecheck
 - `npm run lint` (`expo lint`) deve ficar em 0 erros — os warnings restantes (`react-hooks/exhaustive-deps`, `no-unused-vars`) são pré-existentes e não bloqueantes

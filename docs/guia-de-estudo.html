@@ -728,19 +728,29 @@
       <div class="code-block">
         <div class="code-block__bar"><span>main/factories/repositoryInstance.ts</span> <span>o único ponto de acoplamento</span></div>
         <pre><span class="tok-kw">import</span> { SQLiteMatchRepository } <span class="tok-kw">from</span> <span class="tok-str">'../../infra/repositories/SQLiteMatchRepository'</span>;
-<span class="tok-kw">import</span> { MockPredictionRepository } <span class="tok-kw">from</span> <span class="tok-str">'../../infra/repositories/MockPredictionRepository'</span>;
+<span class="tok-kw">import</span> { FirestorePredictionRepository } <span class="tok-kw">from</span> <span class="tok-str">'../../infra/repositories/FirestorePredictionRepository'</span>;
 
 <span class="tok-kw">export const</span> matchRepositoryInstance = <span class="tok-kw">new</span> SQLiteMatchRepository();
-<span class="tok-kw">export const</span> predictionRepositoryInstance = <span class="tok-kw">new</span> MockPredictionRepository();</pre>
+<span class="tok-kw">export const</span> predictionRepositoryInstance = <span class="tok-kw">new</span> FirestorePredictionRepository();</pre>
       </div>
 
       <p>
         Esse arquivo de cinco linhas é o motivo de a migração de mock para banco real ter
-        sido barata: trocar <code>MockPredictionRepository</code> por uma implementação
-        de verdade é editar <strong>uma palavra, em um arquivo</strong>. Nenhum use case,
-        nenhum hook e nenhuma tela precisam ser abertos — porque nenhum deles jamais
-        escreveu esse nome.
+        sido barata — e não é hipótese: os palpites <strong>eram</strong> guardados num
+        <code>MockPredictionRepository</code> em memória, e trocá-lo pelo
+        <code>FirestorePredictionRepository</code> foi editar <strong>uma palavra, em um
+        arquivo</strong>. Nenhum use case, nenhum hook e nenhuma tela precisaram ser
+        abertos — porque nenhum deles jamais escreveu esse nome.
       </p>
+
+      <div class="note">
+        <p>
+          O outro lado da moeda: como só a Main sabe qual implementação está plugada,
+          <strong>nenhum teste unitário percebe se a errada for plugada</strong>. Foi o que
+          aconteceu por um bom tempo com os palpites — todo teste passando, e o dado
+          sumindo a cada reload.
+        </p>
+      </div>
 
       <h3>A mesma regra vale entre features</h3>
       <p>

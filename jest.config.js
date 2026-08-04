@@ -2,7 +2,6 @@ module.exports = {
   preset: 'jest-expo',
   setupFilesAfterEnv: ['<rootDir>/test/setup.tsx'],
   moduleNameMapper: {
-    '\\.svg$': '<rootDir>/test/svgMock.tsx',
     '^@/assets/(.*)$': '<rootDir>/assets/$1',
     '^@/(.*)$': '<rootDir>/src/$1',
   },

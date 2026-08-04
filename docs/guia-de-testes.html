@@ -556,7 +556,7 @@
       <span class="chip">Clean Architecture</span>
     </div>
     <div class="scoreboard">
-      <div class="stat"><span class="stat__value">535</span><span class="stat__label">testes passando</span></div>
+      <div class="stat"><span class="stat__value">544</span><span class="stat__label">testes passando</span></div>
       <div class="stat"><span class="stat__value">62</span><span class="stat__label">suítes</span></div>
       <div class="stat"><span class="stat__value">~25s</span><span class="stat__label">execução total</span></div>
       <div class="stat"><span class="stat__value">0</span><span class="stat__label">acessos a banco real</span></div>
@@ -598,7 +598,7 @@
       <p>
         A ferramenta usada aqui é o <strong>Jest</strong>, que executa os testes em
         <strong>Node.js</strong> — ou seja, no computador, sem emulador e sem celular.
-        Isso é o que permite rodar as 535 verificações em cerca de 25 segundos.
+        Isso é o que permite rodar as 544 verificações em cerca de 25 segundos.
       </p>
 
       <h3>A anatomia de um teste</h3>
@@ -755,9 +755,9 @@
             <text class="n-mono" x="498" y="340">SQLiteGroupRepository</text>
             <text class="n-sub" x="498" y="355">grupos · classificação</text>
 
-            <rect class="n-box n-box--mem" x="486" y="394" width="210" height="42" rx="6"/>
-            <text class="n-mono" x="498" y="412">MockPredictionRepository</text>
-            <text class="n-sub" x="498" y="427">palpites (em produção hoje)</text>
+            <rect class="n-box n-box--infra" x="486" y="394" width="210" height="42" rx="6"/>
+            <text class="n-mono" x="498" y="412">FirestorePredictionRepo</text>
+            <text class="n-sub" x="498" y="427">palpites · histórico</text>
 
             <rect class="n-box n-box--infra" x="486" y="466" width="210" height="42" rx="6"/>
             <text class="n-mono" x="498" y="484">FirebaseAuthRepository</text>
@@ -791,12 +791,8 @@
 
             <rect class="n-box n-box--fs" x="808" y="226" width="176" height="66" rx="7"/>
             <text class="n-title" x="822" y="250">Firestore</text>
-            <text class="n-sub" x="822" y="267">users/{uid}</text>
+            <text class="n-sub" x="822" y="267">users/{uid} · predictions/</text>
             <text class="n-sub" x="822" y="281">NoSQL · nuvem</text>
-
-            <rect class="n-box n-box--mem" x="808" y="382" width="176" height="56" rx="7"/>
-            <text class="n-title" x="822" y="406">Memória (RAM)</text>
-            <text class="n-sub" x="822" y="423">array em runtime</text>
 
             <rect class="n-box n-box--auth" x="808" y="466" width="176" height="66" rx="7"/>
             <text class="n-title" x="822" y="490">Firebase Auth</text>
@@ -818,8 +814,8 @@
           <path class="edge edge--sqlite" d="M696 271 C 748 271, 752 150, 808 140" marker-end="url(#ah-sqlite)"/>
           <!-- group -> sqlite -->
           <path class="edge edge--sqlite" d="M696 343 C 744 343, 750 160, 808 149" marker-end="url(#ah-sqlite)"/>
-          <!-- prediction -> memoria -->
-          <path class="edge edge--mem" d="M696 415 C 750 415, 754 405, 808 408" marker-end="url(#ah-mem)"/>
+          <!-- prediction -> firestore -->
+          <path class="edge edge--fs" d="M696 415 C 752 415, 772 320, 808 278" marker-end="url(#ah-fs)"/>
           <!-- auth -> firebase auth -->
           <path class="edge edge--auth" d="M696 481 C 750 481, 754 490, 808 492" marker-end="url(#ah-auth)"/>
           <!-- auth -> firestore (perfil) -->
@@ -858,10 +854,10 @@
               <td>Identidade é um serviço à parte — o app nunca guarda senha, só recebe um <code>uid</code></td>
             </tr>
             <tr>
-              <td class="tag tag-mem">Memória</td>
-              <td><code>MockPredictionRepository</code></td>
+              <td class="tag tag-firestore">Firestore</td>
+              <td><code>FirestorePredictionRepository</code></td>
               <td>Palpites de apostas</td>
-              <td>Ainda não migrado para persistência real — apesar do nome "Mock", <strong>é o repositório de produção hoje</strong>, o que faz seus testes valerem tanto quanto os outros</td>
+              <td>Coleção raiz <code>predictions</code>, um documento por palpite com campo <code>userId</code>. Substituiu um <code>MockPredictionRepository</code> em memória que, apesar do nome, era o repositório de produção — e perdia todo palpite no reload</td>
             </tr>
           </tbody>
         </table>
@@ -952,7 +948,6 @@
   preset: <span class="tok-str">'jest-expo'</span>,                              <span class="tok-com">// entende Expo + RN + TS</span>
   setupFilesAfterEnv: [<span class="tok-str">'&lt;rootDir&gt;/test/setup.tsx'</span>], <span class="tok-com">// mocks globais</span>
   moduleNameMapper: {
-    <span class="tok-str">'\\.svg$'</span>: <span class="tok-str">'&lt;rootDir&gt;/test/svgMock.tsx'</span>,          <span class="tok-com">// SVG → View falsa</span>
     <span class="tok-str">'^@/assets/(.*)$'</span>: <span class="tok-str">'&lt;rootDir&gt;/assets/$1'</span>,        <span class="tok-com">// espelha o tsconfig</span>
     <span class="tok-str">'^@/(.*)$'</span>: <span class="tok-str">'&lt;rootDir&gt;/src/$1'</span>,
   },
@@ -965,7 +960,7 @@
       </div>
 
       <ul>
-        <li><strong><code>moduleNameMapper</code></strong> — redireciona um <code>import</code> para outro arquivo. Serve para dois propósitos aqui: replicar os atalhos de caminho do <code>tsconfig.json</code> (<code>@/algo</code>) e trocar arquivos que o Jest não consegue processar (todo <code>.svg</code> vira um mock).</li>
+        <li><strong><code>moduleNameMapper</code></strong> — redireciona um <code>import</code> para outro arquivo. Aqui ele replica os atalhos de caminho do <code>tsconfig.json</code> (<code>@/algo</code>). O outro uso clássico é trocar arquivos que o Jest não consegue processar: este projeto tinha uma entrada <code>'\\.svg$'</code> apontando para um mock, removida quando os SVGs de bandeira saíram do repositório — se algum asset não-JS voltar, é essa a técnica.</li>
         <li><strong><code>setupFilesAfterEnv</code></strong> — código que roda antes de cada suíte, usado para os mocks globais (ícones).</li>
         <li><strong><code>collectCoverageFrom</code></strong> — define o que entra no cálculo de cobertura. As <code>*Screen.tsx</code> são excluídas de propósito: são só composição de hooks e componentes já testados individualmente.</li>
       </ul>
@@ -980,7 +975,7 @@
       <p>
         A exceção é a pasta <code>test/</code> na raiz, fora de <code>src/</code>, que
         guarda infraestrutura compartilhada — <code>fixtures.ts</code>,
-        <code>styleHelpers.ts</code>, <code>svgMock.tsx</code>, <code>setup.tsx</code>.
+        <code>styleHelpers.ts</code>, <code>setup.tsx</code>.
       </p>
     </section>
 
@@ -1288,14 +1283,13 @@ Tests:       54 passed, 54 total</pre>
         <div class="tree__row"><span class="tree__path">└─ <span class="s">presentation/components/</span> <span class="dim">CardFigurinha · MolduraIndividualPais · BotaoHomeMolde · PalpiteBtn · MoldeInputs · CardColecao</span></span><span class="tree__count">6 · 51</span></div>
 
         <div class="tree__sep"></div>
-        <div class="tree__row tree__row--head"><span class="tree__path"><b>test/</b> <span class="dim">— infraestrutura, não contém testes</span></span><span class="tree__count">4 arq</span></div>
+        <div class="tree__row tree__row--head"><span class="tree__path"><b>test/</b> <span class="dim">— infraestrutura, não contém testes</span></span><span class="tree__count">3 arq</span></div>
         <div class="tree__row"><span class="tree__path">├─ <span class="dim">setup.tsx</span> — <span class="dim">carregado antes de cada suíte (mocks globais)</span></span><span class="tree__count"></span></div>
         <div class="tree__row"><span class="tree__path">├─ <span class="dim">fixtures.ts</span> — <span class="dim">construtores de objeto (makeSticker, makeTeam…)</span></span><span class="tree__count"></span></div>
-        <div class="tree__row"><span class="tree__path">├─ <span class="dim">styleHelpers.ts</span> — <span class="dim">leitura de estilo achatado em asserções</span></span><span class="tree__count"></span></div>
-        <div class="tree__row"><span class="tree__path">└─ <span class="dim">svgMock.tsx</span> — <span class="dim">substitui imports de .svg no Jest</span></span><span class="tree__count"></span></div>
+        <div class="tree__row"><span class="tree__path">└─ <span class="dim">styleHelpers.ts</span> — <span class="dim">leitura de estilo achatado em asserções</span></span><span class="tree__count"></span></div>
       </div>
       <p class="caption">
-        62 arquivos de teste · 535 testes. A contagem por arquivo soma os blocos
+        63 arquivos de teste · 544 testes. A contagem por arquivo soma os blocos
         <code>it()</code>; suítes que usam <code>it.each</code> geram mais testes em
         execução do que blocos escritos, por isso os subtotais somam menos que 522.
       </p>
@@ -1409,6 +1403,12 @@ Tests:       54 passed, 54 total</pre>
           mudou, os repositórios apenas passaram a chamar as funções extraídas. Vale como
           o argumento mais concreto a favor de testar — a dificuldade de escrever o teste
           apontou um problema de design que já existia no código de produção.
+        </p>
+        <p>
+          O retorno apareceu depois: o <code>MockPredictionRepository</code> da última linha
+          foi trocado por um <code>FirestorePredictionRepository</code>, e
+          <code>computePredictionStats</code> — junto com seus testes — <strong>não precisou
+          ser tocado</strong>. A regra tinha deixado de morar no banco.
         </p>
       </div>
 
@@ -1588,19 +1588,15 @@ Tests:       54 passed, 54 total</pre>
       <span class="section__eyebrow">10 — Presentation</span>
       <h2>Testando componentes visuais</h2>
       <p>
-        É a camada de maior atrito: o Jest não sabe lidar com SVG, fontes de ícone,
-        gradientes nem animações nativas. Três peças reutilizáveis em <code>test/</code>
-        resolveram isso de uma vez para todos os testes.
+        É a camada de maior atrito: o Jest não sabe lidar com fontes de ícone,
+        gradientes nem animações nativas. Peças reutilizáveis em <code>test/</code>
+        resolvem isso de uma vez para todos os testes.
       </p>
 
       <div class="table-scroll">
         <table class="grid-table">
           <thead><tr><th>Arquivo</th><th>Problema que resolve</th></tr></thead>
           <tbody>
-            <tr>
-              <td><code>test/svgMock.tsx</code></td>
-              <td>O <code>react-native-svg-transformer</code> não roda sob Jest, então todo <code>import Flag from '...svg'</code> quebraria. Mapeado via <code>moduleNameMapper</code>, cada SVG vira <code>&lt;View testID="svg-flag" /&gt;</code></td>
-            </tr>
             <tr>
               <td><code>test/setup.tsx</code></td>
               <td>O <code>@expo/vector-icons</code> carrega a fonte de forma assíncrona e chama <code>setState</code> fora de <code>act()</code>, poluindo a saída de todo teste com avisos. O mock troca o ícone por <code>&lt;Text testID="icon-{name}"&gt;</code> — o que, de quebra, <strong>permite asserir qual ícone cada estado renderiza</strong></td>
@@ -1738,7 +1734,7 @@ Tests:       54 passed, 54 total</pre>
       <h2>Como rodar e o que verificar</h2>
       <div class="code-block">
         <div class="code-block__bar"><span>terminal</span></div>
-<pre>npm test                 <span class="tok-com"># 535 testes, 62 suítes, ~25s</span>
+<pre>npm test                 <span class="tok-com"># 544 testes, 63 suítes, ~25s</span>
 npm run test:watch       <span class="tok-com"># re-roda só o que mudou, enquanto você edita</span>
 npm run test:coverage    <span class="tok-com"># relatório de cobertura por camada</span>
 
@@ -1848,7 +1844,7 @@ npx jest -t <span class="tok-str">"cooldown"</span>     <span class="tok-com"># 
 
   <footer class="colophon">
     Guia gerado a partir do código-fonte, de docs/testing-plan.md e de docs/technical-readme.md — para fins de estudo.
-    Números verificados com <code>npm test</code>: 535 testes em 62 suítes.
+    Números verificados com <code>npm test</code>: 544 testes em 63 suítes.
   </footer>
 
 </div>

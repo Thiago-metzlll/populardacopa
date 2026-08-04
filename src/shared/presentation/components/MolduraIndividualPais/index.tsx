@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
-import { flagMap } from '../../utils/flagMap';
 import { colors } from '../../theme';
 
 interface MolduraIndividualPaisProps {
@@ -10,6 +9,10 @@ interface MolduraIndividualPaisProps {
   showBorder?: boolean;
 }
 
+/**
+ * Todas as bandeiras vêm do flagcdn.com — não há mais SVGs locais.
+ * O mapa traduz os ids de time (mocks antigos e ISO-3) para o ISO-2 usado na URL.
+ */
 const countryCodeMap: Record<string, string> = {
   // Mocks antigos
   t1: 'br',
@@ -81,7 +84,6 @@ export const MolduraIndividualPais: React.FC<MolduraIndividualPaisProps> = ({
 }) => {
   const normalizedId = teamId.toLowerCase();
   const countryId = countryCodeMap[normalizedId] || normalizedId;
-  const FlagComponent = flagMap[countryId];
 
   const dimensions = {
     sm: 32,
@@ -101,9 +103,7 @@ export const MolduraIndividualPais: React.FC<MolduraIndividualPaisProps> = ({
         showBorder && styles.activeBorder,
       ]}
     >
-      {FlagComponent ? (
-        <FlagComponent width="100%" height="100%" />
-      ) : countryId ? (
+      {countryId ? (
         <Image
           source={{ uri: `https://flagcdn.com/w160/${countryId}.png` }}
           style={[styles.flagImage, { borderRadius: dimensions / 2 }]}

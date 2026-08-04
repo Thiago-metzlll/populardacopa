@@ -77,12 +77,46 @@ async function seedUser() {
     });
 
     console.log(`✅ Firestore: documento criado em users/${userRecord.uid}`);
+
+    // 3. Palpites de demonstração na coleção raiz `predictions`.
+    //    Os palpites deixaram de ter seed em código (o MockPredictionRepository
+    //    saiu na Fase 7 do testing-plan) — quem quiser ver a Tela Histórico e o
+    //    settlement funcionando sem palpitar à mão precisa deste seed.
+    //    m9 já está FINISHED no SQLite (2x1), então o palpite abaixo é resolvido
+    //    como vencedor assim que a Tela Apostas monta.
+    const demoPredictions = [
+      {
+        userId: userRecord.uid,
+        matchId: 'm9',
+        predictedHomeScore: 2,
+        predictedAwayScore: 1,
+        reward: { type: 'coins', description: '+80 moedas', coinAmount: 80 },
+        status: 'pending',
+        createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+      },
+      {
+        userId: userRecord.uid,
+        matchId: 'm1',
+        predictedHomeScore: 3,
+        predictedAwayScore: 0,
+        reward: { type: 'coins', description: '+50 moedas', coinAmount: 50 },
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    for (const prediction of demoPredictions) {
+      await db.collection('predictions').add(prediction);
+    }
+
+    console.log(`✅ Firestore: ${demoPredictions.length} palpites criados em predictions/`);
     console.log(`\n📋 Dados criados:`);
     console.log(`   • Nome: ${name}`);
     console.log(`   • Email: ${email}`);
     console.log(`   • Moedas: 200`);
     console.log(`   • Figurinhas: ${stickerIds.length} (${progress}% do álbum)`);
     console.log(`   • Times favoritos: Brasil (t1), Argentina (t3)`);
+    console.log(`   • Palpites: 1 em partida finalizada (m9, vira vitória no settlement) + 1 agendada (m1)`);
     console.log(`\n🎉 Seed concluído! Faça login no app com: ${email} / ${password}\n`);
   } catch (error: unknown) {
     const err = error as { code?: string; message?: string };

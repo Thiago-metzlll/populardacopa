@@ -15,7 +15,7 @@ Exibe a tabela de cada grupo da Copa (pontuação, saldo de gols, vitórias/empa
 Hub da coleção pessoal. O usuário vê seu progresso via `CardColeção`, pode visitar o Mercado de Figurinhas para trocar duplicatas, abrir pacotes com animação e compartilhar figurinhas via `CompartilhBtn`.
 
 ### Times
-Grid de 2 colunas com a bandeira (SVG) de cada seleção, ranking e destaque para favoritos, com `SearchInput` para busca com debounce. Times favoritos (quando logado) aparecem em uma seção própria acima da lista completa. Uma tela de detalhes do time exibe conquistas (`CardConquistas`) e o molde de jogadores (`MoldeJogadores`). Ao tocar em um jogador, abre a tela com `CardCaracterísticas`.
+Grid de 2 colunas com a bandeira de cada seleção (imagem do flagcdn via `MolduraIndividualPais`), ranking e destaque para favoritos, com `SearchInput` para busca com debounce. Times favoritos (quando logado) aparecem em uma seção própria acima da lista completa. Uma tela de detalhes do time exibe conquistas (`CardConquistas`) e o molde de jogadores (`MoldeJogadores`). Ao tocar em um jogador, abre a tela com `CardCaracterísticas`.
 
 ### Apostas & Palpites
 Lista as próximas partidas. O usuário confirma um palpite pela Tela Palpite, ganhando moedas ou figurinhas específicas se acertar o placar. Ao reabrir a tela de Apostas, palpites pendentes cujas partidas já terminaram são resolvidos automaticamente (settlement client-side) e a recompensa é creditada; resultados ficam disponíveis na Tela Histórico de Apostas.
@@ -76,8 +76,8 @@ Instanciados no nível raiz e disponibilizados para todas as features:
 
 | Componente | Descrição |
 |---|---|
-| `NavBar` | Barra de navegação inferior (tabs) |
-| `MenuBar` | Barra de menu superior contextual |
+| `NavBar` | Barra de navegação inferior (4 tabs: Home / Mercado / Perfil / Times) |
+| `MenuBar` | Barra de menu superior (logo + título), usada como `header` das tabs |
 | `CardFigurinha` | Card visual de uma figurinha individual |
 | `MolduraIndividualPaís` | Moldura com bandeira/identidade visual de cada país |
 | `BotãoHomeMolde` | Molde de botão padrão para ações primárias |
@@ -126,7 +126,7 @@ Para otimização de performance e custos, os dados são divididos seguindo a se
 | **Fase 3** | Tela Jogador + CardCaracterísticas | ✅ |
 | **Fase 3** | Tela Histórico de Apostas | ✅ |
 | **Fase 4** | Tela Entrar + Tela Cadastro + Tela Esqueci Senha + MoldeInputs | ✅ |
-| **Fase 5** | Tela Home + MoldeCardHome + CardPartida | ⬜ (HomeScreen atual é um hub funcional, não a versão definitiva do grafo) |
+| **Fase 5** | Tela Home + MoldeCardHome + CardPartida | ❌ obsoleta — a `HomeScreen` atual **é** a versão definitiva; `MoldeCardHome`/`CardPartida` não serão criados ([seção 9.8](docs/technical-readme.md)) |
 | **Global** | CardFigurinha, MolduraIndividualPaís, BotãoHomeMolde, CardColeção, PalpiteBtn | ✅ |
 | **Global** | NavBar, MenuBar | ✅ |
 
@@ -136,8 +136,17 @@ Para otimização de performance e custos, os dados são divididos seguindo a se
 
 ```bash
 npm install
-npx expo start
+npx expo start           # --clear para limpar o cache do Metro
+
+npm test                 # suíte Jest (544 testes / 63 suítes)
+npm run test:coverage
+npm run typecheck        # tsc --noEmit — precisa de .expo/types/router.d.ts,
+                         # gerado por `npx expo start` e gitignored: num checkout
+                         # novo, suba o dev server uma vez antes de confiar nele
+npm run lint             # expo lint
 ```
+
+Configuração do Firebase e seed do Firestore: ver [database-seed.md](docs/database-seed.md).
 
 ---
 
@@ -145,8 +154,11 @@ npx expo start
 
 - **Datas** são sempre `string` ISO no domain; formatação fica na apresentação.
 - **Entidades coesas** que só existem em função de outra ficam no mesmo arquivo (ex: `Match` + `MatchOdds`).
-- **Mocks simulam latência** de 300–500ms para forçar correto tratamento de `loading`.
-- **Estado em memória**: dados resetam a cada reload — aceito nesta fase.
+- **Persistência real em toda parte**: catálogo estático em SQLite local, dados de usuário
+  (coleção, moedas, favoritos, palpites) no Firestore. Não há mais repositório em memória
+  nem latência simulada — o último, o de palpites, saiu em 08/2026.
+- **Bandeiras vêm do flagcdn** (`https://flagcdn.com/w160/<iso2>.png`), sempre através de
+  `MolduraIndividualPais`. Não há SVG de bandeira no repositório.
 - **Palpite vs Aposta**: "Aposta" é a feature/tela. "Palpite" (`Prediction`) é a entidade — previsão de resultado do usuário.
 - **Tela Times** exibe a lista global de seleções em grid; favoritos (`GetFavoriteTeams`) aparecem em seção própria quando o usuário está logado.
 - **Use case antes da tela**: conforme o grafo, o use case de cada tela é construído antes da interface visual.

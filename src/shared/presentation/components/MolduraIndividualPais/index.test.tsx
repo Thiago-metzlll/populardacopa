@@ -6,30 +6,34 @@ import { flattenStyle } from '../../../../../test/styleHelpers';
 import { MolduraIndividualPais } from './index';
 
 /**
- * Lógica testável: normalização do teamId, mapeamento ISO-3 -> ISO-2 e a
- * escolha entre bandeira SVG local e fallback pelo CDN.
- * Os imports de .svg são mockados por test/svgMock.tsx (testID svg-flag).
+ * Lógica testável: normalização do teamId e o mapeamento ISO-3 -> ISO-2 que
+ * monta a URL do flagcdn. Toda bandeira vem do CDN — não há mais SVG local.
  */
 const cdnUri = () => screen.UNSAFE_getByType(Image).props.source.uri;
 
 describe('MolduraIndividualPais', () => {
-  describe('bandeiras SVG locais', () => {
+  describe('seleções com código ISO-2 direto', () => {
     it.each(['br', 'ar', 'fr', 'de', 'es', 'gb', 'pt', 'it', 'uy'])(
-      'renderiza o SVG local para %s',
+      'usa o próprio código na URL do CDN para %s',
       (code) => {
         render(<MolduraIndividualPais teamId={code} />);
 
-        expect(screen.getByTestId('svg-flag')).toBeTruthy();
-        expect(screen.UNSAFE_queryAllByType(Image)).toHaveLength(0);
+        expect(cdnUri()).toBe(`https://flagcdn.com/w160/${code}.png`);
       },
     );
 
-    it('normaliza o teamId para minúsculas antes de buscar a bandeira', () => {
-      render(<MolduraIndividualPais teamId="BRA" />);
+    it.each([
+      ['t1', 'br'],
+      ['t2', 'ar'],
+      ['t9', 'uy'],
+    ])('mantém compatibilidade com o id mockado %s', (mockId, iso2) => {
+      render(<MolduraIndividualPais teamId={mockId} />);
 
-      expect(screen.getByTestId('svg-flag')).toBeTruthy();
+      expect(cdnUri()).toBe(`https://flagcdn.com/w160/${iso2}.png`);
     });
+  });
 
+  describe('mapeamento ISO-3 -> ISO-2', () => {
     it.each([
       ['bra', 'br'],
       ['arg', 'ar'],
@@ -38,25 +42,6 @@ describe('MolduraIndividualPais', () => {
       ['por', 'pt'],
       ['uru', 'uy'],
       ['fra', 'fr'],
-    ])('converte o ISO-3 %s para o SVG de %s', (iso3) => {
-      render(<MolduraIndividualPais teamId={iso3} />);
-
-      expect(screen.getByTestId('svg-flag')).toBeTruthy();
-    });
-
-    it.each([
-      ['t1', 'br'],
-      ['t2', 'ar'],
-      ['t9', 'uy'],
-    ])('mantém compatibilidade com o id mockado %s', (mockId) => {
-      render(<MolduraIndividualPais teamId={mockId} />);
-
-      expect(screen.getByTestId('svg-flag')).toBeTruthy();
-    });
-  });
-
-  describe('fallback pelo CDN', () => {
-    it.each([
       ['mex', 'mx'],
       ['kor', 'kr'],
       ['rsa', 'za'],
@@ -69,7 +54,6 @@ describe('MolduraIndividualPais', () => {
       render(<MolduraIndividualPais teamId={iso3} />);
 
       expect(cdnUri()).toBe(`https://flagcdn.com/w160/${iso2}.png`);
-      expect(screen.queryByTestId('svg-flag')).toBeNull();
     });
 
     it.each([
@@ -87,10 +71,13 @@ describe('MolduraIndividualPais', () => {
       expect(cdnUri()).toBe('https://flagcdn.com/w160/jp.png');
     });
 
-    it('normaliza para minúsculas também no fallback', () => {
-      render(<MolduraIndividualPais teamId="MEX" />);
+    it.each([
+      ['MEX', 'mx'],
+      ['BRA', 'br'],
+    ])('normaliza o teamId %s para minúsculas antes de mapear', (teamId, iso2) => {
+      render(<MolduraIndividualPais teamId={teamId} />);
 
-      expect(cdnUri()).toBe('https://flagcdn.com/w160/mx.png');
+      expect(cdnUri()).toBe(`https://flagcdn.com/w160/${iso2}.png`);
     });
   });
 

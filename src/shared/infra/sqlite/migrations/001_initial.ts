@@ -214,8 +214,9 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
       );
     }
 
-    // Adiciona algumas partidas mock adicionais para apostas (MatchSeed.ts de teste)
-    // m1, m2, m3, m4 (SCHEDULED) e m9 (FINISHED, Brasil vs Espanha)
+    // Partidas de demonstração para a feature de apostas, fora do round-robin real.
+    // m1..m4 (SCHEDULED) alimentam a Home/Tela Apostas; m9 (FINISHED) existe para
+    // que o settlement de palpites seja observável em desenvolvimento.
     const testMatches = [
       { id: 'm1', homeTeamId: 't1', awayTeamId: 't2', homeScore: 0, awayScore: 0, group_label: 'Fase de Grupos', round_label: 'RODADA de Teste 1', match_date: new Date(Date.now() + 86400000 * 2).toISOString(), status: 'SCHEDULED' },
       { id: 'm2', homeTeamId: 't1', awayTeamId: 't10', homeScore: 0, awayScore: 0, group_label: 'Fase de Grupos', round_label: 'RODADA de Teste 2', match_date: new Date(Date.now() + 86400000 * 5).toISOString(), status: 'SCHEDULED' },

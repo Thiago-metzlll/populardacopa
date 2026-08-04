@@ -1,6 +1,6 @@
 import { SQLiteMatchRepository } from '../../infra/repositories/SQLiteMatchRepository';
-import { MockPredictionRepository } from '../../infra/repositories/MockPredictionRepository';
+import { FirestorePredictionRepository } from '../../infra/repositories/FirestorePredictionRepository';
 
 export const matchRepositoryInstance = new SQLiteMatchRepository();
-export const predictionRepositoryInstance = new MockPredictionRepository();
+export const predictionRepositoryInstance = new FirestorePredictionRepository();
 
