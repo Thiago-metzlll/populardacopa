@@ -556,9 +556,9 @@
       <span class="chip">Clean Architecture</span>
     </div>
     <div class="scoreboard">
-      <div class="stat"><span class="stat__value">544</span><span class="stat__label">testes passando</span></div>
-      <div class="stat"><span class="stat__value">62</span><span class="stat__label">suítes</span></div>
-      <div class="stat"><span class="stat__value">~25s</span><span class="stat__label">execução total</span></div>
+      <div class="stat"><span class="stat__value">568</span><span class="stat__label">testes passando</span></div>
+      <div class="stat"><span class="stat__value">64</span><span class="stat__label">suítes</span></div>
+      <div class="stat"><span class="stat__value">~27s</span><span class="stat__label">execução total</span></div>
       <div class="stat"><span class="stat__value">0</span><span class="stat__label">acessos a banco real</span></div>
     </div>
   </header>
@@ -598,7 +598,7 @@
       <p>
         A ferramenta usada aqui é o <strong>Jest</strong>, que executa os testes em
         <strong>Node.js</strong> — ou seja, no computador, sem emulador e sem celular.
-        Isso é o que permite rodar as 544 verificações em cerca de 25 segundos.
+        Isso é o que permite rodar as 568 verificações em cerca de 27 segundos.
       </p>
 
       <h3>A anatomia de um teste</h3>
@@ -947,6 +947,7 @@
 <pre>module.exports = {
   preset: <span class="tok-str">'jest-expo'</span>,                              <span class="tok-com">// entende Expo + RN + TS</span>
   setupFilesAfterEnv: [<span class="tok-str">'&lt;rootDir&gt;/test/setup.tsx'</span>], <span class="tok-com">// mocks globais</span>
+  resolver: <span class="tok-str">'react-native-worklets/jest/resolver'</span>,  <span class="tok-com">// destrava reanimated</span>
   moduleNameMapper: {
     <span class="tok-str">'^@/assets/(.*)$'</span>: <span class="tok-str">'&lt;rootDir&gt;/assets/$1'</span>,        <span class="tok-com">// espelha o tsconfig</span>
     <span class="tok-str">'^@/(.*)$'</span>: <span class="tok-str">'&lt;rootDir&gt;/src/$1'</span>,
@@ -962,20 +963,79 @@
       <ul>
         <li><strong><code>moduleNameMapper</code></strong> — redireciona um <code>import</code> para outro arquivo. Aqui ele replica os atalhos de caminho do <code>tsconfig.json</code> (<code>@/algo</code>). O outro uso clássico é trocar arquivos que o Jest não consegue processar: este projeto tinha uma entrada <code>'\\.svg$'</code> apontando para um mock, removida quando os SVGs de bandeira saíram do repositório — se algum asset não-JS voltar, é essa a técnica.</li>
         <li><strong><code>setupFilesAfterEnv</code></strong> — código que roda antes de cada suíte, usado para os mocks globais (ícones).</li>
+        <li><strong><code>resolver</code></strong> — troca o algoritmo que o Jest usa para achar um módulo. Entrou por um motivo único: <code>react-native-reanimated</code> importa <code>react-native-worklets</code>, cujo campo <code>.native</code> aponta para o binário nativo e estoura fora do celular. O resolver (enviado pelo próprio pacote) ignora a extensão <code>.native</code> e faz a resolução cair na implementação JS. Sem essa linha, nenhum componente animado renderiza no Jest — foi o que destravou <code>AnimacaoAbrirPacote</code>.</li>
         <li><strong><code>collectCoverageFrom</code></strong> — define o que entra no cálculo de cobertura. As <code>*Screen.tsx</code> são excluídas de propósito: são só composição de hooks e componentes já testados individualmente.</li>
       </ul>
 
       <h3>Convenção de arquivos</h3>
       <p>
-        O teste mora <strong>ao lado</strong> do arquivo testado: <code>rewards.ts</code> →
-        <code>rewards.test.ts</code>. Sem pasta <code>__tests__</code> separada, sem
-        configuração extra (o <code>testMatch</code> padrão do Jest já reconhece o sufixo).
-        A vantagem prática: abrir o código e ver imediatamente se ele é testado.
+        O projeto usa <strong>duas convenções</strong>, e a divisa entre elas é a camada.
+        Nenhuma das duas precisa de configuração extra: o <code>testMatch</code> padrão do
+        Jest reconhece qualquer arquivo com sufixo <code>.test.ts(x)</code>, esteja ele onde
+        estiver.
       </p>
+      <div class="table-scroll">
+        <table class="grid-table">
+          <thead>
+            <tr><th style="width:30%">Camada</th><th>Onde o teste mora</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="tag tag-domain">Domain <span class="dim">usecases</span></td>
+              <td rowspan="2">
+                Pasta <code>test/</code> <strong>espelhada</strong> dentro da feature:<br>
+                <code>album/domain/usecases/BuyStickerPack.ts</code> →
+                <code>album/<b>test/</b>domain/usecases/BuyStickerPack.test.ts</code>
+              </td>
+            </tr>
+            <tr>
+              <td class="tag tag-infra">Infra <span class="dim">repositories</span></td>
+            </tr>
+            <tr>
+              <td class="tag tag-presentation">Todo o resto</td>
+              <td>
+                <strong>Ao lado</strong> do arquivo testado:
+                <code>rewards.ts</code> → <code>rewards.test.ts</code>.<br>
+                Vale para <code>presentation/hooks</code>, <code>presentation/components</code>,
+                <code>domain/constants</code>, <code>infra/stores</code> e
+                <code>main/factories</code>.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <p>
-        A exceção é a pasta <code>test/</code> na raiz, fora de <code>src/</code>, que
-        guarda infraestrutura compartilhada — <code>fixtures.ts</code>,
-        <code>styleHelpers.ts</code>, <code>setup.tsx</code>.
+        A co-locação veio primeiro e vale para a maioria dos arquivos: abrir a pasta e ver
+        na hora se o código tem teste. A pasta <code>test/</code> apareceu depois, quando
+        <code>domain/usecases/</code> e <code>infra/repositories/</code> passaram a ter
+        <em>mais arquivo de teste do que de produção</em> — ler a lista de use cases de uma
+        feature virou um exercício de filtrar <code>.test.ts</code> com o olho. Separar as
+        duas árvores resolveu isso sem tocar em nenhuma outra camada.
+      </p>
+      <div class="note note--warn">
+        <span class="note__tag">O que quebra ao mover um teste</span>
+        <p>
+          Todo teste que foi para <code>test/</code> desceu <strong>um nível</strong>, então
+          cada caminho relativo ganhou um <code>../</code> —
+          <code>'../../domain/constants/playerStats'</code> virou
+          <code>'../../../domain/constants/playerStats'</code>. A exceção é o import do
+          próprio arquivo testado, que era vizinho: <code>'./BuyStickerPack'</code> não tem
+          <code>..</code> para esticar e vira
+          <code>'../../../domain/usecases/BuyStickerPack'</code> inteiro.
+        </p>
+        <p>
+          E aqui mora a armadilha: os <code>import</code> quebrados o <code>tsc</code>
+          acusa, mas as <strong>strings de <code>jest.mock('../…')</code> não</strong> — para
+          o compilador são texto puro, e só falham em runtime. Depois de mover um teste,
+          <code>npm run typecheck</code> limpo <em>não</em> é garantia de nada: rode
+          <code>npm test</code>.
+        </p>
+      </div>
+      <p>
+        Fora de <code>src/</code> existe ainda a pasta <code>test/</code> da
+        <strong>raiz</strong> — nome igual, papel diferente: ela não contém teste nenhum,
+        só a infraestrutura compartilhada da suíte (<code>fixtures.ts</code>,
+        <code>styleHelpers.ts</code>, <code>setup.tsx</code>).
       </p>
     </section>
 
@@ -1009,13 +1069,28 @@
         <div class="pyr-row pyr-row--comp">
           <h4>Componentes</h4>
           <p>Só o que ramifica: estilo condicional por raridade/estado, formatação, interação. Nada de snapshot.</p>
-          <div class="pyr-row__count">seletiva — 13 componentes</div>
+          <div class="pyr-row__count">seletiva — 14 componentes</div>
         </div>
         <div class="pyr-row pyr-row--out">
           <h4>Fora do escopo</h4>
-          <p><code>*Screen.tsx</code> (composição do que já é testado), animações puras (<code>AnimacaoAbrirPacote</code>, <code>ChargeGlow</code>, <code>Particle</code>) e as factories <code>make*.ts</code>.</p>
+          <p><code>*Screen.tsx</code> (composição do que já é testado) e as factories <code>make*.ts</code> — exceto <code>makeAuth</code>, a única que tem decisão dentro.</p>
           <div class="pyr-row__count">decisão consciente</div>
         </div>
+      </div>
+
+      <div class="note note--practice">
+        <span class="note__tag">"Animação não se testa" era meia verdade</span>
+        <p>
+          <code>AnimacaoAbrirPacote</code> ficou fora do escopo por um bom tempo com o
+          argumento de que era animação pura. Não era: por baixo do
+          <em>reanimated</em> existe uma <strong>máquina de estados</strong> — carta de
+          costas → revelada → próxima → resumo — e ela tem regras
+          (<em>nova</em> vs <em>repetida</em>, não avançar antes do <em>flip</em>, a última
+          carta leva ao resumo em vez de encerrar). Hoje são 16 testes que não olham para
+          nenhum <em>frame</em>: verificam o que a tela mostra e o que o componente avisa ao
+          pai em cada passo. O critério útil não é "tem animação?", e sim
+          <strong>"tem decisão?"</strong>.
+        </p>
       </div>
 
       <h3>O padrão que definiu a estratégia</h3>
@@ -1069,14 +1144,17 @@
         Rodando a cobertura restrita aos 28 use cases do projeto:
       </p>
       <div class="code-block">
-        <div class="code-block__bar"><span>npx jest --coverage --testPathPattern="domain/usecases"</span></div>
-<pre>Statements   : 100% ( 80/80 )
+        <div class="code-block__bar"><span>terminal</span><em>cobertura só dos use cases</em></div>
+<pre>npx jest --coverage --testPathPattern=<span class="tok-str">"domain/usecases"</span> \
+         --collectCoverageFrom=<span class="tok-str">"src/features/*/domain/usecases/**/*.ts"</span>
+
+Statements   : 100% ( 84/84 )
 Branches     : 100% ( 33/33 )
 Functions    : 100% ( 64/64 )
-Lines        : 100% ( 73/73 )
+Lines        : 100% ( 78/78 )
 
 Test Suites: 11 passed, 11 total
-Tests:       54 passed, 54 total</pre>
+Tests:       57 passed, 57 total</pre>
       </div>
       <p>
         Todos os 28 use cases estão cobertos, sem exceção. Mas repare na proporção entre as
@@ -1097,15 +1175,15 @@ Tests:       54 passed, 54 total</pre>
             <tr>
               <td class="tag tag-presentation">Com regra própria</td>
               <td>4</td>
-              <td>28</td>
-              <td>4 a 9 — casos e ramos</td>
+              <td>31</td>
+              <td>4 a 12 — casos e ramos</td>
             </tr>
           </tbody>
         </table>
       </div>
       <p>
-        <strong>14% dos use cases concentram 52% dos testes.</strong> Os quatro são
-        <code>BuyStickerPack</code> (9 testes), <code>BuyIndividualSticker</code> (8),
+        <strong>14% dos use cases concentram 54% dos testes.</strong> Os quatro são
+        <code>BuyStickerPack</code> (12 testes), <code>BuyIndividualSticker</code> (8),
         <code>SettlePendingPredictions</code> (7 — único com <code>for</code>,
         <code>if</code> aninhado e três dependências injetadas) e
         <code>GetUserProfile</code> (4). Os outros 24 são uma linha cada.
@@ -1132,7 +1210,7 @@ Tests:       54 passed, 54 total</pre>
         No caso dos 24 delegantes, cobrir 100% de <code>AddUserCoins.execute()</code>
         significa chamar uma linha uma vez. O teste não valida regra de negócio, porque não
         existe regra ali — ela mora no repositório, e é coberta pelos testes de
-        <code>FirestoreAlbumRepository</code> (17 testes), <code>SQLiteTeamRepository</code>
+        <code>FirestoreAlbumRepository</code> (15 testes), <code>SQLiteTeamRepository</code>
         (14) e das funções puras em <code>domain/constants/</code>. O valor desses 24 é
         outro, e é real: <strong>contrato e regressão</strong>.
       </p>
@@ -1219,17 +1297,18 @@ Tests:       54 passed, 54 total</pre>
       <span class="section__eyebrow">06 — Mapa</span>
       <h2>Onde cada arquivo de teste mora</h2>
       <p>
-        O projeto não tem pasta <code>__tests__</code> nem diretório <code>tests/</code>
-        espelhando a árvore do código. A convenção é <strong>co-locação</strong>: o teste
-        fica no <em>mesmo diretório</em> do arquivo que testa, com o sufixo
-        <code>.test.ts</code> (ou <code>.test.tsx</code> quando renderiza componente).
-        <code>CreatePrediction.ts</code> e <code>CreatePrediction.test.ts</code> são vizinhos.
+        Sem pasta <code>__tests__</code> em lugar nenhum. Como a seção 03 detalha, a
+        regra depende da camada: <strong>Domain <code>usecases</code> e Infra
+        <code>repositories</code></strong> ficam numa pasta <code>test/</code> espelhada
+        dentro da própria feature; <strong>todo o resto</strong> fica co-locado, vizinho do
+        arquivo que testa. O sufixo é sempre <code>.test.ts</code> (ou
+        <code>.test.tsx</code> quando renderiza componente).
       </p>
       <p>
-        A vantagem é direta: ao abrir qualquer pasta você vê imediatamente o que tem e o que
-        não tem teste, sem navegar em paralelo por duas árvores. A única exceção é
-        <code>test/</code> na raiz, que guarda a infraestrutura compartilhada da suíte
-        (<em>setup</em>, mocks globais, <em>fixtures</em>) — não testa nada por si só.
+        Na árvore abaixo, os caminhos que começam com <code>test/</code> são os espelhados;
+        os demais são co-locados. Note o efeito prático: as duas camadas onde a lógica é
+        densa concentram poucos arquivos com muitos testes cada, e são justamente as que
+        saíram do meio do código de produção.
       </p>
 
       <div class="legend">
@@ -1241,46 +1320,46 @@ Tests:       54 passed, 54 total</pre>
       </div>
 
       <div class="tree">
-        <div class="tree__row tree__row--head"><span class="tree__path"><b>src/features/album/</b></span><span class="tree__count"><em>22</em> arq · <em>196</em> testes</span></div>
+        <div class="tree__row tree__row--head"><span class="tree__path"><b>src/features/album/</b></span><span class="tree__count"><em>23</em> arq · <em>227</em> testes</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="d">test/domain/usecases/</span> <span class="dim">AlbumUseCases · BuyStickerPack · BuyIndividualSticker · GetUserProfile</span></span><span class="tree__count">4 · 38</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="i">test/infra/repositories/</span> <span class="dim">FirestoreAlbum · SQLiteAlbumCatalog</span></span><span class="tree__count">2 · 23</span></div>
         <div class="tree__row"><span class="tree__path">├─ <span class="d">domain/constants/</span> <span class="dim">collection · rewards</span></span><span class="tree__count">2 · 15</span></div>
-        <div class="tree__row"><span class="tree__path">├─ <span class="d">domain/usecases/</span> <span class="dim">AlbumUseCases · BuyStickerPack · BuyIndividualSticker · GetUserProfile</span></span><span class="tree__count">4 · 35</span></div>
-        <div class="tree__row"><span class="tree__path">├─ <span class="i">infra/repositories/</span> <span class="dim">FirestoreAlbum · SQLiteAlbumCatalog</span></span><span class="tree__count">2 · 23</span></div>
         <div class="tree__row"><span class="tree__path">├─ <span class="i">infra/stores/</span> <span class="dim">pendingPackStore</span></span><span class="tree__count">1 · 6</span></div>
-        <div class="tree__row"><span class="tree__path">├─ <span class="p">presentation/components/</span> <span class="dim">CardPacoteGratis · CardRecompensaDiaria · StickerCard</span></span><span class="tree__count">3 · 36</span></div>
-        <div class="tree__row"><span class="tree__path">└─ <span class="p">presentation/hooks/</span> <span class="dim">useAbrirPacote · useBuyStickerPack · +8</span></span><span class="tree__count">10 · 81</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="p">presentation/components/</span> <span class="dim">AnimacaoAbrirPacote · CardPacoteGratis · CardRecompensaDiaria · StickerCard</span></span><span class="tree__count">4 · 62</span></div>
+        <div class="tree__row"><span class="tree__path">└─ <span class="p">presentation/hooks/</span> <span class="dim">useAbrirPacote · useBuyStickerPack · +8</span></span><span class="tree__count">10 · 83</span></div>
 
         <div class="tree__sep"></div>
-        <div class="tree__row tree__row--head"><span class="tree__path"><b>src/features/apostas/</b></span><span class="tree__count"><em>14</em> arq · <em>66</em> testes</span></div>
+        <div class="tree__row tree__row--head"><span class="tree__path"><b>src/features/apostas/</b></span><span class="tree__count"><em>15</em> arq · <em>78</em> testes</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="d">test/domain/usecases/</span> <span class="dim">SettlePendingPredictions · +3</span></span><span class="tree__count">4 · 10</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="i">test/infra/repositories/</span> <span class="dim">FirestorePrediction · SQLiteMatch</span></span><span class="tree__count">2 · 15</span></div>
         <div class="tree__row"><span class="tree__path">├─ <span class="d">domain/constants/</span> <span class="dim">odds · predictionStats</span></span><span class="tree__count">2 · 8</span></div>
-        <div class="tree__row"><span class="tree__path">├─ <span class="d">domain/usecases/</span> <span class="dim">SettlePendingPredictions · +3</span></span><span class="tree__count">4 · 10</span></div>
-        <div class="tree__row"><span class="tree__path">├─ <span class="i">infra/repositories/</span> <span class="dim">SQLiteMatchRepository</span></span><span class="tree__count">1 · 6</span></div>
-        <div class="tree__row"><span class="tree__path">├─ <span class="p">presentation/components/</span> <span class="dim">CardResumoApostas · ContainerAposta</span></span><span class="tree__count">2 · 9</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="p">presentation/components/</span> <span class="dim">CardResumoApostas · ContainerAposta</span></span><span class="tree__count">2 · 13</span></div>
         <div class="tree__row"><span class="tree__path">└─ <span class="p">presentation/hooks/</span> <span class="dim">useSettlePendingPredictions · +4</span></span><span class="tree__count">5 · 32</span></div>
 
         <div class="tree__sep"></div>
-        <div class="tree__row tree__row--head"><span class="tree__path"><b>src/features/times/</b></span><span class="tree__count"><em>11</em> arq · <em>73</em> testes</span></div>
+        <div class="tree__row tree__row--head"><span class="tree__path"><b>src/features/times/</b></span><span class="tree__count"><em>11</em> arq · <em>82</em> testes</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="d">test/domain/usecases/</span> <span class="dim">TeamUseCases · ToggleFavoriteTeam</span></span><span class="tree__count">2 · 8</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="i">test/infra/repositories/</span> <span class="dim">SQLiteTeamRepository</span></span><span class="tree__count">1 · 14</span></div>
         <div class="tree__row"><span class="tree__path">├─ <span class="d">domain/constants/</span> <span class="dim">playerStats · ranking</span></span><span class="tree__count">2 · 9</span></div>
-        <div class="tree__row"><span class="tree__path">├─ <span class="d">domain/usecases/</span> <span class="dim">TeamUseCases · ToggleFavoriteTeam</span></span><span class="tree__count">2 · 8</span></div>
-        <div class="tree__row"><span class="tree__path">├─ <span class="i">infra/repositories/</span> <span class="dim">SQLiteTeamRepository</span></span><span class="tree__count">1 · 14</span></div>
-        <div class="tree__row"><span class="tree__path">├─ <span class="p">presentation/components/</span> <span class="dim">CardConquistas · CardHistoricoMundial</span></span><span class="tree__count">2 · 11</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="p">presentation/components/</span> <span class="dim">CardConquistas · CardHistoricoMundial</span></span><span class="tree__count">2 · 20</span></div>
         <div class="tree__row"><span class="tree__path">└─ <span class="p">presentation/hooks/</span> <span class="dim">useTimesScreen · +3</span></span><span class="tree__count">4 · 31</span></div>
 
         <div class="tree__sep"></div>
-        <div class="tree__row tree__row--head"><span class="tree__path"><b>src/features/auth/</b></span><span class="tree__count"><em>5</em> arq · <em>36</em> testes</span></div>
-        <div class="tree__row"><span class="tree__path">├─ <span class="i">infra/repositories/</span> <span class="dim">FirebaseAuthRepository</span></span><span class="tree__count">1 · 9</span></div>
+        <div class="tree__row tree__row--head"><span class="tree__path"><b>src/features/auth/</b></span><span class="tree__count"><em>5</em> arq · <em>56</em> testes</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="i">test/infra/repositories/</span> <span class="dim">FirebaseAuthRepository</span></span><span class="tree__count">1 · 9</span></div>
         <div class="tree__row"><span class="tree__path">├─ <span class="m">main/factories/</span> <span class="dim">makeAuth — a única factory testada</span></span><span class="tree__count">1 · 9</span></div>
-        <div class="tree__row"><span class="tree__path">└─ <span class="p">presentation/hooks/</span> <span class="dim">useLogin · useRegister · useForgotPassword</span></span><span class="tree__count">3 · 18</span></div>
+        <div class="tree__row"><span class="tree__path">└─ <span class="p">presentation/hooks/</span> <span class="dim">useLogin · useRegister · useForgotPassword</span></span><span class="tree__count">3 · 38</span></div>
 
         <div class="tree__sep"></div>
-        <div class="tree__row tree__row--head"><span class="tree__path"><b>src/features/grupos/</b></span><span class="tree__count"><em>3</em> arq · <em>9</em> testes</span></div>
-        <div class="tree__row"><span class="tree__path">├─ <span class="d">domain/usecases/</span> <span class="dim">GetAllGroups</span></span><span class="tree__count">1 · 1</span></div>
-        <div class="tree__row"><span class="tree__path">├─ <span class="i">infra/repositories/</span> <span class="dim">SQLiteGroupRepository</span></span><span class="tree__count">1 · 4</span></div>
-        <div class="tree__row"><span class="tree__path">└─ <span class="p">presentation/hooks/</span> <span class="dim">useGroups</span></span><span class="tree__count">1 · 4</span></div>
+        <div class="tree__row tree__row--head"><span class="tree__path"><b>src/features/grupos/</b></span><span class="tree__count"><em>3</em> arq · <em>12</em> testes</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="d">test/domain/usecases/</span> <span class="dim">GetAllGroups</span></span><span class="tree__count">1 · 1</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="i">test/infra/repositories/</span> <span class="dim">SQLiteGroupRepository</span></span><span class="tree__count">1 · 5</span></div>
+        <div class="tree__row"><span class="tree__path">└─ <span class="p">presentation/hooks/</span> <span class="dim">useGroups</span></span><span class="tree__count">1 · 6</span></div>
 
         <div class="tree__sep"></div>
-        <div class="tree__row tree__row--head"><span class="tree__path"><b>src/shared/</b></span><span class="tree__count"><em>7</em> arq · <em>68</em> testes</span></div>
-        <div class="tree__row"><span class="tree__path">├─ <span class="s">presentation/contexts/</span> <span class="dim">UserContext — o estado global do usuário</span></span><span class="tree__count">1 · 17</span></div>
-        <div class="tree__row"><span class="tree__path">└─ <span class="s">presentation/components/</span> <span class="dim">CardFigurinha · MolduraIndividualPais · BotaoHomeMolde · PalpiteBtn · MoldeInputs · CardColecao</span></span><span class="tree__count">6 · 51</span></div>
+        <div class="tree__row tree__row--head"><span class="tree__path"><b>src/shared/</b> <span class="dim">— sem pasta test/: nada de Domain nem Infra aqui</span></span><span class="tree__count"><em>7</em> arq · <em>113</em> testes</span></div>
+        <div class="tree__row"><span class="tree__path">├─ <span class="s">presentation/contexts/</span> <span class="dim">UserContext — o estado global do usuário</span></span><span class="tree__count">1 · 24</span></div>
+        <div class="tree__row"><span class="tree__path">└─ <span class="s">presentation/components/</span> <span class="dim">MolduraIndividualPais · CardFigurinha · BotaoHomeMolde · PalpiteBtn · MoldeInputs · CardColecao</span></span><span class="tree__count">6 · 89</span></div>
 
         <div class="tree__sep"></div>
         <div class="tree__row tree__row--head"><span class="tree__path"><b>test/</b> <span class="dim">— infraestrutura, não contém testes</span></span><span class="tree__count">3 arq</span></div>
@@ -1289,9 +1368,11 @@ Tests:       54 passed, 54 total</pre>
         <div class="tree__row"><span class="tree__path">└─ <span class="dim">styleHelpers.ts</span> — <span class="dim">leitura de estilo achatado em asserções</span></span><span class="tree__count"></span></div>
       </div>
       <p class="caption">
-        63 arquivos de teste · 544 testes. A contagem por arquivo soma os blocos
-        <code>it()</code>; suítes que usam <code>it.each</code> geram mais testes em
-        execução do que blocos escritos, por isso os subtotais somam menos que 522.
+        64 arquivos de teste · 568 testes. A contagem é a de <em>execução</em> reportada
+        pelo Jest, não a de blocos <code>it()</code> escritos: suítes que usam
+        <code>it.each</code> geram um teste por linha da tabela, então rendem mais do que
+        aparenta no código-fonte (<code>MolduraIndividualPais</code> é o caso extremo — 38).
+        Por isso os subtotais fecham exatamente em 568.
       </p>
 
       <h3>O que o mapa revela sobre a estratégia</h3>
@@ -1303,18 +1384,18 @@ Tests:       54 passed, 54 total</pre>
           <tbody>
             <tr>
               <td class="tag tag-presentation">Presentation</td>
-              <td>37</td>
-              <td>A maior fatia — 30 nas features e 7 em <code>shared</code>. É onde há mais arquivos e mais estados possíveis (<code>loading</code>/<code>error</code>/<code>data</code>), não onde há mais regra de negócio.</td>
+              <td>38</td>
+              <td>A maior fatia — 31 nas features e 7 em <code>shared</code>, toda ela co-locada. É onde há mais arquivos e mais estados possíveis (<code>loading</code>/<code>error</code>/<code>data</code>), não onde há mais regra de negócio.</td>
             </tr>
             <tr>
               <td class="tag tag-domain">Domain</td>
               <td>17</td>
-              <td>Dividido entre <code>usecases/</code> (11) e <code>constants/</code> (6). São os arquivos mais baratos de rodar e os que mais pegam defeito por teste escrito.</td>
+              <td>Dividido entre <code>usecases/</code> (11, em <code>test/</code>) e <code>constants/</code> (6, co-locados). São os arquivos mais baratos de rodar e os que mais pegam defeito por teste escrito.</td>
             </tr>
             <tr>
               <td class="tag tag-infra">Infra</td>
-              <td>7</td>
-              <td>Poucos arquivos, muitos testes cada (Firestore: 17, SQLiteTeam: 14). É onde mora a lógica que os use cases delegam.</td>
+              <td>8</td>
+              <td>7 repositórios (em <code>test/</code>) mais o <code>pendingPackStore</code>. Poucos arquivos, muitos testes cada (FirestoreAlbum: 15, SQLiteTeam: 14). É onde mora o que o use case não decide: montar query, mapear linha→entidade, engolir ou propagar erro.</td>
             </tr>
             <tr>
               <td class="tag tag-mem">Main</td>
@@ -1327,9 +1408,15 @@ Tests:       54 passed, 54 total</pre>
       <div class="note note--practice">
         <span class="note__tag">Como achar o teste de um arquivo</span>
         <p>
-          Não há índice a consultar: abra a pasta do arquivo e procure o vizinho com
-          <code>.test</code> no nome. Se ele não existir, aquele arquivo não tem teste — e
-          essa ausência é visível de imediato, que é justamente o motivo da co-locação.
+          Não há índice a consultar — a busca depende de onde o arquivo está. Se ele
+          <strong>não</strong> for use case nem repositório, procure o vizinho com
+          <code>.test</code> no nome na mesma pasta; ausência ali significa ausência de
+          teste, e essa é a vantagem da co-locação. Se for
+          <code>&lt;feature&gt;/domain/usecases/X.ts</code> ou
+          <code>&lt;feature&gt;/infra/repositories/X.ts</code>, troque o prefixo por
+          <code>&lt;feature&gt;/test/</code> e o caminho restante é idêntico. Na dúvida,
+          <code>npx jest X</code> resolve: o Jest aceita um fragmento de caminho e lista o
+          que casou.
         </p>
       </div>
     </section>
@@ -1734,7 +1821,7 @@ Tests:       54 passed, 54 total</pre>
       <h2>Como rodar e o que verificar</h2>
       <div class="code-block">
         <div class="code-block__bar"><span>terminal</span></div>
-<pre>npm test                 <span class="tok-com"># 544 testes, 63 suítes, ~25s</span>
+<pre>npm test                 <span class="tok-com"># 568 testes, 64 suítes, ~27s</span>
 npm run test:watch       <span class="tok-com"># re-roda só o que mudou, enquanto você edita</span>
 npm run test:coverage    <span class="tok-com"># relatório de cobertura por camada</span>
 
@@ -1757,7 +1844,7 @@ npx jest -t <span class="tok-str">"cooldown"</span>     <span class="tok-com"># 
 
       <h3>Checklist para escrever um teste novo neste projeto</h3>
       <ul class="checklist">
-        <li>O arquivo fica ao lado do original, com sufixo <code>.test.ts</code> / <code>.test.tsx</code>.</li>
+        <li>Escolha o lugar pela camada: use case ou repositório vai para <code>&lt;feature&gt;/test/</code> espelhando o caminho; qualquer outra coisa fica ao lado do original. Sufixo <code>.test.ts</code> / <code>.test.tsx</code> nos dois casos.</li>
         <li>O nome do <code>it(...)</code> descreve <strong>comportamento em português</strong>, não implementação: "bloqueia antes do fim do cooldown", não "testa a função X".</li>
         <li>Identifique a camada e use o ponto de corte dela (tabela da seção 02) — não mocke mais fundo que o necessário.</li>
         <li><code>jest.clearAllMocks()</code> no <code>beforeEach</code>, sempre.</li>
@@ -1779,7 +1866,7 @@ npx jest -t <span class="tok-str">"cooldown"</span>     <span class="tok-com"># 
         </div>
         <div class="gloss-item">
           <dt>Suíte</dt>
-          <dd>Um arquivo de teste. "61 suítes" = 61 arquivos <code>.test.ts(x)</code> no projeto.</dd>
+          <dd>Um arquivo de teste. "64 suítes" = 64 arquivos <code>.test.ts(x)</code> no projeto.</dd>
         </div>
         <div class="gloss-item">
           <dt>Preset</dt>
@@ -1844,7 +1931,7 @@ npx jest -t <span class="tok-str">"cooldown"</span>     <span class="tok-com"># 
 
   <footer class="colophon">
     Guia gerado a partir do código-fonte, de docs/testing-plan.md e de docs/technical-readme.md — para fins de estudo.
-    Números verificados com <code>npm test</code>: 544 testes em 63 suítes.
+    Números verificados com <code>npm test</code>: 568 testes em 64 suítes.
   </footer>
 
 </div>
